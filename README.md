@@ -73,7 +73,7 @@ sim-hub-theme-settings/
 ---
 
 ## 💬 제작 정보 (Credits)
-- **기획 & 개발 (Design & Dev):** 승율 이  
+- **기획 & 개발 (Design & Dev):** Subitul & ChatGPT-5
 - **사용 기술 (Tech Stack):** HTML · CSS · JavaScript (Vanilla)  
 - **배포 (Deployment):** GitHub Pages
 
