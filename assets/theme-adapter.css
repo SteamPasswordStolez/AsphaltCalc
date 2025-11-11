@@ -1,0 +1,120 @@
+
+/* Theme Adapter: map common controls to theme tokens */
+body{ color:var(--ink); background:var(--bg); }
+.card{ background:var(--panel)!important; border-color:var(--border)!important; color:var(--ink)!important; }
+input, select, textarea{
+  background:var(--control-bg)!important;
+  color:var(--ink)!important;
+  border:1px solid var(--control-border)!important;
+  border-radius:10px; outline:none;
+}
+input::placeholder, textarea::placeholder{ color:var(--muted)!important; opacity:.9 }
+.button{ color:var(--ink); }
+.button.primary{ background: linear-gradient(135deg, var(--accent), var(--accent2))!important; color:#fff!important; border-color:transparent!important }
+.tag, .chip{ background:var(--chip-bg)!important; color:var(--ink)!important; border:1px solid var(--border)!important; }
+hr{ border-color:var(--border)!important; }
+
+/* --- Themed Buttons (base & primary) --- */
+.button{
+  background: var(--chip-bg) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--ink) !important;
+  border-radius: 999px !important;
+  padding: 10px 14px !important;
+  transition: background .15s ease, box-shadow .15s ease, transform .02s ease;
+}
+.button:hover{ box-shadow: 0 4px 14px rgba(0,0,0,.15) }
+.button:active{ transform: translateY(1px) }
+
+.button.primary{
+  background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25), 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+/* Badges & tags */
+.badge{
+  background: var(--chip-bg) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--ink) !important;
+  border-radius: 999px !important;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+}
+.tag{ border-radius: 999px !important; }
+
+
+/* ---- Simulator common components ---- */
+.panel{
+  background: var(--panel) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+}
+.kpi{
+  background: var(--panel) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+}
+.btn{
+  background: var(--chip-bg) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+}
+.btn.primary{
+  background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+.tabs{ gap:8px }
+.tab{
+  background: var(--panel) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+}
+.tab.active{
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent2) 30%, transparent)) !important;
+}
+
+/* Chips / tags */
+.chip{ background: var(--chip-bg) !important; color: var(--ink) !important; border: 1px solid var(--border) !important; }
+
+/* Fine-tune code/mono areas */
+.mono{ color: var(--ink) !important; background: var(--panel) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; }
+
+/* Subtle text */
+.subtle, .muted{ color: var(--muted) !important; }
+
+/* Grid dividers */
+hr, .divider{ border-color: var(--border) !important; }
+
+/* Focus ring */
+:focus-visible{ outline: 2px solid color-mix(in srgb, var(--accent) 65%, transparent); outline-offset: 2px; }
+
+/* ---- Status badge coloring (restore semantic colors) ---- */
+.badge.c-unknown{ background:#0a0a0a !important; color:#fff !important; border-color:#222 !important; }
+.badge.c-impossible{ background:#2b0b10 !important; color:#fee2e2 !important; border-color:#7f1d1d !important; }
+.badge.c-ultramin{ background:#3b0b0b !important; color:#fecaca !important; border-color:#ef4444 !important; }
+.badge.c-min{ background:#3a2106 !important; color:#ffedd5 !important; border-color:#f59e0b !important; }
+.badge.c-possible-yellow{ background:#3a3006 !important; color:#fef08a !important; border-color:#facc15 !important; }
+.badge.c-possible-green{ background:#0b2b1a !important; color:#dcfce7 !important; border-color:#22c55e !important; }
+.badge.c-easy{ background:#062a35 !important; color:#e0f2fe !important; border-color:#38bdf8 !important; }
+
+/* Make main status badge a bit larger and bold */
+#bBadge.badge{ font-size:14px !important; font-weight:700 !important; padding:6px 10px !important; }
+
+
+/* Global mobile polish */
+@media (max-width: 860px){
+  .brand h1{font-size: 18px !important}
+  .badge{font-size: 12px !important}
+}
+
+/* Improve contrast of canvas axis/labels based on theme */
+:root[data-theme="light"] canvas, :root[data-theme="sandstone"] canvas, :root[data-theme="sakura"] canvas, :root[data-theme="skyline"] canvas, :root[data-theme="sepia"] canvas{
+  background: var(--panel);
+}
