@@ -40,3 +40,48 @@ Each simulator runs independently but shares a unified theme and history system.
 ---
 
 ## 📦 폴더 구조 (Folder Structure)
+sim-hub-theme-settings/
+├─ index.html # 메인 허브 / Main Hub
+├─ assets/
+│ ├─ theme-adapter.css # 공통 테마 및 반응형 스타일 / Theme system
+│ └─ ...
+└─ simulators/
+├─ car-hunt.html # Car Hunt Simulator
+└─ fullstar.html # Full Star Simulator
+
+---
+
+## 🎨 테마 프리뷰 (Theme Preview)
+| 이름(Name) | 설명(Description) |
+|-------------|------------------|
+| **Asphalt Legends (Default)** | 네온 퍼플 + 딥다크 블랙 / Neon purple + deep dark black |
+| **Aurora** | 청록-보라 그라데이션 / Cyan-Purple gradient |
+| **Sunset** | 오렌지-보라 저녁빛 / Warm orange-purple sunset |
+| **Onyx** | 클래식 다크 모드 / Pure dark |
+| **Forest** | 그린 톤 / Forest green focus |
+
+---
+
+## 📜 버전 이력 (Version History)
+| 버전 (Version) | 주요 변경점 (Highlights) |
+|----------------|--------------------------|
+| fix6 | 배지 스타일 및 색상 개선 / Badge and color refinement |
+| fix7 | Car Hunt 히스토그램 개선, 모바일 가독성 향상 / Histogram & mobile UI improvements |
+| fix8 | Fullstar 기능 확장 → 롤백 안정화 / Fullstar feature rollback for stability |
+| current | 안정 빌드 (Fullstar 롤백 포함) / Current stable build |
+
+---
+
+## 💬 제작 정보 (Credits)
+- **기획 & 개발 (Design & Dev):** 승율 이  
+- **사용 기술 (Tech Stack):** HTML · CSS · JavaScript (Vanilla)  
+- **배포 (Deployment):** GitHub Pages
+
+---
+
+## 🪪 라이선스 (License)
+이 프로젝트는 개인 학습 및 실험 목적으로 제작되었습니다.  
+상업적 사용은 금지되며, 출처 표기 시 비상업적 재배포는 허용됩니다.  
+
+This project is for personal learning and experimental use only.  
+Commercial redistribution is prohibited, but non-commercial sharing with attribution is permitted.
