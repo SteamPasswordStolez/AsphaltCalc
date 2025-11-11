@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Car Hunt 시뮬레이터 (목표/시간 기준)</title>
+<style>
+  :root{}
+  *{box-sizing:border-box}
+  body{margin:0; font-family:ui-sans-serif,system-ui,Segoe UI,Apple SD Gothic Neo,Apple Color Emoji,Roboto,Noto Sans KR,Arial; background:linear-gradient(180deg,var(--bg),#0e131a 40%,var(--bg)); color:var(--ink)}
+  .wrap{max-width:1180px; margin:32px auto; padding:0 16px}
+  h1{font-size:26px; margin:0 0 16px}
+  .grid{display:grid; grid-template-columns:1.1fr 1fr; gap:var(--gap)}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow)}
+  .card h2{font-size:18px; margin:0 0 8px}
+  .card .body{padding:16px}
+  label{display:grid; grid-template-columns:1.2fr 1fr; align-items:center; gap:10px; margin:10px 0; color:var(--muted)}
+  input[type="number"], input[type="text"], select{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--control-border); background:var(--control-bg); color:var(--ink)}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px}
+  button{padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:var(--chip-bg); color:var(--ink); cursor:pointer}
+  button.primary{border-color:#17576b; background:linear-gradient(180deg,#14384a,#0f2a38);}
+  button.sub{background:var(--chip-bg)}
+  button.warn{background:#2a1010; border-color:#4a1c1c}
+  button:disabled{opacity:.5; cursor:not-allowed}
+  .result{font-variant-numeric:tabular-nums; display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+  .stat{background:#0c141f; border:1px solid #1a2433; border-radius:12px; padding:10px}
+  .stat .k{color:var(--muted); font-size:12px}
+  .stat .v{font-size:20px; margin-top:6px}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
+  .footer{opacity:.7; font-size:12px; margin-top:12px; white-space:pre-wrap}
+  canvas{width:100%; height:220px; background:#0a1018; border:1px solid #1a2433; border-radius:10px}
+  @media (max-width: 1024px){.grid{grid-template-columns:1fr}}
+  .tabs{display:flex; gap:8px; margin-bottom:12px}
+  .tab{padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:var(--chip-bg); cursor:pointer}
+  .tab.active{background:#14384a; border-color:#17576b}
+  .hidden{display:none}
+  .muted{opacity:.6}
+  .seg-table{width:100%; border-collapse:separate; border-spacing:0 6px;}
+  .seg-table th{font-size:12px; color:var(--muted); font-weight:600; text-align:left; padding:2px 6px}
+  .seg-table td{padding:0 6px}
+  .seg-row{display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; align-items:center}
+  .seg-row input{width:100%}
+  .pill{padding:6px 10px; border-radius:999px; background:var(--chip-bg); border:1px solid var(--border); font-size:12px}
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:var(--gap);}
+  .list{list-style:none; padding:0; margin:8px 0 0}
+  .list li{display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--border); background:var(--control-bg); padding:8px 10px; border-radius:10px; margin-bottom:8px}
+  .list .meta{font-size:12px; color:var(--muted)}
+  .chip{font-size:12px; padding:2px 8px; border:1px solid var(--control-border); border-radius:999px; background:var(--chip-bg); margin-left:6px}
+  .grow{flex:1 1 auto; min-width:0}
+
+/* Theme token normalization (inlined) */
+.card{ background:var(--panel); border-color:var(--border); color:var(--ink); }
+.stat{ background:var(--panel); border:1px solid var(--border); border-radius:12px; }
+input[type="number"], input[type="text"], select{ background:var(--control-bg); color:var(--ink); border:1px solid var(--control-border); }
+.pill, .chip{ background:var(--chip-bg); color:var(--ink); border:1px solid var(--border); }
+.seg-table th, .seg-table td{ border-color:var(--border) }
+.warn{ background:color-mix(in srgb, var(--danger) 20%, transparent); color:var(--ink); border:1px solid color-mix(in srgb, var(--danger) 45%, var(--border)); }
+
+</style>
+  <link rel="stylesheet" href="../assets/themes.css">
+
+<script>
+(function(){
+  var SIM_ID = "car-hunt";
+  var GKEY = "simhub_theme_global";
+  var OKEY = "simhub_theme_overrides";
+  function resolveSystem(theme){
+    if(theme!=="system") return theme;
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return isDark ? "dark" : "light";
+  }
+  function apply(){
+    var g = localStorage.getItem(GKEY) || "asphalt";
+    try{ var map = JSON.parse(localStorage.getItem(OKEY)||"{}"); }catch(_){
+      var map = {};
+    }
+    var t = map[SIM_ID] || g;
+    document.documentElement.dataset.theme = resolveSystem(t);
+  }
+  try{ apply(); }catch(e){ console.warn(e); }
+})();
+</script>
+
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+<style>
+/* --- Car Hunt theming fixes --- */
+/* Histogram panel */
+#histPanel, .histogram, .histogram .panel, #histCanvas{
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--ink) !important;
+  border-radius: 12px !important;
+}
+
+/* Primary action buttons: run simulation, '이 설정으로 실행', history clear, preset delete */
+button.run, button.run-sim, #btnRun, .btn-run,
+#historyRun, .history-run, .btn-history-run,
+#btnHistoryClear, .btn-history-clear,
+.preset-delete, .btn-preset-delete {
+  background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25) !important;
+  font-weight: 700 !important;
+}
+
+/* Secondary gray buttons map to chip color */
+button.gray, .btn-gray, .btn-secondary {
+  background: var(--chip-bg) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+}
+
+/* History / Preset cards */
+.history-card, .preset-card {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--ink) !important;
+}
+
+/* Segmented table borders */
+.seg-table th, .seg-table td { border-color: var(--border) !important; }
+</style>
+
+
+<style>
+/* Histogram correct target */
+#hist{ background: var(--panel) !important; border:1px solid var(--border) !important; border-radius:12px !important; }
+/* Container tweaks for histogram panel if exists */
+#histPanel{ background: var(--panel) !important; border:1px solid var(--border) !important; border-radius:12px !important; }
+
+/* Mobile readability */
+@media (max-width: 860px){
+  .wrap{grid-template-columns: 1fr !important; gap: 12px !important;}
+  .card{padding: 12px !important;}
+  .field label{font-size: 14px !important;}
+  input, select, textarea{font-size: 16px !important; padding: 10px 12px !important;} /* bigger touch targets */
+  .button, .btn, .pill{font-size: 15px !important; padding: 10px 14px !important;}
+  /* Results grid stack */
+  .stat{min-height: 60px !important;}
+  #hist{width: 100% !important; height: 260px !important;}
+}
+</style>
+
+</head>
+<body>
+  <div class="wrap">
+    <h1>🚗 Car Hunt 시뮬레이터 <small class="mono" style="font-size:12px; opacity:.7">v1.5 (history + presets)</small></h1>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="goal">🎯 목표 기준</button>
+      <button class="tab" data-tab="time">⏱️ 시간 기준</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="body">
+          <h2>입력값</h2>
+
+          <div class="row">
+            <label>티켓 자동충전 속도 (%)
+              <input id="autoRate" type="number" min="10" step="1" value="100" />
+            </label>
+            <label>티켓 충전 방식
+              <select id="chargeMethod">
+                <option value="token">토큰</option>
+                <option value="ad">광고</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="row">
+            <label>티켓 비용 (회당)
+              <input id="ticketCost" type="number" min="1" step="1" value="1" />
+            </label>
+            <label>레전드 패스 무료충전 적용 (1회)
+              <input id="lpFree" type="checkbox" />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>안드로이드/iOS 서버
+              <input id="mobileSrv" type="checkbox" />
+            </label>
+            <label>광고 시청 시간 (초)
+              <input id="adSec" type="number" min="1" step="1" value="30" />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>티켓 광고 최대 횟수
+              <input id="ticketAdMax" type="number" min="0" step="1" value="40" />
+            </label>
+            <label>크레딧 광고 여부
+              <input id="creditAd" type="checkbox" checked />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>크레딧 광고 최대 횟수
+              <input id="creditAdMax" type="number" min="0" step="1" value="40" />
+            </label>
+            <label>맵 1회 플레이 시간 (초)
+              <input id="mapSec" type="number" min="1" step="1" value="38" />
+            </label>
+          </div>
+
+          <label>로비 체류 시간 (초)
+            <input id="lobbySec" type="number" min="0" step="1" value="20" />
+          </label>
+
+          <label>사냥 1판당 팩 개수
+            <input id="packs" type="number" min="1" step="1" value="3" />
+          </label>
+
+          <hr style="border:0;border-top:1px solid var(--border); margin:10px 0">
+
+          <!-- 목표 기준 탭 -->
+          <div id="tab-goal">
+            <div class="row">
+              <label>목표 유형
+                <select id="goalType">
+                  <option value="bp">청사진</option>
+                  <option value="sp">특수부품</option>
+                </select>
+              </label>
+              <label class="muted">시뮬레이션 횟수 (고정)
+                <input id="trials" type="number" value="1000" disabled />
+              </label>
+            </div>
+
+            <div class="row">
+              <label>목표 청사진 수
+                <input id="targetBP" type="number" min="1" step="1" value="300" />
+              </label>
+              <label>목표 특수부품 수
+                <input id="targetSP" type="number" min="1" step="1" value="16" />
+              </label>
+            </div>
+
+            <div class="row">
+              <label>청사진 드랍 시 획득량
+                <input id="bpPerDrop" type="number" min="1" step="1" value="1" />
+              </label>
+              <label>청사진 드랍 확률 (기본)
+                <input id="pBP" type="number" min="0" max="1" step="0.001" value="0.08" />
+              </label>
+            </div>
+
+            <label>특수부품 드랍 확률
+              <input id="pSP" type="number" min="0" max="1" step="0.001" value="0.04" />
+            </label>
+
+            <div style="margin-top:12px">
+              <div class="row" style="align-items:center">
+                <label style="grid-column:1 / -1; display:flex; align-items:center; gap:10px">
+                  <span class="pill">구간별 청사진 확률 사용</span>
+                  <input id="useSegments" type="checkbox" />
+                  <span class="muted" style="margin-left:6px">예: 0~120장 8%, 121~150장 5%, 151~∞ 3%</span>
+                </label>
+              </div>
+              <table class="seg-table" id="segTable">
+                <thead>
+                  <tr>
+                    <th>시작 BP</th>
+                    <th>끝 BP (포함)</th>
+                    <th>확률 p (0~1)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="segTbody"></tbody>
+              </table>
+              <div class="actions">
+                <button id="addSeg" class="sub">+ 구간 추가</button>
+                <button id="resetSeg" class="sub">구간 기본값</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 시간 기준 탭 -->
+          <div id="tab-time" class="hidden">
+            <h2>시간 기준 입력</h2>
+            <div class="row">
+              <label>총 사냥 시간 — 시
+                <input id="timeH" type="number" min="0" step="1" value="1" />
+              </label>
+              <label>총 사냥 시간 — 분
+                <input id="timeM" type="number" min="0" max="59" step="1" value="0" />
+              </label>
+            </div>
+            <label>총 사냥 시간 — 초
+              <input id="timeS" type="number" min="0" max="59" step="1" value="0" />
+            </label>
+
+            <div class="row" style="margin-top:6px">
+              <label class="muted">시뮬레이션 횟수 (고정)
+                <input id="trialsTime" type="number" value="1000" disabled />
+              </label>
+              <label>결과 기준
+                <select id="timeGoalType">
+                  <option value="bp">청사진</option>
+                  <option value="sp">특수부품</option>
+                  <option value="both">둘 다</option>
+                </select>
+              </label>
+            </div>
+
+            <hr style="border:0;border-top:1px solid var(--border); margin:10px 8px">
+
+            <h3 style="margin:6px 0 4px">확률 설정 (시간 기준)</h3>
+            <div class="row">
+              <label>청사진 기본 확률 (pBP)
+                <input id="pBP_time" type="number" min="0" max="1" step="0.001" value="0.08" />
+              </label>
+              <label>특수부품 기본 확률 (pSP)
+                <input id="pSP_time" type="number" min="0" max="1" step="0.001" value="0.04" />
+              </label>
+            </div>
+            <div class="row" style="align-items:center">
+              <label style="grid-column:1 / -1; display:flex; align-items:center; gap:10px">
+                <span class="pill">구간별 청사진 확률 사용</span>
+                <input id="useSegmentsBP_time" type="checkbox" />
+                <span class="muted">(끄면 pBP 기본값 사용)</span>
+              </label>
+            </div>
+            <table class="seg-table" id="segTableBP_time">
+              <thead>
+                <tr><th>시작 BP</th><th>끝 BP (포함)</th><th>pBP (0~1)</th><th></th></tr>
+              </thead>
+              <tbody id="segTbodyBP_time"></tbody>
+            </table>
+            <div class="actions">
+              <button id="addSegBP_time" class="sub">+ BP 구간 추가</button>
+              <button id="resetSegBP_time" class="sub">BP 구간 기본값</button>
+            </div>
+
+            <div class="row" style="align-items:center; margin-top:12px">
+              <label style="grid-column:1 / -1; display:flex; align-items:center; gap:10px">
+                <span class="pill">구간별 특수부품 확률 사용</span>
+                <input id="useSegmentsSP_time" type="checkbox" />
+                <span class="muted">(끄면 pSP 기본값 사용)</span>
+              </label>
+            </div>
+            <table class="seg-table" id="segTableSP_time">
+              <thead>
+                <tr><th>시작 SP</th><th>끝 SP (포함)</th><th>pSP (0~1)</th><th></th></tr>
+              </thead>
+              <tbody id="segTbodySP_time"></tbody>
+            </table>
+            <div class="actions">
+              <button id="addSegSP_time" class="sub">+ SP 구간 추가</button>
+              <button id="resetSegSP_time" class="sub">SP 구간 기본값</button>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="run" class="primary">시뮬레이션 실행 (1000회)</button>
+            <button id="reset" class="sub">기본값 복원</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="body">
+          <h2>결과</h2>
+          <div class="result" id="resultBox">
+            <div class="stat"><div class="k">걸린 시간</div><div class="v" id="timeStr">-</div></div>
+            <div class="stat"><div class="k">사용한 토큰</div><div class="v" id="tokensUsed">-</div></div>
+            <div class="stat"><div class="k">획득한 청사진 수</div><div class="v" id="bpGained">-</div></div>
+            <div class="stat"><div class="k">획득한 특수부품 수</div><div class="v" id="spGained">-</div></div>
+            <div class="stat"><div class="k">(참고) 5%~95% 시간/획득치</div><div class="v" id="p595Time">-</div></div>
+            <div class="stat"><div class="k">(참고) 표준편차</div><div class="v" id="stdTime">-</div></div>
+          </div>
+          <h2 style="margin-top:14px">히스토그램</h2>
+          <canvas id="hist"></canvas>
+          <div class="actions" style="margin-top:12px">
+            <label style="display:flex; align-items:center; gap:8px; margin:0">
+              요약 형식
+              <select id="summaryFmt">
+                <option value="text">텍스트</option>
+                <option value="md">Markdown</option>
+                <option value="discord">Discord</option>
+              </select>
+            </label>
+            <button id="copySummary" class="sub" disabled>요약 복사</button>
+            <button id="saveImage" class="sub" disabled>이미지 저장(PNG)</button>
+          </div>
+          <div class="footer mono" id="paramsEcho"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="twocol" style="margin-top:var(--gap)">
+      <div class="card">
+        <div class="body">
+          <h2>🕒 최근 5회 히스토리</h2>
+          <ul id="historyList" class="list"></ul>
+          <div class="actions">
+            <button id="clearHistory" class="warn">히스토리 비우기</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="body">
+          <h2>⭐ 프리셋</h2>
+          <div class="actions">
+            <input id="presetName" type="text" placeholder="프리셋 이름" class="grow">
+            <button id="savePreset" class="sub">저장</button>
+            <button id="exportPresets" class="sub">내보내기(JSON)</button>
+            <input id="importFile" type="file" accept="application/json" style="display:none">
+            <button id="importPresets" class="sub">가져오기</button>
+          </div>
+          <ul id="presetList" class="list"></ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const TOKEN_PER_TICKET = 5; // 1장당 토큰 비용(고정)
+  let lastStats = null;
+
+  const STORAGE_KEYS = {
+    history: 'carhunt_history_v1',
+    presets: 'carhunt_presets_v1'
+  };
+
+  function nowStr(){
+    const d=new Date();
+    const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0');
+    const hh=String(d.getHours()).padStart(2,'0'); const mi=String(d.getMinutes()).padStart(2,'0'); const ss=String(d.getSeconds()).padStart(2,'0');
+    return `${y}-${m}-${dd} ${hh}:${mi}:${ss}`;
+  }
+
+  // ===== Tabs =====
+  const tabBtns = document.querySelectorAll('.tab');
+  tabBtns.forEach(btn=>btn.addEventListener('click',()=>{
+    tabBtns.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const t = btn.dataset.tab;
+    document.getElementById('tab-goal').classList.toggle('hidden', t!=="goal");
+    document.getElementById('tab-time').classList.toggle('hidden', t!=="time");
+  }));
+
+  // ===== Segment editors (same as v1.4, with tbody-only readers) =====
+  function segRow(start=0, end=120, p=0.08){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input type="number" min="0" step="1" class="seg-start" value="${start}"></td>
+                    <td><input type="number" min="0" step="1" class="seg-end" value="${end}"></td>
+                    <td><input type="number" min="0" max="1" step="0.001" class="seg-p" value="${p}"></td>
+                    <td><button class="warn seg-del">삭제</button></td>`;
+    tr.querySelector('.seg-del').addEventListener('click',()=>{ tr.remove(); });
+    return tr;
+  }
+  function loadSegDefault(){
+    const tb = $('segTbody'); tb.innerHTML='';
+    tb.appendChild(segRow(0,120,0.08));
+    tb.appendChild(segRow(121,150,0.05));
+    tb.appendChild(segRow(151, 999999, 0.03));
+  }
+  function readSegments(){
+    const rows = Array.from(document.querySelectorAll('#segTbody tr'));
+    const segs = rows.map(r=>({ s:+r.querySelector('.seg-start').value, e:+r.querySelector('.seg-end').value, p:+r.querySelector('.seg-p').value }))
+                     .filter(x=>x.p>=0 && x.p<=1);
+    segs.sort((a,b)=>a.s-b.s);
+    return segs;
+  }
+  $('addSeg').addEventListener('click', (e)=>{ e.preventDefault(); $('segTbody').appendChild(segRow()); });
+  $('resetSeg').addEventListener('click', (e)=>{ e.preventDefault(); loadSegDefault(); });
+  loadSegDefault();
+
+  function segRowTime(type, start=0, end=120, p= type==='bp'?0.08:0.04){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input type="number" min="0" step="1" class="seg-start"></td>
+                    <td><input type="number" min="0" step="1" class="seg-end"></td>
+                    <td><input type="number" min="0" max="1" step="0.001" class="seg-p"></td>
+                    <td><button class="warn seg-del">삭제</button></td>`;
+    const inputs = tr.querySelectorAll('input');
+    inputs[0].value = start; inputs[1].value = end; inputs[2].value = p;
+    tr.querySelector('.seg-del').addEventListener('click',()=> tr.remove());
+    return tr;
+  }
+  function loadSegDefaultBP_time(){ const tb=$('segTbodyBP_time'); tb.innerHTML=''; tb.appendChild(segRowTime('bp',0,120,0.08)); tb.appendChild(segRowTime('bp',121,150,0.05)); tb.appendChild(segRowTime('bp',151,999999,0.03)); }
+  function loadSegDefaultSP_time(){ const tb=$('segTbodySP_time'); tb.innerHTML=''; tb.appendChild(segRowTime('sp',0,7,0.04)); tb.appendChild(segRowTime('sp',8,12,0.03)); tb.appendChild(segRowTime('sp',13,999999,0.02)); }
+  function readSegmentsFrom(tableSel){
+    const rows = Array.from(document.querySelectorAll(tableSel+' tbody tr'));
+    const segs = rows.map(r=>{
+      const sEl = r.querySelector('.seg-start');
+      const eEl = r.querySelector('.seg-end');
+      const pEl = r.querySelector('.seg-p');
+      if(!sEl || !eEl || !pEl) return null;
+      return { s:+sEl.value, e:+eEl.value, p:+pEl.value };
+    }).filter(Boolean).filter(x=>x.p>=0 && x.p<=1);
+    segs.sort((a,b)=>a.s-b.s); return segs;
+  }
+  $('addSegBP_time').addEventListener('click',e=>{e.preventDefault(); $('segTbodyBP_time').appendChild(segRowTime('bp'));});
+  $('resetSegBP_time').addEventListener('click',e=>{e.preventDefault(); loadSegDefaultBP_time();});
+  $('addSegSP_time').addEventListener('click',e=>{e.preventDefault(); $('segTbodySP_time').appendChild(segRowTime('sp'));});
+  $('resetSegSP_time').addEventListener('click',e=>{e.preventDefault(); loadSegDefaultSP_time();});
+  loadSegDefaultBP_time(); loadSegDefaultSP_time();
+
+  // ===== Defaults snapshot =====
+  const ids = ['autoRate','chargeMethod','ticketCost','lpFree','mobileSrv','adSec','ticketAdMax','creditAd','creditAdMax','mapSec','lobbySec','packs','goalType','trials','targetBP','targetSP','bpPerDrop','pBP','pSP','useSegments','timeH','timeM','timeS','trialsTime','timeGoalType','useSegmentsBP_time','useSegmentsSP_time','pBP_time','pSP_time'];
+  const defaults = Object.fromEntries(ids.map(id=>[id, $(id) ? ($(id).type==='checkbox'? $(id).checked : $(id).value) : null]));
+
+  // ===== Utils =====
+  function fmtHMS(totalSec){
+    const s=Math.round(totalSec); const h=Math.floor(s/3600); const m=Math.floor((s%3600)/60); const r=s%60;
+    return `${String(h).padStart(2,'0')}시간 ${String(m).padStart(2,'0')}분 ${String(r).padStart(2,'0')}초 (${(s/3600).toFixed(2)}시간, ${(s/86400).toFixed(1)}일)`;
+  }
+  function quantiles(arr, qs){ const a=[...arr].sort((x,y)=>x-y); const n=a.length; const out={}; qs.forEach(q=>{const i=(n-1)*q; const lo=Math.floor(i), hi=Math.ceil(i); out[q]= lo===hi? a[lo]: a[lo]*(hi-i)+a[hi]*(i-lo);}); return out; }
+  function mean(a){ return a.reduce((s,v)=>s+v,0)/a.length }
+  function std(a){ const m=mean(a); return Math.sqrt(mean(a.map(x=>(x-m)**2))) }
+  function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+  // ===== Enable/disable logic =====
+  function updateEnables(){
+    const isBP = $('goalType').value==='bp';
+    $('targetBP').disabled = !isBP; $('bpPerDrop').disabled = !isBP; $('pBP').disabled = !isBP || $('useSegments').checked;
+    $('targetSP').disabled = isBP; $('pSP').disabled = isBP;
+
+    const method = $('chargeMethod').value; $('ticketAdMax').disabled = method!=='ad';
+    const mobile = $('mobileSrv').checked; $('adSec').disabled = mobile; if(mobile) { $('adSec').value = 40; }
+
+    const segOn = $('useSegments').checked && isBP; 
+    document.getElementById('segTable').style.opacity = segOn? 1: .4; 
+    document.getElementById('addSeg').disabled = !segOn; 
+    document.getElementById('resetSeg').disabled = !segOn;
+
+    const segBPtime = document.getElementById('useSegmentsBP_time').checked; 
+    const segSPtime = document.getElementById('useSegmentsSP_time').checked;
+    const pBPtimeEl = document.getElementById('pBP_time'); 
+    const pSPtimeEl = document.getElementById('pSP_time');
+    if(pBPtimeEl) pBPtimeEl.disabled = segBPtime;
+    if(pSPtimeEl) pSPtimeEl.disabled = segSPtime;
+  }
+  ;['goalType','chargeMethod','mobileSrv','autoRate','useSegments','useSegmentsBP_time','useSegmentsSP_time']
+    .forEach(id=>$(id).addEventListener('change', updateEnables));
+
+  // ===== Time & tickets =====
+  function advanceTime(state, sec){
+    state.time += sec; state.autoLeft -= sec;
+    while(state.autoLeft <= 0){ if(state.tickets < 10) state.tickets += 1; state.autoLeft += state.autoPeriod; }
+  }
+
+  function currentPBP(bp, cfg){
+    if(!(cfg.useSegments) || cfg.goalType!=="bp") return cfg.pBP;
+    for(const seg of cfg.bpSegs){ if(bp >= seg.s && bp <= seg.e) return seg.p; }
+    return cfg.pBP;
+  }
+
+  // ===== Simulators =====
+  function simulateOnceGoal(cfg){
+    const st = { time:0, tickets:10, tokens:0, autoPeriod: 600 / (cfg.autoRate/100), autoLeft: 600 / (cfg.autoRate/100), creditAdLeft: cfg.creditAd? cfg.creditAdMax: 0, ticketAdLeft: cfg.chargeMethod==='ad'? cfg.ticketAdMax: 0, lpLeft: cfg.lpFree? 1: 0, bp:0, sp:0 };
+    const goalReached = ()=> cfg.goalType==='bp'? (st.bp >= cfg.targetBP) : (st.sp >= cfg.targetSP);
+    while(!goalReached()){
+      if(st.tickets < cfg.ticketCost){
+        if(st.lpLeft>0){ st.lpLeft=0; st.tickets=10; }
+        else if(cfg.chargeMethod==='ad' && st.ticketAdLeft>0){
+          while(st.tickets<cfg.ticketCost && st.ticketAdLeft>0){ st.ticketAdLeft--; st.tickets++; advanceTime(st, cfg.adSec); }
+          while(st.tickets<cfg.ticketCost){ st.tokens+=TOKEN_PER_TICKET; st.tickets++; }
+        } else {
+          while(st.tickets<cfg.ticketCost){ st.tokens+=TOKEN_PER_TICKET; st.tickets++; }
+        }
+      }
+      st.tickets -= cfg.ticketCost;
+      if(cfg.creditAd && st.creditAdLeft>0){ st.creditAdLeft--; advanceTime(st, +cfg.adSec); }
+      advanceTime(st, +cfg.mapSec + +cfg.lobbySec);
+      if(cfg.goalType==='bp'){
+        for(let k=0;k<cfg.packs;k++){
+          const pb = currentPBP(st.bp, cfg);
+          if(Math.random()<pb) st.bp+=cfg.bpPerDrop;
+        }
+      } else {
+        for(let k=0;k<cfg.packs;k++){
+          const ps = cfg.pSP;
+          if(Math.random()<ps) st.sp+=1;
+        }
+      }
+    }
+    return st;
+  }
+
+  function simulateOnceTime(cfg){
+    const limit = cfg.timeH*3600 + cfg.timeM*60 + cfg.timeS;
+    const st = { time:0, tickets:10, tokens:0, autoPeriod: 600 / (cfg.autoRate/100), autoLeft: 600 / (cfg.autoRate/100), creditAdLeft: cfg.creditAd? cfg.creditAdMax: 0, ticketAdLeft: cfg.chargeMethod==='ad'? cfg.ticketAdMax: 0, lpLeft: cfg.lpFree? 1: 0, bp:0, sp:0 };
+    const pBP_time = (bp)=>{ if(!cfg.useSegmentsBP_time) return cfg.pBP_time; for(const seg of cfg.bpSegs_time){ if(bp>=seg.s && bp<=seg.e) return seg.p; } return cfg.pBP_time; };
+    const pSP_time = (sp)=>{ if(!cfg.useSegmentsSP_time) return cfg.pSP_time; for(const seg of cfg.spSegs_time){ if(sp>=seg.s && sp<=seg.e) return seg.p; } return cfg.pSP_time; };
+
+    while(st.time < limit){
+      if(st.tickets < cfg.ticketCost){
+        if(st.lpLeft>0){ st.lpLeft=0; st.tickets=10; }
+        else if(cfg.chargeMethod==='ad' && st.ticketAdLeft>0){
+          while(st.tickets < cfg.ticketCost && st.ticketAdLeft>0){ st.ticketAdLeft--; st.tickets++; advanceTime(st, cfg.adSec); if(st.time >= limit) break; }
+          while(st.tickets < cfg.ticketCost && st.time < limit){ st.tokens+=TOKEN_PER_TICKET; st.tickets++; }
+        } else {
+          while(st.tickets < cfg.ticketCost && st.time < limit){ st.tokens+=TOKEN_PER_TICKET; st.tickets++; }
+        }
+      }
+      if(st.time >= limit) break;
+
+      st.tickets -= cfg.ticketCost;
+      if(cfg.creditAd && st.creditAdLeft>0){ st.creditAdLeft--; advanceTime(st, +cfg.adSec); if(st.time>=limit) break; }
+      const runDur = +cfg.mapSec + +cfg.lobbySec; advanceTime(st, runDur); if(st.time>limit) break;
+
+      if(cfg.timeGoalType==='bp'){
+        for(let k=0;k<cfg.packs;k++){
+          const pb = pBP_time(st.bp);
+          if(Math.random() < pb) st.bp += cfg.bpPerDrop;
+        }
+      }
+      else if(cfg.timeGoalType==='sp'){
+        for(let k=0;k<cfg.packs;k++){
+          const ps = pSP_time(st.sp);
+          if(Math.random() < ps) st.sp += 1;
+        }
+      }
+      else { // both
+        for(let k=0;k<cfg.packs;k++){
+          const pb = pBP_time(st.bp);
+          const ps = pSP_time(st.sp);
+          if(Math.random() < pb) st.bp += cfg.bpPerDrop;
+          if(Math.random() < ps) st.sp += 1;
+        }
+      }
+    }
+    return st;
+  }
+
+  // ===== Chart =====
+  function cssVar(name){try{return getComputedStyle(document.documentElement).getPropertyValue(name).trim()||name}catch(e){return name}}
+  function drawHist(canvas, data, title){
+    const ctx = canvas.getContext('2d');
+    if(!ctx) return;
+    const DPR = window.devicePixelRatio || 1;
+    const W = canvas.width = Math.max(800, canvas.clientWidth * DPR);
+    const H = canvas.height = Math.max(300, canvas.clientHeight * DPR);
+    ctx.scale(DPR, DPR);
+    ctx.clearRect(0,0,W,H);
+    const nbin = 24; const min = Math.min(...data), max = Math.max(...data);
+    const eps = (max-min)||1; const step = eps/nbin; const bins = new Array(nbin).fill(0);
+    data.forEach(v=>{ let i=Math.min(nbin-1, Math.max(0, Math.floor((v-min)/step))); bins[i]++; });
+    const ymax = Math.max(...bins);
+    ctx.strokeStyle = cssVar('--control-border'); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(36,H/DPR-30); ctx.lineTo(W/DPR-12,H/DPR-30); ctx.stroke();
+    const barW = (W/DPR - 60) / nbin;
+    for(let i=0;i<nbin;i++){
+      const x = 36 + i*barW + 2; const h = Math.round((bins[i]/ymax)*(H/DPR-60));
+      ctx.fillStyle = cssVar('--accent'); ctx.globalAlpha = 0.85; ctx.fillRect(x, H/DPR-30-h, barW-4, h);
+    }
+    ctx.globalAlpha = 1; ctx.fillStyle = cssVar('--muted'); ctx.font = '12px ui-sans-serif, system-ui, Segoe UI';
+    ctx.fillText(title || '분포', 12, 16);
+    const tickN = 6; 
+    for(let t=0;t<tickN;t++){
+      const x = 36 + ((W/DPR-60)/(tickN-1))*t;
+      const val = Math.round(min + (eps/(tickN-1))*t);
+      ctx.fillText(String(val), x-8, H/DPR-10);
+    }
+  }
+
+  // ===== Config & echo =====
+  function currentCfg(){
+    return {
+      autoRate:+$('autoRate').value,
+      chargeMethod:$('chargeMethod').value,
+      ticketCost:+$('ticketCost').value,
+      lpFree:$('lpFree').checked,
+      mobileSrv:$('mobileSrv').checked,
+      adSec:+$('adSec').value,
+      ticketAdMax:+$('ticketAdMax').value,
+      creditAd:$('creditAd').checked,
+      creditAdMax:+$('creditAdMax').value,
+      mapSec:+$('mapSec').value,
+      lobbySec:+$('lobbySec').value,
+      packs:+$('packs').value,
+      goalType:$('goalType').value,
+      trials:1000,
+      targetBP:+$('targetBP').value,
+      targetSP:+$('targetSP').value,
+      bpPerDrop:+$('bpPerDrop').value,
+      pBP:+$('pBP').value,
+      pSP:+$('pSP').value,
+      useSegments: $('useSegments').checked,
+      bpSegs: readSegments(),
+      // time mode
+      timeH:+$('timeH').value, timeM:+$('timeM').value, timeS:+$('timeS').value,
+      timeGoalType: $('timeGoalType').value,
+      useSegmentsBP_time: $('useSegmentsBP_time').checked,
+      useSegmentsSP_time: $('useSegmentsSP_time').checked,
+      pBP_time:+$('pBP_time').value,
+      pSP_time:+$('pSP_time').value,
+      bpSegs_time: readSegmentsFrom('#segTableBP_time'),
+      spSegs_time: readSegmentsFrom('#segTableSP_time'),
+    };
+  }
+
+  function applyCfg(cfg){
+    function set(id, v){ const el=$(id); if(!el) return; if(el.type==='checkbox') el.checked = !!v; else el.value = v; }
+    set('autoRate', cfg.autoRate); set('chargeMethod', cfg.chargeMethod); set('ticketCost', cfg.ticketCost);
+    set('lpFree', cfg.lpFree); set('mobileSrv', cfg.mobileSrv); set('adSec', cfg.adSec);
+    set('ticketAdMax', cfg.ticketAdMax); set('creditAd', cfg.creditAd); set('creditAdMax', cfg.creditAdMax);
+    set('mapSec', cfg.mapSec); set('lobbySec', cfg.lobbySec); set('packs', cfg.packs);
+    set('goalType', cfg.goalType); set('targetBP', cfg.targetBP); set('targetSP', cfg.targetSP);
+    set('bpPerDrop', cfg.bpPerDrop); set('pBP', cfg.pBP); set('pSP', cfg.pSP);
+    set('useSegments', cfg.useSegments);
+
+    // goal segs
+    const tb = $('segTbody'); tb.innerHTML='';
+    (cfg.bpSegs||[]).forEach(s=> tb.appendChild(segRow(s.s, s.e, s.p)) );
+
+    // time
+    set('timeH', cfg.timeH); set('timeM', cfg.timeM); set('timeS', cfg.timeS);
+    set('timeGoalType', cfg.timeGoalType);
+    set('useSegmentsBP_time', cfg.useSegmentsBP_time);
+    set('useSegmentsSP_time', cfg.useSegmentsSP_time);
+    set('pBP_time', cfg.pBP_time); set('pSP_time', cfg.pSP_time);
+    const tbBP = $('segTbodyBP_time'); tbBP.innerHTML='';
+    (cfg.bpSegs_time||[]).forEach(s=> tbBP.appendChild(segRowTime('bp', s.s, s.e, s.p)) );
+    const tbSP = $('segTbodySP_time'); tbSP.innerHTML='';
+    (cfg.spSegs_time||[]).forEach(s=> tbSP.appendChild(segRowTime('sp', s.s, s.e, s.p)) );
+
+    updateEnables();
+  }
+
+  function echoParams(cfg){
+    const segInfo = cfg.useSegments ? ` | segs:${cfg.bpSegs.map(s=>`[${s.s}~${s.e}:${s.p}]`).join(',')}` : '';
+    const tStr = `${String(cfg.timeH).padStart(2,'0')}:${String(cfg.timeM).padStart(2,'0')}:${String(cfg.timeS).padStart(2,'0')}`;
+    const segBP = cfg.useSegmentsBP_time ? ` | BPsegs:${cfg.bpSegs_time.map(s=>`[${s.s}~${s.e}:${s.p}]`).join(',')}` : '';
+    const segSP = cfg.useSegmentsSP_time ? ` | SPsegs:${cfg.spSegs_time.map(s=>`[${s.s}~${s.e}:${s.p}]`).join(',')}` : '';
+    const echo = `입력 — goal:${cfg.goalType} target:${cfg.goalType==='bp'? cfg.targetBP: cfg.targetSP} | auto:${cfg.autoRate}% | method:${cfg.chargeMethod} (ad ${cfg.adSec}s, ticketAdMax ${cfg.ticketAdMax}) | creditAd:${cfg.creditAd? 'ON':''}/${cfg.creditAdMax} | map:${cfg.mapSec}s lobby:${cfg.lobbySec}s | packs:${cfg.packs} | pBP:${cfg.pBP} bpPer:${cfg.bpPerDrop} pSP:${cfg.pSP} | trials:1000 | time:${tStr} | timeGoal:${cfg.timeGoalType}${segInfo}${segBP}${segSP}`;
+    const el = document.getElementById('paramsEcho'); if(el) el.textContent = echo;
+    return echo;
+  }
+
+  function collectParamsEcho(cfg){
+    return `goal:${cfg.goalType} target:${cfg.goalType==='bp'? cfg.targetBP: cfg.targetSP} | auto:${cfg.autoRate}% | method:${cfg.chargeMethod} (ad ${cfg.adSec}s, ticketAdMax ${cfg.ticketAdMax}) | creditAd:${cfg.creditAd? 'ON':''}/${cfg.creditAdMax} | map:${cfg.mapSec}s lobby:${cfg.lobbySec}s | packs:${cfg.packs} | pBP:${cfg.pBP} bpPer:${cfg.bpPerDrop} pSP:${cfg.pSP} | time:${String(cfg.timeH).padStart(2,'0')}:${String(cfg.timeM).padStart(2,'0')}:${String(cfg.timeS).padStart(2,'0')} | timeGoal:${cfg.timeGoalType}`;
+  }
+
+  // ===== Summary & Export (copy/image as in v1.4) =====
+  function buildSummary(fmt){
+    if(!lastStats) return '';
+    const stamp = nowStr();
+    const lines = [
+      `# Car Hunt 결과 요약 (${stamp})`,
+      `모드: ${lastStats.mode}`,
+      `시간: ${fmtHMS(lastStats.avgSec)}`,
+      `토큰: ${lastStats.tokens}`,
+      `청사진: ${lastStats.bp}장 | 특수부품: ${lastStats.sp}개`,
+      `5%~95%: ${lastStats.p595}`,
+      `표준편차: ${lastStats.sd}`,
+      `입력요약: ${lastStats.params}`
+    ];
+    if(fmt==='md'){
+      return [
+        `## Car Hunt 결과 요약 (${stamp})`,
+        `- 모드: **${lastStats.mode}**`,
+        `- 시간: **${fmtHMS(lastStats.avgSec)}**`,
+        `- 토큰: **${lastStats.tokens}**`,
+        `- 청사진/특수부품: **${lastStats.bp}장 / ${lastStats.sp}개**`,
+        `- 5%~95%: **${lastStats.p595}**`,
+        `- 표준편차: **${lastStats.sd}**`,
+        ``,
+        `**입력 요약**`,
+        `\`${lastStats.params}\``
+      ].join('\n');
+    } else if(fmt==='discord'){
+      return [
+        '```md',
+        `# Car Hunt 결과 (${stamp})`,
+        `- Mode: ${lastStats.mode}`,
+        `- Time: ${fmtHMS(lastStats.avgSec)}`,
+        `- Tokens: ${lastStats.tokens}`,
+        `- BP/SP: ${lastStats.bp}/${lastStats.sp}`,
+        `- P5~P95: ${lastStats.p595}`,
+        `- Std: ${lastStats.sd}`,
+        '```',
+        `입력: \`${lastStats.params}\``
+      ].join('\n');
+    }
+    return lines.join('\n');
+  }
+
+  async function copySummary(){
+    if(!lastStats){ alert('먼저 시뮬레이션을 실행하세요.'); return; }
+    const fmt = $('summaryFmt').value;
+    const text = buildSummary(fmt);
+    try{
+      await navigator.clipboard.writeText(text);
+      alert('요약을 클립보드에 복사했어요.');
+    }catch(e){
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); alert('요약을 클립보드에 복사했어요.'); }
+      catch(e2){ alert('복사에 실패했습니다. 텍스트를 수동으로 복사하세요.'); }
+      finally{ document.body.removeChild(ta); }
+    }
+  }
+
+  function saveImage(){
+    if(!lastStats){ alert('먼저 시뮬레이션을 실행하세요.'); return; }
+    const src = $('hist');
+    const DPR = window.devicePixelRatio || 1;
+    const exportW = 1400, exportH = 900;
+    const canvas = document.createElement('canvas');
+    canvas.width = exportW; canvas.height = exportH;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = cssVar('--bg'); ctx.fillRect(0,0,exportW,exportH);
+    ctx.fillStyle = cssVar('--ink'); ctx.font = 'bold 28px ui-sans-serif, system-ui, Segoe UI';
+    const stamp = nowStr();
+    ctx.fillText(`Car Hunt 결과 이미지 (${stamp})`, 24, 40);
+    ctx.font = '16px ui-sans-serif, system-ui, Segoe UI'; ctx.fillStyle = cssVar('--muted');
+    const stats = [
+      `모드: ${lastStats.mode}`,
+      `시간: ${fmtHMS(lastStats.avgSec)}`,
+      `토큰: ${lastStats.tokens}`,
+      `청사진/특수부품: ${lastStats.bp} / ${lastStats.sp}`,
+      `5%~95%: ${lastStats.p595}`,
+      `표준편차: ${lastStats.sd}`
+    ];
+    stats.forEach((t,i)=>ctx.fillText(t, 24, 80 + i*22));
+    const maxWidth = 820;
+    const paramText = `입력: ${lastStats.params}`;
+    wrapText(ctx, paramText, 24, 80 + stats.length*22 + 16, maxWidth, 20);
+    const thumbW = 1200, thumbH = 420;
+    ctx.drawImage(src, 24, exportH - thumbH - 24, thumbW, thumbH);
+    ctx.strokeStyle = cssVar('--control-border'); ctx.strokeRect(22, exportH - thumbH - 26, thumbW+4, thumbH+4);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    const safe = stamp.replace(/[: ]/g,'-');
+    a.download = `car-hunt-result-${safe}.png`;
+    a.click();
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+    const words = text.split(' ');
+    let line = '';
+    for(let n=0; n<words.length; n++){
+      const testLine = line + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        ctx.fillText(line, x, y);
+        line = words[n] + ' ';
+        y += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, x, y);
+  }
+
+  // ===== History & Presets =====
+  function readHistory(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEYS.history) || '[]'); }catch(_){ return []; }
+  }
+  function writeHistory(arr){
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(arr));
+  }
+  function addHistoryEntry(cfg, stats){
+    const item = {
+      ts: Date.now(),
+      when: nowStr(),
+      mode: stats.mode,
+      summary: { time: stats.avgSec, tokens: stats.tokens, bp: stats.bp, sp: stats.sp, p595: stats.p595 },
+      cfg: clone(cfg)
+    };
+    let arr = readHistory();
+    arr.unshift(item);
+    arr = arr.slice(0,5);
+    writeHistory(arr);
+    renderHistory();
+  }
+  function renderHistory(){
+    const list = $('historyList'); list.innerHTML = '';
+    const arr = readHistory();
+    if(arr.length===0){
+      const li = document.createElement('li'); li.textContent = '히스토리가 없습니다. 시뮬레이션을 한 번 실행해 보세요.';
+      li.style.opacity=.7; li.style.fontSize='13px'; list.appendChild(li); return;
+    }
+    arr.forEach((h, idx)=>{
+      const li = document.createElement('li');
+      const left = document.createElement('div');
+      left.className = 'grow';
+      left.innerHTML = `<div><b>${h.when}</b> <span class="chip">${h.mode}</span></div>
+                        <div class="meta">시간 ${Math.round(h.summary.time/60)}분 | 토큰 ${h.summary.tokens} | BP ${h.summary.bp} / SP ${h.summary.sp} | 5~95 ${h.summary.p595}</div>`;
+      const btns = document.createElement('div');
+      const ap = document.createElement('button'); ap.className='sub'; ap.textContent='적용';
+      ap.addEventListener('click', ()=>{ applyCfg(h.cfg); });
+      const runb = document.createElement('button'); runb.className='primary'; runb.textContent='이 설정으로 실행';
+      runb.addEventListener('click', ()=>{ applyCfg(h.cfg); document.getElementById('run').click(); });
+      btns.appendChild(ap); btns.appendChild(runb);
+      li.appendChild(left); li.appendChild(btns);
+      list.appendChild(li);
+    });
+  }
+
+  function readPresets(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEYS.presets) || '{}'); }catch(_){ return {}; }
+  }
+  function writePresets(obj){
+    localStorage.setItem(STORAGE_KEYS.presets, JSON.stringify(obj));
+  }
+  function renderPresets(){
+    const ul = $('presetList'); ul.innerHTML='';
+    const obj = readPresets();
+    const names = Object.keys(obj).sort();
+    if(names.length===0){
+      const li=document.createElement('li'); li.textContent='저장된 프리셋이 없습니다.'; li.style.opacity=.7; li.style.fontSize='13px'; ul.appendChild(li); return;
+    }
+    names.forEach(name=>{
+      const li = document.createElement('li');
+      const left = document.createElement('div');
+      left.className='grow';
+      left.innerHTML = `<b>${name}</b><div class="meta mono">${summarizeCfg(obj[name])}</div>`;
+      const btns = document.createElement('div');
+      const ap = document.createElement('button'); ap.className='sub'; ap.textContent='적용';
+      ap.addEventListener('click', ()=>{ applyCfg(obj[name]); });
+      const runb = document.createElement('button'); runb.className='primary'; runb.textContent='이 설정으로 실행';
+      runb.addEventListener('click', ()=>{ applyCfg(obj[name]); document.getElementById('run').click(); });
+      const del = document.createElement('button'); del.className='warn'; del.textContent='삭제';
+      del.addEventListener('click', ()=>{ if(confirm(`"${name}" 프리셋을 삭제할까요?`)){ const p=readPresets(); delete p[name]; writePresets(p); renderPresets(); }});
+      btns.appendChild(ap); btns.appendChild(runb); btns.appendChild(del);
+      li.appendChild(left); li.appendChild(btns);
+      ul.appendChild(li);
+    });
+  }
+
+  function summarizeCfg(cfg){
+    const goal = cfg.goalType==='bp'? `BP ${cfg.targetBP}` : `SP ${cfg.targetSP}`;
+    return `goal:${goal} | auto:${cfg.autoRate}% | method:${cfg.chargeMethod} | map:${cfg.mapSec}s lobby:${cfg.lobbySec}s | packs:${cfg.packs} | pBP:${cfg.pBP} pSP:${cfg.pSP}`;
+  }
+
+  $('savePreset').addEventListener('click', ()=>{
+    const name = ($('presetName').value || '').trim();
+    if(!name){ alert('프리셋 이름을 입력하세요.'); return; }
+    const cfg = currentCfg();
+    const presets = readPresets();
+    presets[name] = clone(cfg);
+    writePresets(presets);
+    renderPresets();
+    alert(`"${name}" 프리셋으로 저장했습니다.`);
+  });
+
+  $('exportPresets').addEventListener('click', ()=>{
+    const data = JSON.stringify(readPresets(), null, 2);
+    const blob = new Blob([data], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'car-hunt-presets.json'; a.click();
+    URL.revokeObjectURL(url);
+  });
+  $('importPresets').addEventListener('click', ()=> $('importFile').click());
+  $('importFile').addEventListener('change', async (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    const txt = await f.text();
+    try{
+      const obj = JSON.parse(txt);
+      const curr = readPresets();
+      const merged = {...curr, ...obj};
+      writePresets(merged);
+      renderPresets();
+      alert('프리셋을 가져왔습니다.');
+    }catch(_){
+      alert('JSON 파싱에 실패했습니다.');
+    } finally {
+      e.target.value = '';
+    }
+  });
+  $('clearHistory').addEventListener('click', ()=>{
+    if(confirm('최근 5회 히스토리를 모두 지울까요?')){
+      writeHistory([]);
+      renderHistory();
+    }
+  });
+
+  // ===== Runner =====
+  function runSim(){
+    const cfg = currentCfg(); updateEnables(); const echo=echoParams(cfg);
+    const activeTab = (document.querySelector('.tab.active') && document.querySelector('.tab.active').dataset.tab) || 'goal';
+
+    if(activeTab === 'goal'){
+      const times=[], tokens=[]; let bp=0, sp=0;
+      for(let i=0;i<cfg.trials;i++){
+        const r = simulateOnceGoal(cfg);
+        times.push(r.time/60); tokens.push(r.tokens); bp += r.bp; sp += r.sp;
+      }
+      const avgMin = mean(times); const avgTok = Math.round(mean(tokens)); const avgSec = avgMin*60; const q = quantiles(times,[0.05,0.95]); const sd = std(times);
+      $('timeStr').textContent = fmtHMS(avgSec);
+      $('tokensUsed').textContent = `${avgTok}토큰`;
+      $('bpGained').textContent = `${Math.round(bp/cfg.trials)}장`;
+      $('spGained').textContent = `${Math.round(sp/cfg.trials)}개`;
+      $('p595Time').textContent = `${q[0.05].toFixed(1)} ~ ${q[0.95].toFixed(1)} 분`;
+      $('stdTime').textContent = `${sd.toFixed(2)}`;
+      drawHist($('hist'), times.map(x=>Math.round(x)), '완료까지 경과 시간(분) 분포');
+      lastStats = { mode:'goal', avgSec, tokens:avgTok, bp:Math.round(bp/cfg.trials), sp:Math.round(sp/cfg.trials), p595:`${q[0.05].toFixed(1)}~${q[0.95].toFixed(1)}분`, sd:sd.toFixed(2), params:collectParamsEcho(cfg) };
+    } else {
+      const gainsBP=[], gainsSP=[], tokens=[]; let bp=0, sp=0;
+      for(let i=0;i<1000;i++){
+        const r = simulateOnceTime(cfg);
+        gainsBP.push(r.bp); gainsSP.push(r.sp);
+        tokens.push(r.tokens); bp += r.bp; sp += r.sp;
+      }
+      const avgTok = Math.round(mean(tokens));
+      const limitSec = cfg.timeH*3600 + cfg.timeM*60 + cfg.timeS; 
+      $('timeStr').textContent = fmtHMS(limitSec);
+      $('tokensUsed').textContent = `${avgTok}토큰`;
+
+      if(cfg.timeGoalType==='bp'){
+        const q = quantiles(gainsBP,[0.05,0.95]); const sd = std(gainsBP); const avgGain = Math.round(mean(gainsBP));
+        $('bpGained').textContent = `${avgGain}장`;
+        $('spGained').textContent = `${Math.round(sp/1000)}개`;
+        $('p595Time').textContent = `${q[0.05].toFixed(0)} ~ ${q[0.95].toFixed(0)} (장)`;
+        $('stdTime').textContent = `${sd.toFixed(2)} (장)`;
+        lastStats = { mode:'time-bp', avgSec:limitSec, tokens:avgTok, bp:avgGain, sp:Math.round(sp/1000), p595:`${q[0.05].toFixed(0)}~${q[0.95].toFixed(0)}장`, sd:sd.toFixed(2), params:collectParamsEcho(cfg) };
+      } else if(cfg.timeGoalType==='sp'){
+        const q = quantiles(gainsSP,[0.05,0.95]); const sd = std(gainsSP); const avgGain = Math.round(mean(gainsSP));
+        $('bpGained').textContent = `${Math.round(bp/1000)}장`;
+        $('spGained').textContent = `${avgGain}개`;
+        $('p595Time').textContent = `${q[0.05].toFixed(0)} ~ ${q[0.95].toFixed(0)} (개)`;
+        $('stdTime').textContent = `${sd.toFixed(2)} (개)`;
+        lastStats = { mode:'time-sp', avgSec:limitSec, tokens:avgTok, bp:Math.round(bp/1000), sp:avgGain, p595:`${q[0.05].toFixed(0)}~${q[0.95].toFixed(0)}개`, sd:sd.toFixed(2), params:collectParamsEcho(cfg) };
+      } else { // both
+        const qBP = quantiles(gainsBP,[0.05,0.95]); const sdBP = std(gainsBP); const avgBP = Math.round(mean(gainsBP));
+        const qSP = quantiles(gainsSP,[0.05,0.95]); const sdSP = std(gainsSP); const avgSP = Math.round(mean(gainsSP));
+        $('bpGained').textContent = `${avgBP}장`;
+        $('spGained').textContent = `${avgSP}개`;
+        $('p595Time').textContent = `BP ${qBP[0.05].toFixed(0)}~${qBP[0.95].toFixed(0)} / SP ${qSP[0.05].toFixed(0)}~${qSP[0.95].toFixed(0)}`;
+        $('stdTime').textContent = `BP ${sdBP.toFixed(2)} / SP ${sdSP.toFixed(2)}`;
+        lastStats = { mode:'time-both', avgSec:limitSec, tokens:avgTok, bp:avgBP, sp:avgSP, p595:`BP ${qBP[0.05].toFixed(0)}~${qBP[0.95].toFixed(0)} / SP ${qSP[0.05].toFixed(0)}~${qSP[0.95].toFixed(0)}`, sd:`BP ${sdBP.toFixed(2)} / SP ${sdSP.toFixed(2)}`, params:collectParamsEcho(cfg) };
+      }
+      drawHist($('hist'), tokens, '사용 토큰 분포');
+    }
+
+    // Enable export buttons once results exist
+    const canExport = !!lastStats;
+    $('copySummary').disabled = !canExport;
+    $('saveImage').disabled = !canExport;
+
+    // Save to history
+    addHistoryEntry(cfg, lastStats);
+  }
+
+  function resetDefaults(){
+    Object.entries(defaults).forEach(([k,v])=>{ if(!$(k)) return; if($(k).type==='checkbox') $(k).checked = v; else $(k).value = v; });
+    loadSegDefault();
+    loadSegDefaultBP_time();
+    loadSegDefaultSP_time();
+    $('useSegments').checked = defaults['useSegments'];
+    $('useSegmentsBP_time').checked = defaults['useSegmentsBP_time'];
+    $('useSegmentsSP_time').checked = defaults['useSegmentsSP_time'];
+    updateEnables(); echoParams(currentCfg());
+    lastStats = null;
+    $('copySummary').disabled = true;
+    $('saveImage').disabled = true;
+  }
+
+  // Buttons — attach
+  document.getElementById('run').addEventListener('click', runSim);
+  document.getElementById('reset').addEventListener('click', resetDefaults);
+  document.getElementById('copySummary').addEventListener('click', copySummary);
+  document.getElementById('saveImage').addEventListener('click', saveImage);
+
+  // Preset/history initial render
+  renderHistory();
+  renderPresets();
+
+  // Initial
+  try{ updateEnables(); echoParams(currentCfg()); }catch(e){ console.warn(e); }
+})();
+</script>
+
+<!-- Hub Back Button Inject -->
+<style>
+  #hubBackWrap{position:fixed; left:16px; top:16px; z-index:2147483647; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial}
+  #hubBackBtn{padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:var(--chip-bg); color:var(--ink); cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:.9}
+  #hubBackBtn:hover{opacity:1}
+  @media (prefers-color-scheme: light){
+    #hubBackBtn{background:var(--chip-bg); color:var(--ink)}
+  }
+</style>
+<div id="hubBackWrap">
+  <button id="hubBackBtn" title="메인 메뉴로">
+    ← 메인으로
+  </button>
+</div>
+<script>
+  (function(){
+    var btn = document.getElementById('hubBackBtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      // If navigated from hub, try back; otherwise go to hub index.html
+      if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+        history.back();
+      } else {
+        // assume hub is one level up
+        location.href = '../index.html';
+      }
+    });
+  })();
+</script>
+<!-- /Hub Back Button Inject -->
+
+</body>
+</html>
