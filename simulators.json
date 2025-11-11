@@ -1,0 +1,26 @@
+[
+  {
+    "id": "car-hunt",
+    "name": "Car Hunt 시뮬레이터",
+    "path": "simulators/car-hunt.html",
+    "description": "목표/시간 기준, 확률 구간, 히스토리/프리셋 지원",
+    "tags": [
+      "car",
+      "hunt",
+      "bp",
+      "sp"
+    ],
+    "featured": true
+  },
+  {
+    "id": "fullstar",
+    "name": "풀성 시뮬레이터",
+    "path": "simulators/fullstar.html",
+    "description": "기댓값/예산 탭형 시뮬레이터",
+    "tags": [
+      "budget",
+      "expectation"
+    ],
+    "featured": true
+  }
+]

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.svg">
+<title>Simulator Hub — 통합 메뉴</title>
+<link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/themes.css">
+  <link rel="stylesheet" href="assets/theme-adapter.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <div class="logo"></div>
+        <h1>Simulator Hub — 통합 메뉴</h1>
+      </div>
+      <div class="toolbar"><button id="btnSettings" class="button">⚙️ 설정</button>
+        <input id="q" class="input" type="search" placeholder="검색 ( / )">
+        <label style="display:flex;align-items:center;gap:8px">
+          <input id="onlyFav" type="checkbox"> 즐겨찾기만
+        </label>
+        <a class="button" href="simulators.json" target="_blank">카탈로그(JSON)</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="body">
+        <h2>시뮬레이터 목록</h2>
+        <ul id="simList" class="list"></ul>
+        <div class="footer">Tip: <span class="kbd">/</span> 키로 검색창 포커스</div>
+      </div>
+    </div>
+  </div>
+<script id="catalog" type="application/json">[
+  {
+    "id": "car-hunt",
+    "name": "Car Hunt 시뮬레이터",
+    "path": "simulators/car-hunt.html",
+    "description": "목표/시간 기준, 확률 구간, 히스토리/프리셋 지원",
+    "tags": [
+      "car",
+      "hunt",
+      "bp",
+      "sp"
+    ],
+    "featured": true
+  },
+  {
+    "id": "fullstar",
+    "name": "풀성 시뮬레이터",
+    "path": "simulators/fullstar.html",
+    "description": "기댓값/예산 탭형 시뮬레이터",
+    "tags": [
+      "budget",
+      "expectation"
+    ],
+    "featured": true
+  }
+]</script>
+<script src="assets/app.min.js"></script>
+
+<style>
+/* Settings modal styles, dynamic colors via CSS variables */
+#overlay{position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter: blur(6px);
+  display:none; align-items:center; justify-content:center; z-index:9999}
+#overlay.show{display:flex; animation:fadeIn .15s ease}
+@keyframes fadeIn{from{opacity:0} to{opacity:1}}
+#modal{width:min(92vw,720px); background:var(--panel); color:var(--ink); border:1px solid var(--border);
+  border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.5); transform:scale(.98); animation:pop .18s ease forwards}
+@keyframes pop{to{transform:scale(1)}}
+#modal .hd{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border)}
+#modal .hd h3{margin:0; font-size:18px}
+#modal .bd{padding:16px; display:grid; gap:14px}
+#modal .row{display:grid; grid-template-columns:160px 1fr; gap:12px; align-items:center}
+#modal select, #modal input[type="checkbox"]{padding:10px 12px; background:var(--control-bg); color:var(--control-ink); border:1px solid var(--control-border); border-radius:10px}
+#modal .ft{display:flex; justify-content:space-between; padding:12px 16px; border-top:1px solid var(--border)}
+.kbd{font-family:ui-monospace,Menlo,Consolas,monospace; background:#0f1825; border:1px solid var(--border); border-radius:6px; padding:1px 6px}
+</style>
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div id="modal">
+    <div class="hd">
+      <h3 id="dlgTitle">설정</h3>
+      <button id="btnClose" class="button">닫기 (Esc)</button>
+    </div>
+    <div class="bd">
+      <div class="row">
+        <div>글로벌 테마</div>
+        <div>
+          <select id="themeGlobal">
+            <option value="asphalt">Asphalt (기본)</option>
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="midnight">Midnight</option>
+            <option value="oled">OLED</option>
+            <option value="neon">Neon</option>
+            <option value="forest">Forest</option>
+            <option value="sandstone">Sandstone</option>
+            <option value="sakura">Sakura</option>
+            <option value="skyline">Skyline</option>
+            <option value="sepia">Sepia</option>
+            <option value="highcontrast">HighContrast</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>Car Hunt 테마</div>
+        <div>
+          <select id="themeCarHunt">
+            <option value="">글로벌 따라감</option>
+            <option value="asphalt">Asphalt</option>
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="midnight">Midnight</option>
+            <option value="oled">OLED</option>
+            <option value="neon">Neon</option>
+            <option value="forest">Forest</option>
+            <option value="sandstone">Sandstone</option>
+            <option value="sakura">Sakura</option>
+            <option value="skyline">Skyline</option>
+            <option value="sepia">Sepia</option>
+            <option value="highcontrast">HighContrast</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>풀성 테마</div>
+        <div>
+          <select id="themeFullstar">
+            <option value="">글로벌 따라감</option>
+            <option value="asphalt">Asphalt</option>
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="midnight">Midnight</option>
+            <option value="oled">OLED</option>
+            <option value="neon">Neon</option>
+            <option value="forest">Forest</option>
+            <option value="sandstone">Sandstone</option>
+            <option value="sakura">Sakura</option>
+            <option value="skyline">Skyline</option>
+            <option value="sepia">Sepia</option>
+            <option value="highcontrast">HighContrast</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>카드 보기</div>
+        <div>
+          <select id="layoutMode">
+            <option value="list">리스트</option>
+            <option value="grid-2">2열 그리드</option>
+            <option value="grid-3">3열 그리드</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>열기 방식</div>
+        <div>
+          <select id="openMode">
+            <option value="same">현재 탭</option>
+            <option value="new">새 탭</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="ft">
+      <button id="btnReset" class="button">설정 초기화</button>
+      <div class="meta">테마/동작은 자동 저장됩니다.</div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const GKEY = "simhub_theme_global";
+  const OKEY = "simhub_theme_overrides";
+  const SKEY = "simhub_settings";
+
+  function resolveSystem(theme){
+    if(theme!=="system") return theme;
+    const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return isDark ? "dark" : "light";
+  }
+  function applyTheme(theme){
+    const final = resolveSystem(theme || "asphalt") || "asphalt";
+    document.documentElement.dataset.theme = final;
+  }
+  // Defaults: set global asphalt if not present
+  if(!localStorage.getItem(GKEY)){ localStorage.setItem(GKEY, "asphalt"); }
+  applyTheme(localStorage.getItem(GKEY));
+
+  // Open/Close
+  const overlay = document.getElementById('overlay');
+  document.getElementById('btnSettings').addEventListener('click', ()=> overlay.classList.add('show'));
+  document.getElementById('btnClose').addEventListener('click', ()=> overlay.classList.remove('show'));
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.classList.remove('show'); });
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') overlay.classList.remove('show'); });
+
+  // Load selects
+  const themeGlobal = document.getElementById('themeGlobal');
+  const themeCarHunt = document.getElementById('themeCarHunt');
+  const themeFullstar = document.getElementById('themeFullstar');
+  const layoutMode = document.getElementById('layoutMode');
+  const openMode = document.getElementById('openMode');
+
+  // Initialize from storage
+  themeGlobal.value = localStorage.getItem(GKEY) || 'asphalt';
+  const ov = JSON.parse(localStorage.getItem(OKEY) || '{}');
+  themeCarHunt.value = ov['car-hunt'] || '';
+  themeFullstar.value = ov['fullstar'] || '';
+  const settings = JSON.parse(localStorage.getItem(SKEY) || '{"layout":"list","openMode":"same"}');
+  layoutMode.value = settings.layout || 'list';
+  openMode.value = settings.openMode || 'same';
+
+  // Save handlers
+  themeGlobal.addEventListener('change', ()=>{
+    localStorage.setItem(GKEY, themeGlobal.value);
+    applyTheme(themeGlobal.value);
+  });
+  function saveOverride(id, v){
+    const map = JSON.parse(localStorage.getItem(OKEY) || '{}');
+    if(v) map[id] = v; else delete map[id];
+    localStorage.setItem(OKEY, JSON.stringify(map));
+  }
+  themeCarHunt.addEventListener('change', ()=> saveOverride('car-hunt', themeCarHunt.value));
+  themeFullstar.addEventListener('change', ()=> saveOverride('fullstar', themeFullstar.value));
+
+  layoutMode.addEventListener('change', ()=>{
+    const s = JSON.parse(localStorage.getItem(SKEY) || '{}');
+    s.layout = layoutMode.value; localStorage.setItem(SKEY, JSON.stringify(s));
+    document.body.dataset.layout = s.layout;
+  });
+  openMode.addEventListener('change', ()=>{
+    const s = JSON.parse(localStorage.getItem(SKEY) || '{}');
+    s.openMode = openMode.value; localStorage.setItem(SKEY, JSON.stringify(s));
+  });
+
+  document.getElementById('btnReset').addEventListener('click', ()=>{
+    if(!confirm('모든 설정(테마/오버라이드/레이아웃/열기 방식)을 초기화할까요?')) return;
+    localStorage.removeItem(GKEY);
+    localStorage.removeItem(OKEY);
+    localStorage.removeItem(SKEY);
+    themeGlobal.value = 'asphalt';
+    themeCarHunt.value = '';
+    themeFullstar.value = '';
+    layoutMode.value = 'list';
+    openMode.value = 'same';
+    applyTheme('asphalt');
+    document.body.dataset.layout = 'list';
+  });
+
+  // Apply layout
+  document.body.dataset.layout = settings.layout || 'list';
+
+  // Expose getters for app
+  window.__SIMHUB_GET_OPEN_MODE__ = ()=> JSON.parse(localStorage.getItem(SKEY)||'{}').openMode || 'same';
+  window.__SIMHUB_RESOLVE_THEME__ = (id)=>{
+    const g = localStorage.getItem(GKEY) || 'asphalt';
+    const o = JSON.parse(localStorage.getItem(OKEY)||'{}')[id];
+    const t = o || g;
+    return resolveSystem(t);
+  };
+})();
+</script>
+
+</body>
+</html>
