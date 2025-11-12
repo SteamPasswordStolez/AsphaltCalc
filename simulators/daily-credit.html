@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>일일 크레딧 계산기 — v18 (Per‑Map Minutes, Ad Mult Dist, Packs)</title>
+<meta name="color-scheme" content="light dark" />
+
+<link rel="stylesheet" href="../assets/themes.css">
+<link rel="stylesheet" href="../assets/theme-adapter.css">
+
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0}
+
+  /* === Layout === */
+  .container{max-width:1180px;margin:32px auto;padding:0 24px;display:grid;grid-template-columns:1.5fr 1fr;gap:20px}
+  @media (max-width: 900px){ .container{grid-template-columns:1fr;gap:16px;padding:0 16px;margin:24px auto} }
+
+  .panel{border-radius:18px;padding:20px 24px}
+  .title{margin:0 0 10px;font-weight:900;letter-spacing:.2px;font-size:1.4rem}
+  .subtitle{margin:0;font-weight:800;opacity:.95}
+  .desc{margin:6px 0 0;opacity:.9;font-size:14px;line-height:1.5}
+
+  /* Inputs */
+  .grid{display:grid;gap:18px}
+  .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  @media (max-width: 900px){ .grid.cols-3{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media (max-width: 640px){ .grid.cols-3{grid-template-columns:1fr} }
+  .field{display:block}
+  .field label{font-size:14px;display:block;margin:0 0 6px;opacity:.95;font-weight:700}
+  .input-wrap{position:relative}
+  .input-wrap input[type="number"], .input-wrap input[type="text"]{padding:14px 42px 14px 16px;border-radius:14px;width:100%;font-size:15.5px}
+  .unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);opacity:.9;font-size:13px;pointer-events:none}
+  .hint{margin-top:8px;opacity:.85;font-size:13px;line-height:1.4}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  .row .button{padding:11px 18px;border-radius:14px;font-size:15px}
+
+  /* Result panel */
+  #result .value{font-weight:900;font-size:24px;margin-bottom:6px}
+  #result .meta{opacity:.9;font-size:14px;line-height:1.4}
+
+  /* Table (map & pack) */
+  .table-wrap{margin-top:10px;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead th{background:var(--panel);border-bottom:1px solid var(--border);text-align:left;padding:12px}
+  tbody td{border-top:1px solid var(--border);padding:10px 12px;vertical-align:middle}
+  td input, td select{width:100%;padding:10px 12px;border-radius:10px;font-size:14px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px}
+  .cell-actions{width:48px;min-width:48px}
+  .error{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(255,0,0,.08);border:1px solid #ff6b6b;color:#ff6b6b}
+  @media (max-width:860px){
+    .table-wrap{overflow:auto}
+    table{min-width:920px}
+  }
+
+  /* Back button */
+  #hubBackWrap{position:fixed; left:16px; top:16px; z-index:2147483647}
+  .hub-btn{display:inline-flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px}
+  .hub-btn:hover{transform:translateY(-1px)}
+</style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Left: Inputs (60%) -->
+    <section class="card panel input-panel">
+      <h2 class="title">일일 크레딧 계산기</h2>
+      <p class="desc">하루 플레이 시간과 <b>맵별 시간</b>, <b>광고 배수 분포</b>, <b>팩 설정</b>을 기준으로 <b>일일 총 크레딧</b>을 추정합니다. 광고 보상은 "해당 판 기본 크레딧 × (배수−1)"의 기대값으로 계산합니다.</p>
+
+      <div class="grid cols-3" style="margin-top:18px">
+        <div class="field">
+          <label for="playMinutes">하루 플레이 시간</label>
+          <div class="input-wrap">
+            <input id="playMinutes" type="number" min="0" step="1" value="120" aria-label="하루 플레이 시간" />
+            <span class="unit">분</span>
+          </div>
+          <div class="hint">모든 맵의 시간 합계와 정확히 일치해야 합니다.</div>
+        </div>
+        <div class="field">
+          <label for="bonusPercent">보너스 계수</label>
+          <div class="input-wrap">
+            <input id="bonusPercent" type="number" min="0" step="1" value="0" aria-label="보너스 퍼센트" />
+            <span class="unit">%</span>
+          </div>
+          <div class="hint">패스/클럽/이벤트 보너스 합계(예: 15)</div>
+        </div>
+        <div class="field">
+          <label for="adsPerDay">광고 시청 최대</label>
+          <div class="input-wrap">
+            <input id="adsPerDay" type="number" min="0" step="1" value="10" aria-label="광고 시청 최대" />
+            <span class="unit">회/일</span>
+          </div>
+          <div class="hint">최대 횟수</div>
+        </div>
+      </div>
+
+      <!-- Map pool dynamic table (minutes per map) -->
+      <div class="subtitle" style="margin-top:14px">맵 구성 (자유 추가/삭제)</div>
+      <div class="hint" style="margin:6px 0 10px">
+        각 행에 <b>기본 크레딧</b>·<b>1판 시간(초)</b>·<b>오버헤드(초)</b>·<b>해당 맵 플레이 시간(분)</b>·<b>팩/판</b>·<b>팩 종류</b>를 입력하세요.
+        <br><b>주의:</b> 모든 맵의 플레이 시간 합계가 "하루 플레이 시간"과 <b>정확히 일치</b>해야 합니다.
+      </div>
+      <div class="toolbar">
+        <button id="addMap" class="button">맵 추가</button>
+        <button id="clearMaps" class="button danger">모두 삭제</button>
+      </div>
+      <div class="table-wrap">
+        <table aria-label="맵 풀 표">
+          <thead>
+            <tr>
+              <th style="width:16%">이름</th>
+              <th style="width:12%">기본 크레딧</th>
+              <th style="width:12%">1판 시간</th>
+              <th style="width:12%">오버헤드</th>
+              <th style="width:14%">이 맵 시간</th>
+              <th style="width:10%">팩/판</th>
+              <th style="width:18%">팩 종류</th>
+              <th class="cell-actions">—</th>
+            </tr>
+          </thead>
+          <tbody id="mapTbody"></tbody>
+        </table>
+      </div>
+      <div id="mapError" class="error" style="display:none"></div>
+
+      <!-- Pack definitions -->
+      <div class="subtitle" style="margin-top:20px">팩 설정 (자유 추가/삭제)</div>
+      <div class="hint" style="margin:6px 0 10px">각 팩은 <b>크레딧:확률</b> 목록으로 구성합니다. 예: <code>0:60, 5000:20, 10000:20</code> (합계 100%)</div>
+      <div class="toolbar">
+        <button id="addPack" class="button">팩 추가</button>
+        <button id="clearPacks" class="button danger">모두 삭제</button>
+      </div>
+      <div class="table-wrap">
+        <table aria-label="팩 설정 표">
+          <thead>
+            <tr>
+              <th style="width:24%">팩 이름</th>
+              <th>구성 (크레딧:확률, 쉼표 구분)</th>
+              <th class="cell-actions">—</th>
+            </tr>
+          </thead>
+          <tbody id="packTbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Ads -->
+      <div class="subtitle" style="margin-top:14px">광고 설정</div>
+      <div class="grid cols-3">
+        <div class="field">
+          <label for="adSeconds">광고 1회 시간</label>
+          <div class="input-wrap"><input id="adSeconds" type="number" min="0" value="30"/><span class="unit">초</span></div>
+          <div class="hint">광고 길이 + 로딩</div>
+        </div>
+        <div class="field" style="display:flex;align-items:center">
+          <label for="adsConsumeTime" style="display:flex;align-items:center;gap:8px"><input id="adsConsumeTime" type="checkbox" checked /> 광고 시간이 플레이 시간을 소모</label>
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="calc" class="button primary">계산</button>
+        <button id="reset" class="button">기본값 복원</button>
+      </div>
+    </section>
+
+    <!-- Right: Result (40%) -->
+    <section class="card panel result-panel">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <h3 class="subtitle">결과</h3>
+        <div class="meta" id="summaryMeta" aria-live="polite"></div>
+      </div>
+      <div id="result" style="margin-top:8px">
+        <div class="value">–</div>
+        <div class="meta">입력을 채운 뒤 <b>계산</b>을 누르면 일일 총 크레딧, 판 수, 광고 수, 구성 비중을 보여줍니다.</div>
+      </div>
+      <hr style="margin:16px 0; border:none; border-top:1px solid var(--border)">
+      <div id="breakdown" class="meta"></div>
+    </section>
+  </div>
+
+<script>
+(function(){
+  // ===== Theme sync =====
+  var GKEY='simhub_theme_global';
+  function resolveSystem(theme){ if(theme==='system'){ return (matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; } return theme || 'asphalt'; }
+  function currentTheme(){ var attr=document.documentElement.getAttribute('data-theme'); if(attr) return attr; var g = localStorage.getItem(GKEY); return g || 'asphalt'; }
+  function applyTheme(t){ document.documentElement.setAttribute('data-theme', resolveSystem(t)); }
+  applyTheme(currentTheme());
+  window.addEventListener('storage', function(ev){ if(ev && ev.key===GKEY) applyTheme(currentTheme()); });
+  try{ var mql=matchMedia('(prefers-color-scheme: dark)'); if(mql && mql.addEventListener){ mql.addEventListener('change', function(){ var t=currentTheme(); if(t==='system') applyTheme(t); }); } }catch(_){}
+
+  var q=function(id){return document.getElementById(id)};
+
+  var DEFAULTS={
+    playMinutes:120,
+    bonusPercent:0,
+    adsPerDay:10,
+    maps:[
+      {name:'기본맵 A', credit:1000, lap:90, over:10, minutes:60, packsPerRun:1, packName:'팩 A'},
+      {name:'기본맵 B', credit:1200, lap:95, over:12, minutes:40, packsPerRun:0, packName:'없음'},
+      {name:'기본맵 C', credit:800,  lap:80, over:8,  minutes:20, packsPerRun:2, packName:'팩 A'}
+    ],
+    packs:[
+      {name:'없음', dist:'0:100'},
+      {name:'팩 A', dist:'0:60, 5000:20, 10000:20'}
+    ],
+    adSeconds:30,
+    adMultDist:[
+      {m:3, p:25}, {m:4, p:25}, {m:6, p:20}, {m:8, p:15}, {m:12, p:10}, {m:20, p:5}
+    ],
+    adsConsumeTime:true
+  };
+
+  // ===== Map & Pack table helpers =====
+  var tbody = document.getElementById('mapTbody');
+  var packBody = document.getElementById('packTbody');
+
+  function packNames(){
+    return Array.from(packBody.querySelectorAll('tr')).map(function(tr){
+      var name = tr.querySelector('input[data-k="name"]').value.trim();
+      return name || '없음';
+    });
+  }
+  function addPackRow(data){
+    var d = Object.assign({name:'새 팩', dist:'0:100'}, data||{});
+    var tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input data-k="name" type="text" value="${d.name}" aria-label="팩 이름"></td>
+      <td><input data-k="dist" type="text" value="${d.dist}" aria-label="구성 문자열"></td>
+      <td class="cell-actions"><button class="button icon-btn" title="삭제" data-action="del-pack">✕</button></td>`;
+    packBody.appendChild(tr);
+    refreshPackSelects();
+  }
+  function clearPackRows(){ packBody.innerHTML=''; refreshPackSelects(); }
+  function readPacks(){
+    return Array.from(packBody.querySelectorAll('tr')).map(function(tr){
+      return {
+        name: tr.querySelector('input[data-k="name"]').value.trim() || '없음',
+        dist: tr.querySelector('input[data-k="dist"]').value.trim() || '0:100'
+      };
+    });
+  }
+  function parsePackEV(distStr){
+    var sumP=0, ev=0;
+    distStr.split(',').forEach(function(piece){
+      var t=piece.trim(); if(!t) return; var kv=t.split(':');
+      var val=parseFloat(kv[0]); var prob=parseFloat(kv[1]);
+      if(isFinite(val)&&isFinite(prob)){ sumP+=prob; ev+=val*prob; }
+    });
+    if(sumP>0){ ev=ev/sumP; }
+    return {ev:ev, sumP:sumP};
+  }
+
+  function addMapRow(data){
+    var d = Object.assign({name:'', credit:0, lap:60, over:0, minutes:0, packsPerRun:0, packName:'없음'}, data||{});
+    var tr = document.createElement('tr');
+    var options = packNames().map(function(n){ return `<option value="${n}" ${d.packName===n? 'selected':''}>${n}</option>`; }).join('');
+    tr.innerHTML = `
+      <td><input type="text" value="${d.name}" aria-label="맵 이름"></td>
+      <td><input type="number" min="0" step="1" value="${d.credit}" aria-label="기본 크레딧"></td>
+      <td><input type="number" min="1" step="1" value="${d.lap}" aria-label="1판 시간(초)"></td>
+      <td><input type="number" min="0" step="1" value="${d.over}" aria-label="오버헤드(초)"></td>
+      <td><input type="number" min="0" step="1" value="${d.minutes}" aria-label="이 맵 시간(분)"></td>
+      <td><input type="number" min="0" step="1" value="${d.packsPerRun}" aria-label="팩/판"></td>
+      <td><select aria-label="팩 종류">${options}</select></td>
+      <td class="cell-actions"><button class="button icon-btn" title="삭제" data-action="del">✕</button></td>`;
+    tbody.appendChild(tr);
+  }
+  function clearMapRows(){ tbody.innerHTML=''; }
+  function readMaps(){
+    return Array.from(tbody.querySelectorAll('tr')).map(function(tr){
+      var inputs = tr.querySelectorAll('input');
+      var sel = tr.querySelector('select');
+      return {
+        name: inputs[0].value.trim(),
+        credit: Math.max(0, parseFloat(inputs[1].value)||0),
+        lap: Math.max(1, parseFloat(inputs[2].value)||1),
+        over: Math.max(0, parseFloat(inputs[3].value)||0),
+        minutes: Math.max(0, parseFloat(inputs[4].value)||0),
+        packsPerRun: Math.max(0, parseFloat(inputs[5].value)||0),
+        packName: (sel && sel.value) || '없음'
+      };
+    });
+  }
+  function refreshPackSelects(){
+    var names = packNames();
+    Array.from(tbody.querySelectorAll('tr')).forEach(function(tr){
+      var sel = tr.querySelector('select');
+      if(!sel) return;
+      var current = sel.value;
+      sel.innerHTML = names.map(function(n){ return `<option value="${n}">${n}</option>`; }).join('');
+      if(names.includes(current)) sel.value=current; else sel.value='없음';
+    });
+  }
+
+  function seedDefaults(){
+    clearPackRows(); (DEFAULTS.packs||[]).forEach(addPackRow);
+    clearMapRows(); (DEFAULTS.maps||[]).forEach(addMapRow);
+  }
+
+  // Seed
+  seedDefaults();
+
+  // Toolbar events
+  var addBtn=document.getElementById('addMap'); if(addBtn){ addBtn.addEventListener('click', function(){ addMapRow({name:'새 맵'}); }); }
+  var clearBtn=document.getElementById('clearMaps'); if(clearBtn){ clearBtn.addEventListener('click', function(){ clearMapRows(); }); }
+  tbody.addEventListener('click', function(e){ var t=e.target; if(t && t.dataset && t.dataset.action==='del'){ t.closest('tr')?.remove(); }});
+
+  var addPackBtn=document.getElementById('addPack'); if(addPackBtn){ addPackBtn.addEventListener('click', function(){ addPackRow({name:'새 팩', dist:'0:100'}); }); }
+  var clearPackBtn=document.getElementById('clearPacks'); if(clearPackBtn){ clearPackBtn.addEventListener('click', function(){ clearPackRows(); }); }
+  packBody.addEventListener('click', function(e){ var t=e.target; if(t && t.dataset && t.dataset.action==='del-pack'){ t.closest('tr')?.remove(); refreshPackSelects(); }});
+  packBody.addEventListener('input', function(){ refreshPackSelects(); });
+
+  // ===== Reset =====
+  var resetBtn=q('reset');
+  if(resetBtn){
+    resetBtn.addEventListener('click', function(){
+      q('playMinutes').value=DEFAULTS.playMinutes;
+      q('bonusPercent').value=DEFAULTS.bonusPercent;
+      q('adsPerDay').value=DEFAULTS.adsPerDay;
+      seedDefaults();
+      q('adSeconds').value=DEFAULTS.adSeconds; q('adsConsumeTime').checked=DEFAULTS.adsConsumeTime;
+      var v=q('result').querySelector('.value'); if(v) v.textContent='–';
+      var m=q('result').querySelector('.meta'); if(m) m.textContent='기본값으로 복원됨';
+      var sm=q('summaryMeta'); if(sm) sm.textContent='';
+      var bd=document.getElementById('breakdown'); if(bd) bd.textContent='';
+      var err=document.getElementById('mapError'); if(err){ err.style.display='none'; err.textContent=''; }
+    });
+  }
+
+  // ===== Calculate =====
+  var calc=q('calc');
+  if(calc){
+    calc.addEventListener('click', function(){
+      function num(id, def){ var el=q(id); var n=parseFloat(el && el.value); return isFinite(n)? n: def; }
+
+      var minutesTotal = num('playMinutes', 0);
+      var bonusPercent = Math.max(0, num('bonusPercent', 0));
+      var adsCap = Math.max(0, num('adsPerDay', 0));
+      var maps = readMaps();
+      var packs = readPacks();
+
+      // Validate sum of map minutes
+      var sumMinutes = maps.reduce(function(a,m){ return a + (m.minutes||0); }, 0);
+      var err=document.getElementById('mapError');
+      if(Math.abs(sumMinutes - minutesTotal) > 0.0001){
+        if(err){ err.style.display='block'; err.textContent='맵들의 "이 맵 시간(분)" 합('+sumMinutes.toFixed(2)+'분) 이 하루 플레이 시간('+minutesTotal+'분)과 일치해야 합니다.'; }
+        return;
+      } else { if(err){ err.style.display='none'; err.textContent=''; } }
+
+      // Expected seconds after ads consumption scaling
+      var adSeconds = Math.max(0, num('adSeconds', 0));
+      var adsConsume = !!(q('adsConsumeTime') && q('adsConsumeTime').checked);
+      var totalSeconds = minutesTotal*60;
+
+      var adsUsed = 0;
+      if(adsCap>0){
+        if(adsConsume && adSeconds>0){ adsUsed = Math.min(adsCap, Math.floor(totalSeconds / adSeconds)); }
+        else { adsUsed = adsCap; }
+      }
+      var remainingSeconds = totalSeconds - (adsConsume ? adsUsed*adSeconds : 0);
+
+      var runsTotal=0, creditFromRuns=0, creditFromPacks=0;
+      var runMultiplier = 1 + (bonusPercent/100);
+
+      // Pack EV cache
+      var packMap = {};
+      packs.forEach(function(pk){ packMap[pk.name] = parsePackEV(pk.dist); });
+
+      maps.forEach(function(m){
+        var frac = minutesTotal>0 ? (m.minutes/minutesTotal) : 0;
+        var secAvail = Math.floor(remainingSeconds * frac);
+        var perRun = (m.lap + m.over);
+        var runs = perRun>0 ? Math.floor(secAvail / perRun) : 0;
+        runsTotal += runs;
+
+        var base = Math.max(0, m.credit);
+        creditFromRuns += Math.floor(runs * base * runMultiplier);
+
+        var pp = Math.max(0, m.packsPerRun||0);
+        if(pp>0){
+          var ev = (packMap[m.packName]?.ev)||0;
+          creditFromPacks += Math.floor(runs * pp * ev);
+        }
+      });
+
+      // Ad multiplier distribution expected value E[m-1]
+      var eminus1 = (DEFAULTS.adMultDist||[]).reduce(function(a,o){ return a + ( (o.m-1) * (o.p||0)/100 ); }, 0);
+      var expBasePerRun = runsTotal>0 ? (creditFromRuns/runMultiplier)/runsTotal : 0; // remove bonus
+      var creditFromAds = Math.floor(adsUsed * eminus1 * expBasePerRun * runMultiplier);
+
+      var totalCredit = creditFromRuns + creditFromAds + creditFromPacks;
+
+      var vEl=q('result').querySelector('.value');
+      var meta=q('result').querySelector('.meta');
+      if(vEl) vEl.textContent = totalCredit.toLocaleString() + ' 크레딧/일';
+      if(meta) meta.textContent = '총 판수 '+runsTotal.toLocaleString()+'회 · 광고 '+adsUsed.toLocaleString()+'회';
+
+      var bd=document.getElementById('breakdown');
+      if(bd){
+        var pctRuns = totalCredit>0 ? Math.round(creditFromRuns/totalCredit*100) : 0;
+        var pctAds  = totalCredit>0 ? Math.round(creditFromAds/totalCredit*100) : 0;
+        var pctPacks= totalCredit>0 ? (100 - pctRuns - pctAds) : 0;
+        bd.innerHTML = '<b>상세</b><br>'+
+          '광고 배수 분포: '+ (DEFAULTS.adMultDist||[]).map(function(o){return o.m+'배 '+o.p+'%';}).join(', ') + '<br>'+
+          'E[m−1] = '+eminus1.toFixed(3)+' · 팩 기대합: '+creditFromPacks.toLocaleString()+'<br>'+
+          '맵 보상: '+creditFromRuns.toLocaleString()+' · 광고 보상: '+creditFromAds.toLocaleString()+'<br>'+
+          '구성 비중: 맵 '+pctRuns+'% / 광고 '+pctAds+'% / 팩 '+pctPacks+'%';
+      }
+
+      var sm=q('summaryMeta'); if(sm) sm.textContent=new Date().toLocaleString();
+    });
+  }
+})();
+</script>
+
+<div id="hubBackWrap">
+  <button id="hubBackBtn" class="button primary hub-btn" title="메인 메뉴로">← 메인으로</button>
+</div>
+<script>
+  (function(){
+    var btn = document.getElementById('hubBackBtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+        history.back();
+      } else {
+        location.href = '../index.html';
+      }
+    });
+  })();
+</script>
+</body>
+</html>
