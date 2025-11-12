@@ -519,6 +519,16 @@
     #hubBackBtn{background:#0f1825; color:#e9f1ff}
   }
 </style>
+
+<!-- Hub Back Button Inject -->
+<style>
+  #hubBackWrap{position:fixed; left:16px; top:16px; z-index:2147483647; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial}
+  #hubBackBtn{padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:var(--chip-bg); color:var(--ink); cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:.9}
+  #hubBackBtn:hover{opacity:1}
+  @media (prefers-color-scheme: light){
+    #hubBackBtn{background:var(--chip-bg); color:var(--ink)}
+  }
+</style>
 <div id="hubBackWrap">
   <button id="hubBackBtn" title="메인 메뉴로">
     ← 메인으로
@@ -539,7 +549,6 @@
     });
   })();
 </script>
-<!-- /Hub Back Button Inject -->
 
 </body>
 </html>
