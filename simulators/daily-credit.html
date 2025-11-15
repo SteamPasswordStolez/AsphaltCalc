@@ -87,7 +87,99 @@
     margin-top:6px;
   }
 
-  /* Back button */
+  
+  /* === Presets & History === */
+  .preset-section{
+    margin-top:14px;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid var(--border);
+    background:rgba(0,0,0,.32);
+  }
+  .preset-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    font-size:12px;
+    font-weight:600;
+    color:var(--inkSubtle);
+    margin-bottom:6px;
+  }
+  .preset-header span.label{
+    font-weight:700;
+    color:var(--ink);
+  }
+  .preset-controls{
+    display:grid;
+    grid-template-columns:2fr 1.5fr;
+    gap:6px;
+    margin-bottom:6px;
+  }
+  @media (max-width:900px){
+    .preset-controls{
+      grid-template-columns:1fr;
+    }
+  }
+  .preset-controls input,
+  .preset-controls select{
+    width:100%;
+    border-radius:10px;
+    border:1px solid var(--borderStrong);
+    background:rgba(0,0,0,.45);
+    color:var(--ink);
+    font-size:12px;
+    padding:6px 8px;
+  }
+  .preset-controls input::placeholder{
+    color:var(--inkMuted);
+  }
+  .preset-buttons{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:4px;
+  }
+  .preset-buttons .button{
+    flex:1 1 calc(50% - 6px);
+    justify-content:center;
+  }
+  @media (max-width:720px){
+    .preset-buttons .button{
+      flex:1 1 100%;
+    }
+  }
+  .history-list{
+    margin-top:4px;
+    border-radius:10px;
+    border:1px dashed var(--border);
+    padding:6px 8px;
+    max-height:220px;
+    overflow:auto;
+    background:rgba(0,0,0,.25);
+  }
+  .history-empty{
+    font-size:11px;
+    color:var(--inkMuted);
+    padding:4px 0;
+  }
+  .history-item{
+    padding:4px 0;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    font-size:11px;
+  }
+  .history-item:last-child{
+    border-bottom:none;
+  }
+  .history-item-main{
+    font-weight:700;
+    color:var(--ink);
+  }
+  .history-item-meta{
+    font-size:11px;
+    color:var(--inkMuted);
+  }
+/* Back button */
   #hubBackWrap{position:fixed; left:16px; top:16px; z-index:2147483647}
   .hub-btn{display:inline-flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:13px; box-shadow:0 10px 30px rgba(0,0,0,.65); backdrop-filter:blur(14px); background:radial-gradient(650px 200px at 0 -120px, rgba(255,255,255,.45), transparent 60%), rgba(5,10,18,.96); border:1px solid rgba(255,255,255,.25)}
   .hub-btn svg{width:16px;height:16px}
@@ -257,6 +349,41 @@
     <div id="breakdown" class="meta"></div>
     <hr style="margin:16px 0 10px; border:none; border-top:1px dashed var(--border)">
     <div id="simSummary" class="meta"></div>
+    <!-- Presets & History -->
+    <div class="preset-section" id="presetSection">
+      <div class="preset-header">
+        <span class="label">프리셋</span>
+        <span style="font-size:11px;color:var(--inkMuted)">입력값을 저장해 두고 빠르게 불러올 수 있습니다.</span>
+      </div>
+      <div class="preset-controls">
+        <input id="dcPresetName" type="text" placeholder="예: 기본 맵 구성" />
+        <select id="dcPresetSelect">
+          <option value="">(저장된 프리셋)</option>
+        </select>
+      </div>
+      <div class="preset-buttons">
+        <button class="button" id="dcPresetSaveBtn">현재 입력 저장</button>
+        <button class="button" id="dcPresetLoadBtn">불러오기</button>
+        <button class="button" id="dcPresetDeleteBtn">삭제</button>
+        <button class="button" id="dcPresetExportBtn">프리셋 JSON 내보내기</button>
+        <button class="button" id="dcPresetImportBtn">JSON 불러오기</button>
+      </div>
+      <div style="font-size:11px;color:var(--inkMuted);margin-top:2px;">
+        프리셋은 이 브라우저의 로컬 저장소에만 저장되며, 다른 기기와는 공유되지 않습니다.
+      </div>
+      <input id="dcPresetImportFile" type="file" accept="application/json" style="display:none" />
+    </div>
+
+    <div class="preset-section" id="historySection">
+      <div class="preset-header">
+        <span class="label">히스토리</span>
+        <button class="button" id="dcHistoryClearBtn" style="padding:4px 10px;font-size:11px;">모두 지우기</button>
+      </div>
+      <div id="dcHistoryList" class="history-list">
+        <div class="history-empty">저장된 히스토리가 없습니다.</div>
+      </div>
+    </div>
+
   </section>
 </div>
 
@@ -795,6 +922,265 @@
       var sm=q('summaryMeta'); if(sm) sm.textContent=new Date().toLocaleString();
     });
   }
+
+  // ===== Presets & History (Daily Credit) =====
+  var DC_PRESETS_KEY = 'dailycredit_presets_v1';
+  var DC_HISTORY_KEY = 'dailycredit_history_v1';
+
+  function dcLoad(key, fallback){
+    try{
+      var raw = localStorage.getItem(key);
+      if(!raw) return fallback;
+      var parsed = JSON.parse(raw);
+      return parsed || fallback;
+    }catch(e){
+      return fallback;
+    }
+  }
+  function dcSave(key, value){
+    try{
+      localStorage.setItem(key, JSON.stringify(value));
+    }catch(e){
+      console.warn('Failed to save to localStorage:', e);
+    }
+  }
+  function dcNowStamp(){
+    var d = new Date();
+    var y = d.getFullYear();
+    var M = String(d.getMonth()+1).padStart(2,'0');
+    var D = String(d.getDate()).padStart(2,'0');
+    var h = String(d.getHours()).padStart(2,'0');
+    var m = String(d.getMinutes()).padStart(2,'0');
+    return ''+y+M+D+'-'+h+m;
+  }
+
+  var dcPresetNameEl = q('dcPresetName');
+  var dcPresetSelectEl = q('dcPresetSelect');
+  var dcPresetSaveBtn = q('dcPresetSaveBtn');
+  var dcPresetLoadBtn = q('dcPresetLoadBtn');
+  var dcPresetDeleteBtn = q('dcPresetDeleteBtn');
+  var dcPresetExportBtn = q('dcPresetExportBtn');
+  var dcPresetImportBtn = q('dcPresetImportBtn');
+  var dcPresetImportFile = q('dcPresetImportFile');
+  var dcHistoryListEl = q('dcHistoryList');
+  var dcHistoryClearBtn = q('dcHistoryClearBtn');
+
+  var dcPresets = dcLoad(DC_PRESETS_KEY, []);
+  var dcHistory = dcLoad(DC_HISTORY_KEY, []);
+
+  function dcCollectInputSnapshot(){
+    return {
+      playMinutes: q('playMinutes') ? q('playMinutes').value : '',
+      bonusPercent: q('bonusPercent') ? q('bonusPercent').value : '',
+      adsPerDay: q('adsPerDay') ? q('adsPerDay').value : '',
+      simRuns: q('simRuns') ? q('simRuns').value : '',
+      fixedCredit: q('fixedCredit') ? q('fixedCredit').value : '',
+      creditHeist: !!(q('creditHeist') && q('creditHeist').checked),
+      adSeconds: q('adSeconds') ? q('adSeconds').value : '',
+      adsConsumeTime: !!(q('adsConsumeTime') && q('adsConsumeTime').checked),
+      maps: readMaps(),
+      packs: readPacks()
+    };
+  }
+
+  function dcApplySnapshot(snap){
+    if(!snap) return;
+    if(q('playMinutes') && typeof snap.playMinutes !== 'undefined') q('playMinutes').value = snap.playMinutes;
+    if(q('bonusPercent') && typeof snap.bonusPercent !== 'undefined') q('bonusPercent').value = snap.bonusPercent;
+    if(q('adsPerDay') && typeof snap.adsPerDay !== 'undefined') q('adsPerDay').value = snap.adsPerDay;
+    if(q('simRuns') && typeof snap.simRuns !== 'undefined') q('simRuns').value = snap.simRuns;
+    if(q('fixedCredit') && typeof snap.fixedCredit !== 'undefined') q('fixedCredit').value = snap.fixedCredit;
+    if(q('creditHeist')) q('creditHeist').checked = !!snap.creditHeist;
+    if(q('adSeconds') && typeof snap.adSeconds !== 'undefined') q('adSeconds').value = snap.adSeconds;
+    if(q('adsConsumeTime')) q('adsConsumeTime').checked = !!snap.adsConsumeTime;
+
+    if(Array.isArray(snap.maps)){
+      mapBody.innerHTML = '';
+      snap.maps.forEach(function(m){ addMapRow(m); });
+    }
+    if(Array.isArray(snap.packs)){
+      packBody.innerHTML = '';
+      snap.packs.forEach(function(p){ addPackRow(p); });
+      refreshPackSelects();
+    }
+  }
+
+  function dcRenderPresetOptions(){
+    if(!dcPresetSelectEl) return;
+    dcPresetSelectEl.innerHTML = '<option value="">(저장된 프리셋)</option>' +
+      dcPresets.map(function(p, idx){
+        var safeName = p.name && p.name.trim() ? p.name.trim() : ('프리셋 '+(idx+1));
+        return '<option value="'+idx+'">'+safeName+'</option>';
+      }).join('');
+  }
+
+  function dcRenderHistory(){
+    if(!dcHistoryListEl) return;
+    if(!dcHistory.length){
+      dcHistoryListEl.innerHTML = '<div class="history-empty">저장된 히스토리가 없습니다.</div>';
+      return;
+    }
+    var html = dcHistory.map(function(item){
+      var dt = new Date(item.ts || Date.now());
+      var tsText = isNaN(dt.getTime()) ? (item.ts || '') : dt.toLocaleString();
+      var main = item.main || '';
+      var meta = item.meta || '';
+      var extra = item.extra || '';
+      return '<div class="history-item">'+
+        '<div class="history-item-main">'+main+'</div>'+
+        '<div class="history-item-meta">'+tsText+(meta ? ' · '+meta : '')+'</div>'+
+        (extra ? '<div class="history-item-meta">'+extra+'</div>' : '')+
+        '</div>';
+    }).join('');
+    dcHistoryListEl.innerHTML = html;
+  }
+
+  dcRenderPresetOptions();
+  dcRenderHistory();
+
+  if(dcPresetSaveBtn){
+    dcPresetSaveBtn.addEventListener('click', function(){
+      if(!dcPresetNameEl) return;
+      var name = (dcPresetNameEl.value || '').trim();
+      if(!name){
+        alert('프리셋 이름을 입력하세요.');
+        return;
+      }
+      var snap = dcCollectInputSnapshot();
+      var existingIndex = dcPresets.findIndex(function(p){ return p.name === name; });
+      if(existingIndex >= 0){
+        if(!confirm('같은 이름의 프리셋이 이미 있습니다. 덮어쓸까요?')) return;
+        dcPresets[existingIndex].data = snap;
+      }else{
+        dcPresets.push({name:name, data:snap});
+      }
+      dcSave(DC_PRESETS_KEY, dcPresets);
+      dcRenderPresetOptions();
+      if(dcPresetSelectEl){
+        var idx = dcPresets.findIndex(function(p){ return p.name === name; });
+        if(idx >= 0) dcPresetSelectEl.value = String(idx);
+      }
+      alert('프리셋이 저장되었습니다.');
+    });
+  }
+
+  if(dcPresetLoadBtn){
+    dcPresetLoadBtn.addEventListener('click', function(){
+      if(!dcPresetSelectEl) return;
+      var idx = parseInt(dcPresetSelectEl.value, 10);
+      if(isNaN(idx) || idx < 0 || idx >= dcPresets.length){
+        alert('불러올 프리셋을 선택하세요.');
+        return;
+      }
+      var snap = dcPresets[idx].data;
+      dcApplySnapshot(snap);
+      alert('프리셋을 불러왔습니다.');
+    });
+  }
+
+  if(dcPresetDeleteBtn){
+    dcPresetDeleteBtn.addEventListener('click', function(){
+      if(!dcPresetSelectEl) return;
+      var idx = parseInt(dcPresetSelectEl.value, 10);
+      if(isNaN(idx) || idx < 0 || idx >= dcPresets.length){
+        alert('삭제할 프리셋을 선택하세요.');
+        return;
+      }
+      if(!confirm('선택한 프리셋을 삭제할까요?')) return;
+      dcPresets.splice(idx, 1);
+      dcSave(DC_PRESETS_KEY, dcPresets);
+      dcRenderPresetOptions();
+      if(dcPresetSelectEl) dcPresetSelectEl.value = '';
+    });
+  }
+
+  if(dcPresetExportBtn){
+    dcPresetExportBtn.addEventListener('click', function(){
+      if(!dcPresets.length){
+        alert('내보낼 프리셋이 없습니다.');
+        return;
+      }
+      var blob = new Blob([JSON.stringify(dcPresets, null, 2)], {type:'application/json'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'dailycredit-'+dcNowStamp()+'.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){
+        URL.revokeObjectURL(a.href);
+        a.remove();
+      }, 0);
+    });
+  }
+
+  if(dcPresetImportBtn && dcPresetImportFile){
+    dcPresetImportBtn.addEventListener('click', function(){
+      dcPresetImportFile.click();
+    });
+    dcPresetImportFile.addEventListener('change', function(ev){
+      var file = ev.target.files && ev.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        try{
+          var imported = JSON.parse(reader.result);
+          if(!Array.isArray(imported)){
+            alert('올바르지 않은 JSON 형식입니다.');
+            return;
+          }
+          if(!confirm('기존 프리셋에 추가할까요? (취소 시 덮어쓰기)')){
+            dcPresets = imported;
+          }else{
+            dcPresets = dcPresets.concat(imported);
+          }
+          dcSave(DC_PRESETS_KEY, dcPresets);
+          dcRenderPresetOptions();
+          alert('프리셋 JSON을 불러왔습니다.');
+        }catch(e){
+          alert('JSON을 읽는 중 오류가 발생했습니다.');
+        }
+      };
+      reader.readAsText(file);
+      ev.target.value = '';
+    });
+  }
+
+  if(dcHistoryClearBtn){
+    dcHistoryClearBtn.addEventListener('click', function(){
+      if(!confirm('모든 히스토리를 삭제할까요?')) return;
+      dcHistory = [];
+      dcSave(DC_HISTORY_KEY, dcHistory);
+      dcRenderHistory();
+    });
+  }
+
+  var calcBtnForHistory = q('calc');
+  if(calcBtnForHistory && dcHistoryListEl){
+    calcBtnForHistory.addEventListener('click', function(){
+      setTimeout(function(){
+        var resultEl = q('result');
+        if(!resultEl) return;
+        var valNode = resultEl.querySelector('.value');
+        var metaNode = resultEl.querySelector('.meta');
+        var simNode = q('simSummary');
+        var mainText = valNode ? valNode.textContent : '';
+        if(!mainText) return;
+        var entry = {
+          ts: new Date().toISOString(),
+          main: mainText,
+          meta: metaNode ? metaNode.textContent : '',
+          extra: simNode ? simNode.textContent : ''
+        };
+        dcHistory.unshift(entry);
+        if(dcHistory.length > 50){
+          dcHistory = dcHistory.slice(0, 50);
+        }
+        dcSave(DC_HISTORY_KEY, dcHistory);
+        dcRenderHistory();
+      }, 0);
+    });
+  }
+
 })();
 </script>
 
