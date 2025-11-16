@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>운빨수치 계산기 — 청사진 / 특수부품 / 둘 다</title>
+  <meta name="color-scheme" content="light dark" />
+
+  <!-- 허브에 붙일 때 이 두 줄만 살리면 됨
+  <link rel="stylesheet" href="../assets/themes.css">
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+-->
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: var(--bg, radial-gradient(circle at top, #141824 0, #050814 55%, #020308 100%));
+      color: var(--ink, #f5f5f5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 880px;
+      border-radius: 20px;
+      padding: 22px 24px 24px;
+      background: rgba(5, 8, 20, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(16px);
+      transition: filter .2s ease, opacity .2s ease;
+    }
+
+    .wrap.blurred {
+      filter: blur(6px);
+      opacity: 0.8;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: .03em;
+      font-weight: 900;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      opacity: 0.75;
+    }
+
+    .mode-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0 12px;
+      flex-wrap: wrap;
+    }
+
+    label {
+      font-size: 13px;
+    }
+
+    select {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(3, 6, 18, 0.9);
+      color: inherit;
+      padding: 7px 12px;
+      font-size: 13px;
+      outline: none;
+    }
+    select:focus {
+      border-color: rgba(120, 200, 255, 0.9);
+      box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.4);
+    }
+
+    .mode-hint {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    .section-title {
+      margin: 14px 0 6px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.95;
+    }
+
+    .section-title span.tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.15);
+      opacity: 0.8;
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 800px) {
+      .input-grid { grid-template-columns: 1fr; }
+      .wrap { padding: 18px 16px 20px; }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+    }
+
+    .field-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      opacity: 0.9;
+    }
+
+    .field small {
+      opacity: 0.7;
+      font-size: 11px;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(3, 6, 18, 0.85);
+      color: inherit;
+      padding: 8px 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s, background .15s, opacity .15s;
+    }
+
+    input[type="number"]:focus {
+      border-color: rgba(120, 200, 255, 0.9);
+      box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.4);
+      background: rgba(7, 12, 28, 0.95);
+    }
+
+    input[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+
+    .hint {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(120deg, #31c6ff, #6c6bff, #ff4ecd);
+      color: #fdfdfd;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      white-space: nowrap;
+    }
+    button:hover:not(:disabled) {
+      filter: brightness(1.07);
+      transform: translateY(-1px);
+    }
+    button:active:not(:disabled) {
+      filter: brightness(0.96);
+      transform: translateY(0);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .error {
+      font-size: 12px;
+      color: #ff8585;
+      margin-top: 6px;
+      min-height: 16px;
+    }
+
+    /* === 결과 모달 === */
+    .result-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+      z-index: 30;
+    }
+
+    .result-modal {
+      width: min(360px, 80vw);
+      max-height: 90vh;
+      border-radius: 24px;
+      background: radial-gradient(circle at top, rgba(255,255,255,0.1), rgba(3,5,15,1) 55%);
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 22px 60px rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .result-image-slot {
+      width: 100%;
+      padding: 10px 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-image-slot img {
+      width: 100%;
+      height: auto;
+      max-height: 50vh;
+      object-fit: contain;
+      display: block;
+    }
+
+    .result-content {
+      flex: 1;
+      padding: 12px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .result-title {
+      font-size: 13px;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .luck-lines {
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    .luck-line + .luck-line {
+      margin-top: 8px;
+    }
+
+    .luck-highlight {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: .03em;
+    }
+
+    .luck-emoji {
+      font-size: 20px;
+      margin-right: 4px;
+    }
+
+    .result-footer {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: 6px;
+      padding-top: 4px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .close-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: rgba(0,0,0,0.6);
+      color: #f5f5f5;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .close-btn:hover {
+      background: rgba(255,255,255,0.06);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="mainWrap">
+    <div class="title-row">
+      <h1>운빨수치 계산기</h1>
+      <div class="subtitle">청사진 / 특수부품 / 둘 다 · Binomial Luck Meter</div>
+    </div>
+
+    <div class="mode-row">
+      <label for="mode"><b>무엇을 기준으로 운빨을 볼까?</b></label>
+      <select id="mode">
+        <option value="">-- 선택하세요 --</option>
+        <option value="bp">청사진만</option>
+        <option value="sp">특수부품만</option>
+        <option value="both">청사진 + 특수부품 둘 다</option>
+      </select>
+    </div>
+    <div class="mode-hint">
+      먼저 측정 대상을 고르면 아래 입력창들이 활성화됩니다. 둘 다를 선택하면 청사진/특수부품의 시도 횟수를 각각 따로 넣을 수 있어요.
+    </div>
+
+    <!-- 청사진 섹션 -->
+    <div id="bpSection">
+      <div class="section-title">
+        청사진 (설계도)
+        <span class="tag">Blueprint</span>
+      </div>
+      <div class="input-grid">
+        <div class="field">
+          <div class="field-label">
+            <span>청사진 단일 성공 확률</span><small>(%)</small>
+          </div>
+          <input id="bpProb" type="number" min="0" max="100" step="0.0001" value="30" disabled />
+          <small>예: 한 판에 설계도 뜰 확률 30% → 30</small>
+        </div>
+        <div class="field">
+          <div class="field-label">
+            <span>청사진 시도 횟수</span><small>(판 수)</small>
+          </div>
+          <input id="bpTrials" type="number" min="1" step="1" value="90" disabled />
+          <small>예: 90판 진행</small>
+        </div>
+        <div class="field">
+          <div class="field-label">
+            <span>실제 청사진 횟수</span><small>(개수)</small>
+          </div>
+          <input id="bpSuccesses" type="number" min="0" step="1" value="27" disabled />
+          <small>예: 27번 먹음 → 27</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- 특수부품 섹션 -->
+    <div id="spSection">
+      <div class="section-title">
+        특수부품
+        <span class="tag">Special Part</span>
+      </div>
+      <div class="input-grid">
+        <div class="field">
+          <div class="field-label">
+            <span>특수부품 단일 성공 확률</span><small>(%)</small>
+          </div>
+          <input id="spProb" type="number" min="0" max="100" step="0.0001" value="4" disabled />
+          <small>예: 한 판에 특수부품 뜰 확률 4% → 4</small>
+        </div>
+        <div class="field">
+          <div class="field-label">
+            <span>특수부품 시도 횟수</span><small>(판 수)</small>
+          </div>
+          <input id="spTrials" type="number" min="1" step="1" value="90" disabled />
+          <small>예: 90판 진행 (청사진과 달라도 됨)</small>
+        </div>
+        <div class="field">
+          <div class="field-label">
+            <span>실제 특수부품 횟수</span><small>(개수)</small>
+          </div>
+          <input id="spSuccesses" type="number" min="0" step="1" value="1" disabled />
+          <small>예: 1번 먹음 → 1</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div class="hint">
+        단일 확률, 시도 수, 실제 횟수를 넣고<br>
+        <b>“운빨수치 계산”</b> 버튼을 눌러보세요.
+      </div>
+      <button id="calcBtn" disabled>운빨수치 계산</button>
+    </div>
+
+    <div id="error" class="error"></div>
+  </div>
+
+  <!-- 결과 모달 -->
+  <div class="result-overlay" id="resultOverlay">
+    <div class="result-modal">
+      <div class="result-image-slot" id="resultImageSlot">
+        <!-- 이미지는 여기 src만 바꾸면 됨 -->
+        <img id="resultImage"
+             src="images/luck-neutral.png"
+             alt=""
+             loading="lazy">
+      </div>
+      <div class="result-content">
+        <div>
+          <div class="result-title">UNBBAL-LUCK METER</div>
+          <div class="luck-lines" id="resultLines">
+            <!-- JS에서 운빨수치 텍스트 채워짐 -->
+          </div>
+        </div>
+        <div class="result-footer">
+          <button class="close-btn" id="closeResultBtn">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function formatNumber(x, digits = 2) {
+      if (!isFinite(x)) return "-";
+      return x.toFixed(digits);
+    }
+
+    // 이항분포 꼬리확률 계산
+    function binomialTails(n, p, k) {
+      if (p < 0 || p > 1) throw new Error("p out of range");
+      if (n < 0 || !Number.isInteger(n)) throw new Error("n invalid");
+      if (k < 0 || !Number.isInteger(k)) throw new Error("k invalid");
+
+      if (p === 0) {
+        return { lower: (k >= 0) ? 1 : 0, upper: (k <= 0) ? 1 : 0, mean: 0, std: 0 };
+      }
+      if (p === 1) {
+        return { lower: (k >= n) ? 1 : 0, upper: (k <= n) ? 1 : 0, mean: n, std: 0 };
+      }
+
+      const mean = n * p;
+      const std = Math.sqrt(n * p * (1 - p));
+
+      let pmf;
+      let lower = 0;
+      let upper = 0;
+
+      for (let i = 0; i <= n; i++) {
+        if (i === 0) {
+          pmf = Math.pow(1 - p, n);
+        } else {
+          pmf = pmf * ((n - (i - 1)) / i) * (p / (1 - p));
+        }
+        if (i <= k) lower += pmf;
+        if (i >= k) upper += pmf;
+      }
+
+      if (lower > 1) lower = 1;
+      if (upper > 1) upper = 1;
+      if (lower < 0) lower = 0;
+      if (upper < 0) upper = 0;
+
+      return { lower, upper, mean, std };
+    }
+
+    // 상위 퍼센타일(pct)에 따른 등급 + 이모지 매핑
+    function getLuckGrade(pct) {
+      // 이스터에그: 69.74%
+      if (Math.abs(pct - 69.74) < 0.005) {
+        return {
+          label: "당신.. 무슨 짓을 한겁니까..",
+          emoji: "🥵"
+        };
+      }
+
+      // 0.00% ~ 1.00%
+      if (pct <= 1.0) {
+        return { label: `"신"`, emoji: "" };
+      }
+      // 1.01% ~ 5.00%
+      if (pct <= 5.0) {
+        return { label: "전설급 행운", emoji: "⭐" };
+      }
+      // 5.01% ~ 10.00%
+      if (pct <= 10.0) {
+        return { label: "희귀한 행운", emoji: "💧" };
+      }
+      // 10.01% ~ 20.00%
+      if (pct <= 20.0) {
+        return { label: "운수 좋은 날", emoji: "💵" };
+      }
+      // 20.01% ~ 40.00%
+      if (pct <= 40.0) {
+        return { label: "평범한 행운", emoji: "🍀" };
+      }
+      // 40.01% ~ 60.00%
+      if (pct <= 60.0) {
+        return { label: "그냥저냥..", emoji: "😐" };
+      }
+      // 60.01% ~ 80.00%
+      if (pct <= 80.0) {
+        return { label: "새똥 밟은 날..", emoji: "💩" };
+      }
+      // 80.01% ~ 90.00%
+      if (pct <= 90.0) {
+        return { label: "역대급 불운", emoji: "💀" };
+      }
+      // 90.01% ~ 95.00%
+      if (pct <= 95.0) {
+        return { label: "정말 운이 없으시네요...", emoji: "🛢️" };
+      }
+      // 95.01% ~ 99.00%
+      if (pct <= 99.0) {
+        return { label: "어쩌다 이지경까지..", emoji: "🤮" };
+      }
+      // 99.01% ~ 99.99%
+      if (pct <= 99.99) {
+        return { label: "당신은 사람입니까..", emoji: "☠️" };
+      }
+
+      return { label: "당신은 사람입니까..", emoji: "☠️" };
+    }
+
+    // 하나의 지표(청사진 / 특수부품)에 대한 운빨수치 계산
+    function evaluateLuck(kindLabel, probPercent, n, k) {
+      if (isNaN(probPercent) || isNaN(n) || isNaN(k)) {
+        throw new Error(kindLabel + " 입력값을 올바르게 채워주세요.");
+      }
+      if (probPercent <= 0 || probPercent >= 100) {
+        throw new Error(kindLabel + " 성공 확률은 0보다 크고 100보다 작은 값이어야 합니다.");
+      }
+      if (n <= 0 || !Number.isInteger(n)) {
+        throw new Error(kindLabel + " 시도 횟수는 1 이상의 정수여야 합니다.");
+      }
+      if (k < 0 || k > n || !Number.isInteger(k)) {
+        throw new Error(kindLabel + " 성공 횟수는 0 이상, 시도 횟수 이하의 정수여야 합니다.");
+      }
+      if (n > 1200) {
+        throw new Error(kindLabel + " 시도 횟수가 너무 큽니다 (n ≤ 1200 권장).");
+      }
+
+      const p = probPercent / 100;
+      const tails = binomialTails(n, p, k);
+      const mean = tails.mean;
+      const std = tails.std;
+      const lower = tails.lower; // P(X ≤ k)  (불운 꼬리)
+      const upper = tails.upper; // P(X ≥ k)  (행운 꼬리)
+
+      let pct;
+
+      if (std === 0) {
+        // p=0 또는 1 같은 특이 케이스는 그냥 중앙값 취급
+        pct = 50;
+      } else if (k > mean) {
+        // 평균보다 많이 성공 → 행운 쪽 희소도 그대로 (0% = 신급 행운)
+        pct = upper * 100;
+      } else if (k < mean) {
+        // 평균보다 적게 성공 → 불운 쪽 희소도는 뒤집어서 (100% = 신급 불운)
+        pct = 100 - lower * 100;
+      } else {
+        // 딱 평균
+        pct = 50;
+      }
+
+      // 안전 범위 클램프
+      if (pct < 0) pct = 0;
+      if (pct > 100) pct = 100;
+
+      const grade = getLuckGrade(pct);
+
+      return {
+        kind: kindLabel,     // "청사진" / "특수부품"
+        pct: pct,            // 상위 퍼센타일 숫자
+        label: grade.label,  // 결과 텍스트
+        emoji: grade.emoji   // 이모지 (또는 빈 문자열)
+      };
+    }
+
+    // 가장 "극단적인" 운빨 기준으로 이미지 고르기
+    function pickImageByLuck(lines) {
+      if (!lines || !lines.length) return;
+
+      // 50%에서 얼마나 멀리 떨어졌는지 기준으로 극단성 판정
+      let chosen = lines[0];
+      for (const l of lines) {
+        if (Math.abs(l.pct - 50) > Math.abs(chosen.pct - 50)) {
+          chosen = l;
+        }
+      }
+
+      let src = "images/luck-neutral.png";
+
+      switch (chosen.label) {
+        case `"신"`:
+          src = "images/luck-god.png"; break;
+        case "전설급 행운":
+          src = "images/luck-legend.png"; break;
+        case "희귀한 행운":
+          src = "images/luck-rare.png"; break;
+        case "운수 좋은 날":
+          src = "images/luck-good.png"; break;
+        case "평범한 행운":
+          src = "images/luck-normal.png"; break;
+        case "그냥저냥..":
+          src = "images/luck-meh.png"; break;
+        case "새똥 밟은 날..":
+          src = "images/luck-bad.png"; break;
+        case "역대급 불운":
+          src = "images/luck-worst.png"; break;
+        case "정말 운이 없으시네요...":
+          src = "images/luck-oil.png"; break;
+        case "어쩌다 이지경까지..":
+          src = "images/luck-sick.png"; break;
+        case "당신은 사람입니까..":
+          src = "images/luck-not-human.png"; break;
+        case "당신.. 무슨 짓을 한겁니까..":
+          src = "images/luck-egg-6974.png"; break;
+      }
+
+      const img = document.getElementById("resultImage");
+      if (img) img.src = src;
+    }
+
+    function setInputsEnabled(sectionId, enabled) {
+      const section = document.getElementById(sectionId);
+      const inputs = section.querySelectorAll("input[type='number']");
+      inputs.forEach(inp => { inp.disabled = !enabled; });
+    }
+
+    function showResultModal(lines) {
+      const overlay = document.getElementById("resultOverlay");
+      const mainWrap = document.getElementById("mainWrap");
+      const linesContainer = document.getElementById("resultLines");
+
+      linesContainer.innerHTML = lines.map(line => {
+        const pctText = formatNumber(line.pct, 2);
+        const emojiPart = line.emoji ? `<span class="luck-emoji">${line.emoji}</span>` : "";
+        return `
+          <div class="luck-line">
+            ${emojiPart}
+            <span class="luck-highlight">${line.label}</span>
+            <div style="font-size:13px; opacity:.8; margin-top:2px;">
+              (${line.kind}, 상위 ${pctText}%)
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // 이미지 자동 선택
+      pickImageByLuck(lines);
+
+      mainWrap.classList.add("blurred");
+      overlay.style.display = "flex";
+    }
+
+    function hideResultModal() {
+      const overlay = document.getElementById("resultOverlay");
+      const mainWrap = document.getElementById("mainWrap");
+      overlay.style.display = "none";
+      mainWrap.classList.remove("blurred");
+    }
+
+    function compute() {
+      const mode = document.getElementById("mode").value;
+      const errorEl = document.getElementById("error");
+      errorEl.textContent = "";
+
+      if (!mode) {
+        errorEl.textContent = "먼저 무엇을 측정할지 선택해주세요.";
+        return;
+      }
+
+      const results = [];
+
+      try {
+        if (mode === "bp" || mode === "both") {
+          const prob = parseFloat(document.getElementById("bpProb").value);
+          const n = parseInt(document.getElementById("bpTrials").value, 10);
+          const k = parseInt(document.getElementById("bpSuccesses").value, 10);
+          results.push(evaluateLuck("청사진", prob, n, k));
+        }
+
+        if (mode === "sp" || mode === "both") {
+          const prob = parseFloat(document.getElementById("spProb").value);
+          const n = parseInt(document.getElementById("spTrials").value, 10);
+          const k = parseInt(document.getElementById("spSuccesses").value, 10);
+          results.push(evaluateLuck("특수부품", prob, n, k));
+        }
+
+        if (!results.length) {
+          errorEl.textContent = "계산할 대상이 없습니다.";
+          return;
+        }
+
+        showResultModal(results);
+      } catch (e) {
+        errorEl.textContent = e.message;
+      }
+    }
+
+    document.getElementById("mode").addEventListener("change", () => {
+      const mode = document.getElementById("mode").value;
+      const btn = document.getElementById("calcBtn");
+      const errorEl = document.getElementById("error");
+      errorEl.textContent = "";
+
+      if (!mode) {
+        setInputsEnabled("bpSection", false);
+        setInputsEnabled("spSection", false);
+        btn.disabled = true;
+        return;
+      }
+
+      if (mode === "bp") {
+        setInputsEnabled("bpSection", true);
+        setInputsEnabled("spSection", false);
+      } else if (mode === "sp") {
+        setInputsEnabled("bpSection", false);
+        setInputsEnabled("spSection", true);
+      } else if (mode === "both") {
+        setInputsEnabled("bpSection", true);
+        setInputsEnabled("spSection", true);
+      }
+      btn.disabled = false;
+    });
+
+    document.getElementById("calcBtn").addEventListener("click", compute);
+    document.getElementById("closeResultBtn").addEventListener("click", hideResultModal);
+    document.getElementById("resultOverlay").addEventListener("click", (e) => {
+      if (e.target.id === "resultOverlay") hideResultModal();
+    });
+
+    // Enter로도 계산
+    ["bpProb","bpTrials","bpSuccesses","spProb","spTrials","spSuccesses"].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener("keydown", e => {
+        if (e.key === "Enter" && !document.getElementById("calcBtn").disabled) {
+          compute();
+        }
+      });
+    });
+  </script>
+
+<!-- Hub Back Button Inject -->
+<style>
+  #hubBackWrap{position:fixed; left:16px; top:16px; z-index:2147483647; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial}
+  #hubBackBtn{padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:var(--chip-bg); color:var(--ink); cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:.9}
+  #hubBackBtn:hover{opacity:1}
+  @media (prefers-color-scheme: light){
+    #hubBackBtn{background:var(--chip-bg); color:var(--ink)}
+  }
+</style>
+<div id="hubBackWrap">
+  <button id="hubBackBtn" title="메인 메뉴로">
+    ← 메인으로
+  </button>
+</div>
+<script>
+  (function(){
+    var btn = document.getElementById('hubBackBtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      // If navigated from hub, try back; otherwise go to hub index.html
+      if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+        history.back();
+      } else {
+        // assume hub is one level up
+        location.href = '../index.html';
+      }
+    });
+  })();
+</script>
+</body>
+</html>
