@@ -1,7 +1,6 @@
-[
   {
     "id": "car-hunt",
-    "name": "Car Hunt 시뮬레이터",
+    "name": "자동차 사냥 시뮬레이터",
     "path": "simulators/car-hunt.html",
     "description": "목표/시간 기준, 확률 구간, 히스토리/프리셋 지원",
     "tags": [
@@ -22,5 +21,26 @@
       "expectation"
     ],
     "featured": true
+  },
+  {
+    "id": "daily-credit",
+    "name": "일일 크레딧 시뮬레이터",
+    "path": "simulators/daily-credit.html",
+    "description": "시간 기반 일일 크레딧 획득량 계산, 독립 팩 제공",
+    "tags": [
+      "credit",
+      "daily"
+    ],
+    "featured": false
+  },
+  {
+    "id": "daily-credit",
+    "name": "아스팔트 운빨수치",
+    "path": "simulators/luck-rate.html",
+    "description": "팩 확률과 획득량을 통한 운빨수치 계산",
+    "tags": [
+      "luck",
+      "rate"
+    ],
+    "featured": true
   }
-]
