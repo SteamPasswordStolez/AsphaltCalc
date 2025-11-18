@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Car Info — 차량 정보</title>
+  <meta name="color-scheme" content="light dark" />
+
+  <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/themes.css">
+
+  <script>
+  (function(){
+    var SIM_ID = "car-detail";
+    var GKEY = "simhub_theme_global";
+    var OKEY = "simhub_theme_overrides";
+
+    function resolveSystem(theme){
+      if(theme !== "system") return theme;
+      var isDark = window.matchMedia &&
+                   window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return isDark ? "dark" : "light";
+    }
+
+    function applyTheme(){
+      var globalTheme = localStorage.getItem(GKEY) || "asphalt";
+      var overrides;
+      try{
+        overrides = JSON.parse(localStorage.getItem(OKEY) || "{}");
+      }catch(e){
+        overrides = {};
+      }
+      var theme = overrides[SIM_ID] || globalTheme;
+      document.documentElement.dataset.theme = resolveSystem(theme);
+    }
+
+    try{ applyTheme(); }catch(e){ console.warn(e); }
+  })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+  <style>
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Apple SD Gothic Neo,Roboto,Noto Sans KR,Arial;
+      background:var(--bg);
+      color:var(--ink);
+    }
+
+    .page-wrap{
+      max-width:1180px;
+      margin:32px auto 40px;
+      padding:0 24px;
+    }
+    .page-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:18px;
+    }
+    .page-title{
+      margin:0;
+      font-size:24px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+    .page-sub{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--ink-soft);
+    }
+
+    .back-btn{
+      padding:6px 12px;
+      border-radius:999px;
+      border:1px solid var(--border-soft);
+      background:var(--surface-soft);
+      color:var(--ink-soft);
+      font-size:12px;
+      cursor:pointer;
+    }
+
+    .panel{
+      border-radius:18px;
+      padding:18px 20px 20px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow-raised, 0 18px 45px rgba(0,0,0,.55));
+    }
+
+    .detail-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:14px;
+    }
+    .detail-title-block{min-width:0;}
+    .detail-name{
+      margin:0;
+      font-size:22px;
+      font-weight:900;
+      letter-spacing:.02em;
+      word-break:keep-all;
+    }
+    .detail-meta{
+      margin:6px 0 0;
+      font-size:12px;
+      color:var(--ink-soft);
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px 10px;
+      align-items:center;
+    }
+    .detail-badges{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+    .class-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:26px;
+      padding:2px 6px;
+      border-radius:999px;
+      border:1px solid var(--border-soft);
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      background:var(--surface-soft);
+      color:var(--ink-strong);
+    }
+    .meta-pill{
+      padding:3px 8px;
+      border-radius:999px;
+      font-size:11px;
+      border:1px solid var(--border-subtle);
+      background:var(--surface-soft);
+      color:var(--ink-soft);
+      font-variant-numeric:tabular-nums;
+    }
+
+    .info-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
+      gap:18px;
+      margin-top:10px;
+    }
+    @media (max-width:900px){
+      .info-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    .info-block-title{
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--ink-soft);
+      margin:0 0 6px;
+    }
+    .info-list{
+      list-style:none;
+      margin:0;
+      padding:0;
+      font-size:12px;
+    }
+    .info-list li{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:4px 0;
+      border-bottom:1px dashed var(--border-subtle);
+    }
+    .info-key{
+      color:var(--ink-soft);
+      white-space:nowrap;
+    }
+    .info-value{
+      text-align:right;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .stat-table-wrap{
+      border-radius:12px;
+      border:1px solid var(--border-soft);
+      background:var(--surface-subtle);
+      overflow:hidden;
+      max-height:320px;
+    }
+    .stat-table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:11px;
+    }
+    .stat-table thead{
+      background:var(--surface-soft);
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    .stat-table th,
+    .stat-table td{
+      padding:5px 6px;
+      text-align:right;
+      border-bottom:1px solid var(--border-subtle);
+      font-variant-numeric:tabular-nums;
+      white-space:nowrap;
+    }
+    .stat-table th:first-child,
+    .stat-table td:first-child{
+      text-align:left;
+    }
+    .stat-star{font-weight:700;}
+    .stat-type{
+      font-size:10px;
+      color:var(--ink-soft);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .empty-msg{
+      font-size:13px;
+      color:var(--ink-soft);
+      padding:12px 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" id="pageTitle">차량 상세</h1>
+        <p class="page-sub" id="pageSub">ID로 차량 정보를 불러오는 중…</p>
+      </div>
+      <button class="back-btn" onclick="window.location.href='car-search.html'">
+        ← 차량 목록으로
+      </button>
+    </header>
+
+    <main>
+      <section class="panel" id="detailPanel">
+        <div id="detailEmpty" class="empty-msg">
+          차량 정보를 불러오는 중입니다…
+        </div>
+
+        <div id="detailContent" style="display:none">
+          <header class="detail-header">
+            <div class="detail-title-block">
+              <h2 class="detail-name" id="detailName">-</h2>
+              <div class="detail-meta">
+                <span class="detail-badges">
+                  <span id="detailClassBadge" class="class-badge">-</span>
+                  <span id="detailIdPill" class="meta-pill">ID -</span>
+                </span>
+              </div>
+            </div>
+          </header>
+
+          <div class="info-grid">
+            <section>
+              <h3 class="info-block-title">기본 정보</h3>
+              <ul class="info-list" id="basicInfoList"></ul>
+
+              <h3 class="info-block-title" style="margin-top:10px;">특수/에픽 부품</h3>
+              <ul class="info-list" id="epicInfoList"></ul>
+
+              <h3 class="info-block-title" style="margin-top:10px;">청사진</h3>
+              <ul class="info-list" id="bpInfoList"></ul>
+
+              <h3 class="info-block-title" style="margin-top:10px;">업그레이드 비용</h3>
+              <ul class="info-list" id="upgradeInfoList"></ul>
+            </section>
+
+            <section>
+              <h3 class="info-block-title">스탯 (별별 랭크)</h3>
+              <div class="stat-table-wrap">
+                <table class="stat-table">
+                  <thead>
+                    <tr>
+                      <th>★ / 타입</th>
+                      <th>Rank</th>
+                      <th>속도</th>
+                      <th>가속</th>
+                      <th>핸들</th>
+                      <th>니트로</th>
+                    </tr>
+                  </thead>
+                  <tbody id="statTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    async function loadCarData() {
+      if (Array.isArray(window.CAR_DATA)) return window.CAR_DATA;
+      try {
+        var res = await fetch("../assets/cars.json");
+        if (res.ok) {
+          var data = await res.json();
+          if (Array.isArray(data)) return data;
+          return Object.values(data);
+        }
+      } catch (e) {
+        console.warn("cars.json 로드 실패:", e);
+      }
+      return [];
+    }
+
+    function getQueryCarId() {
+      var sp = new URLSearchParams(window.location.search);
+      var v = sp.get("id");
+      if (v == null) return null;
+      var n = Number(v);
+      return isFinite(n) ? n : v;
+    }
+
+    function getMaxRank(car) {
+      if (!car || !Array.isArray(car.stat) || car.stat.length === 0) return null;
+      var goldEntry = null;
+      var maxRankEntry = null;
+      for (var i=0;i<car.stat.length;i++){
+        var s = car.stat[i];
+        if (!maxRankEntry || (typeof s.rank === "number" && s.rank > maxRankEntry.rank)) {
+          maxRankEntry = s;
+        }
+        if (s.type === "gold") goldEntry = s;
+      }
+      return (goldEntry && typeof goldEntry.rank === "number")
+        ? goldEntry.rank
+        : (maxRankEntry && typeof maxRankEntry.rank === "number")
+          ? maxRankEntry.rank
+          : null;
+    }
+
+    function formatNumber(n) {
+      if (typeof n !== "number" || !isFinite(n)) return "-";
+      return n.toLocaleString("ko-KR");
+    }
+
+    function renderDetail(car) {
+      var detailEmpty = document.getElementById("detailEmpty");
+      var detailContent = document.getElementById("detailContent");
+      var pageTitle = document.getElementById("pageTitle");
+      var pageSub = document.getElementById("pageSub");
+      var detailName = document.getElementById("detailName");
+      var detailClassBadge = document.getElementById("detailClassBadge");
+      var detailIdPill = document.getElementById("detailIdPill");
+      var basicInfoList = document.getElementById("basicInfoList");
+      var epicInfoList = document.getElementById("epicInfoList");
+      var bpInfoList = document.getElementById("bpInfoList");
+      var upgradeInfoList = document.getElementById("upgradeInfoList");
+      var statTableBody = document.getElementById("statTableBody");
+
+      if (!car) {
+        detailEmpty.textContent = "해당 ID의 차량을 찾을 수 없습니다.";
+        detailContent.style.display = "none";
+        pageTitle.textContent = "차량 상세";
+        pageSub.textContent = "유효하지 않은 ID입니다.";
+        return;
+      }
+
+      detailEmpty.style.display = "none";
+      detailContent.style.display = "";
+      var idStr = car.id != null ? car.id : "?";
+      pageTitle.textContent = car.name || "차량 상세";
+      pageSub.textContent = "ID " + idStr + " 차량 상세 정보";
+
+      detailName.textContent = car.name || "(이름 없음)";
+      detailClassBadge.textContent = car.class || "-";
+      detailIdPill.textContent = "ID " + idStr;
+
+      // 기본 정보
+      basicInfoList.innerHTML = "";
+      function addBasic(label, value) {
+        var li = document.createElement("li");
+        var keySpan = document.createElement("span");
+        keySpan.className = "info-key";
+        keySpan.textContent = label;
+        var valueSpan = document.createElement("span");
+        valueSpan.className = "info-value";
+        valueSpan.textContent = value;
+        li.appendChild(keySpan);
+        li.appendChild(valueSpan);
+        basicInfoList.appendChild(li);
+      }
+
+      addBasic("클래스", car.class || "-");
+      addBasic("ID", String(idStr));
+      if (typeof car.max_star === "number") {
+        addBasic("최대 별 수", car.max_star + "★");
+      }
+      if (typeof car.fuel === "number") {
+        addBasic("연료", car.fuel + " 회");
+      }
+      var maxRank = getMaxRank(car);
+      addBasic("최대 Rank", maxRank == null ? "-" : formatNumber(maxRank));
+
+      // 해금 방식 (key 차 설명)
+      if (car.unlock_method === "key") {
+        addBasic("해금 방식", "열쇠 1개로 1★ 해금 필요");
+      } else if (car.unlock_method === "bp") {
+        addBasic("해금 방식", "청사진으로 해금");
+      }
+
+      // 특수/에픽
+      epicInfoList.innerHTML = "";
+      var hasEpicInfo = false;
+
+      if (car.epic_importparts_amount && typeof car.epic_importparts_amount === "object") {
+        var epi = car.epic_importparts_amount;
+        var keys = ["top_speed","accel","handling","nitro"];
+        var total = 0;
+        var partsDesc = [];
+        for (var i=0;i<keys.length;i++){
+          var k = keys[i];
+          var v = Number(epi[k] != null ? epi[k] : 0);
+          if (v > 0) {
+            partsDesc.push(
+              ({top_speed:"속도",accel:"가속",handling:"핸들",nitro:"니트로"})[k] + " " + v + "개"
+            );
+          }
+          total += v;
+        }
+        if (total > 0) {
+          var liE = document.createElement("li");
+          var keyE = document.createElement("span");
+          keyE.className = "info-key";
+          keyE.textContent = "에픽 특수부품";
+          var valE = document.createElement("span");
+          valE.className = "info-value";
+          valE.textContent =
+            "총 " + total + "개" + (partsDesc.length ? " (" + partsDesc.join(" / ") + ")" : "");
+          liE.appendChild(keyE);
+          liE.appendChild(valE);
+          epicInfoList.appendChild(liE);
+          hasEpicInfo = true;
+        }
+      }
+
+      if (typeof car.epic_price === "number") {
+        var liP = document.createElement("li");
+        var keyP = document.createElement("span");
+        keyP.className = "info-key";
+        keyP.textContent = "에픽 패키지 비용";
+        var valP = document.createElement("span");
+        valP.className = "info-value";
+        valP.textContent = formatNumber(car.epic_price) + " 크레딧";
+        liP.appendChild(keyP);
+        liP.appendChild(valP);
+        epicInfoList.appendChild(liP);
+        hasEpicInfo = true;
+      }
+
+      if (!hasEpicInfo) {
+        var liN = document.createElement("li");
+        var keyN = document.createElement("span");
+        keyN.className = "info-key";
+        keyN.textContent = "정보";
+        var valN = document.createElement("span");
+        valN.className = "info-value";
+        valN.textContent = "등록된 특수/에픽 부품 정보가 없습니다.";
+        liN.appendChild(keyN);
+        liN.appendChild(valN);
+        epicInfoList.appendChild(liN);
+      }
+
+      // 청사진 정보 (key 차는 1★=열쇠, bp는 2★부터로 간주)
+      bpInfoList.innerHTML = "";
+      var bpReq = Array.isArray(car.bp_requirements) ? car.bp_requirements : null;
+      var bpCum = Array.isArray(car.bp_cumulative) ? car.bp_cumulative : null;
+      var totalBp = typeof car.bp_all === "number" ? car.bp_all : null;
+      if (totalBp == null && bpReq) {
+        var sum = 0;
+        for (var i2=0;i2<bpReq.length;i2++){
+          var v = Number(bpReq[i2] || 0);
+          sum += v;
+        }
+        totalBp = sum;
+      }
+
+      var isKeyUnlock = (car.unlock_method === "key");
+
+      if (!bpReq && !bpCum && totalBp == null && !isKeyUnlock) {
+        var liBEmpty = document.createElement("li");
+        var keyBEmpty = document.createElement("span");
+        keyBEmpty.className = "info-key";
+        keyBEmpty.textContent = "정보";
+        var valBEmpty = document.createElement("span");
+        valBEmpty.className = "info-value";
+        valBEmpty.textContent = "등록된 청사진 정보가 없습니다.";
+        liBEmpty.appendChild(keyBEmpty);
+        liBEmpty.appendChild(valBEmpty);
+        bpInfoList.appendChild(liBEmpty);
+      } else {
+        // 총 필요 청사진 수
+        if (totalBp != null) {
+          var liBT = document.createElement("li");
+          var keyBT = document.createElement("span");
+          keyBT.className = "info-key";
+          keyBT.textContent = isKeyUnlock
+            ? "총 필요 청사진 수 (2★~최대)"
+            : "총 필요 청사진 수";
+          var valBT = document.createElement("span");
+          valBT.className = "info-value";
+          valBT.textContent = formatNumber(totalBp) + "장";
+          liBT.appendChild(keyBT);
+          liBT.appendChild(valBT);
+          bpInfoList.appendChild(liBT);
+        }
+
+        // key 자동차면 1★ 해금 설명 추가
+        if (isKeyUnlock) {
+          var liKey = document.createElement("li");
+          var keyKey = document.createElement("span");
+          keyKey.className = "info-key";
+          keyKey.textContent = "1★ 해금";
+          var valKey = document.createElement("span");
+          valKey.className = "info-value";
+          valKey.textContent = "열쇠 1개 (청사진 0장)";
+          liKey.appendChild(keyKey);
+          liKey.appendChild(valKey);
+          bpInfoList.appendChild(liKey);
+        }
+
+        if (bpReq) {
+          for (var i3=0;i3<bpReq.length;i3++){
+            var star = isKeyUnlock ? (i3 + 2) : (i3 + 1); // key차면 2★부터 시작
+            var need = Number(bpReq[i3] || 0);
+            var cum = bpCum && bpCum.length > i3 ? Number(bpCum[i3] || 0) : null;
+
+            var liBi = document.createElement("li");
+            var keyBi = document.createElement("span");
+            keyBi.className = "info-key";
+            keyBi.textContent = star + "★ 까지";
+            var valBi = document.createElement("span");
+            valBi.className = "info-value";
+            if (cum != null && isFinite(cum)) {
+              valBi.textContent =
+                formatNumber(need) + "장 (누적 " + formatNumber(cum) + "장)";
+            } else {
+              valBi.textContent = formatNumber(need) + "장";
+            }
+            liBi.appendChild(keyBi);
+            liBi.appendChild(valBi);
+            bpInfoList.appendChild(liBi);
+          }
+        }
+      }
+
+      // 업그레이드 비용
+      upgradeInfoList.innerHTML = "";
+      var upPer = Array.isArray(car.upgrade_per_star) ? car.upgrade_per_star : null;
+      var upCum = Array.isArray(car.upgrade_cumulative) ? car.upgrade_cumulative : null;
+      var upTotal = typeof car.upgrade_all === "number" ? car.upgrade_all : null;
+      if (upTotal == null && upPer) {
+        var sumU = 0;
+        for (var j=0;j<upPer.length;j++){
+          var vv = Number(upPer[j] || 0);
+          sumU += vv;
+        }
+        upTotal = sumU;
+      }
+
+      if (!upPer && !upCum && upTotal == null) {
+        var liUEmpty = document.createElement("li");
+        var keyUEmpty = document.createElement("span");
+        keyUEmpty.className = "info-key";
+        keyUEmpty.textContent = "정보";
+        var valUEmpty = document.createElement("span");
+        valUEmpty.className = "info-value";
+        valUEmpty.textContent = "등록된 업그레이드 비용 정보가 없습니다.";
+        liUEmpty.appendChild(keyUEmpty);
+        liUEmpty.appendChild(valUEmpty);
+        upgradeInfoList.appendChild(liUEmpty);
+      } else {
+        if (upTotal != null) {
+          var liUT = document.createElement("li");
+          var keyUT = document.createElement("span");
+          keyUT.className = "info-key";
+          keyUT.textContent = "총 업그레이드 비용";
+          var valUT = document.createElement("span");
+          valUT.className = "info-value";
+          valUT.textContent = formatNumber(upTotal) + " 크레딧";
+          liUT.appendChild(keyUT);
+          liUT.appendChild(valUT);
+          upgradeInfoList.appendChild(liUT);
+        }
+
+        if (upPer) {
+          for (var k=0;k<upPer.length;k++){
+            var starU = k + 1;
+            var cost = Number(upPer[k] || 0);
+            var cumU = upCum && upCum.length > k ? Number(upCum[k] || 0) : null;
+
+            var liUi = document.createElement("li");
+            var keyUi = document.createElement("span");
+            keyUi.className = "info-key";
+            keyUi.textContent = starU + "★ 업그레이드";
+            var valUi = document.createElement("span");
+            valUi.className = "info-value";
+            if (cumU != null && isFinite(cumU)) {
+              valUi.textContent =
+                formatNumber(cost) + " 크레딧 (누적 " + formatNumber(cumU) + " 크레딧)";
+            } else {
+              valUi.textContent = formatNumber(cost) + " 크레딧";
+            }
+            liUi.appendChild(keyUi);
+            liUi.appendChild(valUi);
+            upgradeInfoList.appendChild(liUi);
+          }
+        }
+      }
+
+      // 스탯 테이블 (랭크는 숫자만)
+      statTableBody.innerHTML = "";
+      if (Array.isArray(car.stat) && car.stat.length > 0) {
+        var stats = car.stat.slice().sort(function(a,b){
+          var sa = Number(a.star != null ? a.star : 0);
+          var sb = Number(b.star != null ? b.star : 0);
+          if (sa !== sb) return sa - sb;
+          var order = {stock:0, upgrade:1, full:1, max_wo_epics:2, gold:3};
+          var ta = order[a.type] != null ? order[a.type] : 99;
+          var tb = order[b.type] != null ? order[b.type] : 99;
+          return ta - tb;
+        });
+
+        for (var sIdx=0;sIdx<stats.length;sIdx++){
+          var s = stats[sIdx];
+          var tr = document.createElement("tr");
+
+          var tdStar = document.createElement("td");
+          var starSpan = document.createElement("span");
+          starSpan.className = "stat-star";
+          starSpan.textContent = (s.star != null ? s.star : "?") + "★ ";
+          var typeSpan = document.createElement("span");
+          typeSpan.className = "stat-type";
+          typeSpan.textContent = s.type || "";
+          tdStar.appendChild(starSpan);
+          tdStar.appendChild(typeSpan);
+
+          var tdRank = document.createElement("td");
+          tdRank.textContent = formatNumber(s.rank);
+
+          function makeStatTd(val){
+            var td = document.createElement("td");
+            if (typeof val === "number" && isFinite(val)) {
+              td.textContent = val.toFixed(2);
+            } else {
+              td.textContent = "-";
+            }
+            return td;
+          }
+
+          var tdSpeed = makeStatTd(s.top_speed);
+          var tdAccel = makeStatTd(s.accel);
+          var tdHandling = makeStatTd(s.handling);
+          var tdNitro = makeStatTd(s.nitro);
+
+          tr.appendChild(tdStar);
+          tr.appendChild(tdRank);
+          tr.appendChild(tdSpeed);
+          tr.appendChild(tdAccel);
+          tr.appendChild(tdHandling);
+          tr.appendChild(tdNitro);
+
+          statTableBody.appendChild(tr);
+        }
+      } else {
+        var trE = document.createElement("tr");
+        var tdE = document.createElement("td");
+        tdE.colSpan = 6;
+        tdE.textContent = "등록된 스탯 정보가 없습니다.";
+        tdE.style.textAlign = "center";
+        tdE.style.color = "var(--ink-soft)";
+        tdE.style.padding = "10px 6px";
+        trE.appendChild(tdE);
+        statTableBody.appendChild(trE);
+      }
+    }
+
+    (async function(){
+      var id = getQueryCarId();
+      var cars = await loadCarData();
+
+      var car = null;
+      if (id != null) {
+        for (var i=0;i<cars.length;i++){
+          if (String(cars[i].id) === String(id)) {
+            car = cars[i];
+            break;
+          }
+        }
+      }
+      if (!car && cars.length > 0) {
+        car = cars[0];
+      }
+
+      renderDetail(car);
+    })();
+  </script>
+</body>
+</html>
