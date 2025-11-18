@@ -42,5 +42,17 @@
       "luck",
       "rate"
     ],
+    "featured": false
+  },
+  {
+    "id": "car-search",
+    "name": "자동차 검색",
+    "path": "simulators/car-search.html",
+    "description": "자동차 검색 및 상세 정보 제공",
+    "tags": [
+      "car",
+      "info",
+      "search"
+    ],
     "featured": true
   }
