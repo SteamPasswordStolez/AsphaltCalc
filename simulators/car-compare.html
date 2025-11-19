@@ -504,7 +504,7 @@
 
   async function loadCars(){
     try{
-      const res = await fetch("./cars.json");
+      const res = await fetch("../assets/cars.json");
       const data = await res.json();
       allCars = Array.isArray(data) ? data.slice() : [];
 
@@ -991,3 +991,4 @@ function renderTable(){
 
 </body>
 </html>
+
