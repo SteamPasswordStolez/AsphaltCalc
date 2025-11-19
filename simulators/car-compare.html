@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="../assets/favicon.png">
+<title>Car Stat Compare — 차 스탯 비교</title>
+<meta name="color-scheme" content="light dark" />
+
+<style>
+  :root{
+    --bg:#0b1220; --fg:#e5e7eb; --muted:#9aa4b2;
+    --card:#111827; --border:#1f2937;
+    --brand:#7c3aed; --accent:#22d3ee;
+    --radius:16px;
+    --shadow:0 10px 24px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.35);
+    --tab:#0f172a; --tabActive:#1f2937;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#ffffff; --fg:#0f172a; --muted:#475569;
+      --card:#f8fafc; --border:#e2e8f0;
+      --brand:#6d28d9; --accent:#0891b2;
+      --shadow:0 10px 20px rgba(2,6,23,.06),0 2px 6px rgba(2,6,23,.08);
+      --tab:#eef2f7; --tabActive:#ffffff;
+    }
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    font:16px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+  }
+
+  header{
+    position:sticky;
+    top:0;
+    backdrop-filter:saturate(160%) blur(8px);
+    border-bottom:1px solid var(--border);
+    background:color-mix(in srgb, var(--bg) 82%, transparent);
+    z-index:20;
+  }
+  header .inner{
+    max-width:1100px;
+    margin:auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 16px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:800;
+    letter-spacing:.2px;
+  }
+  .dot{
+    width:28px;
+    height:28px;
+    border-radius:10px;
+    background:linear-gradient(135deg,var(--brand),var(--accent));
+    box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--brand) 25%,#fff),var(--shadow);
+  }
+
+  main{
+    max-width:1100px;
+    margin:auto;
+    padding:18px 16px 26px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  h1{
+    margin:0;
+    font-size:22px;
+  }
+
+  .subtitle{
+    font-size:14px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .subtitle small{
+    display:block;
+    font-size:12px;
+    margin-top:2px;
+  }
+
+  .chip-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:8px;
+  }
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--tab);
+    color:var(--muted);
+    font-size:12px;
+  }
+  .chip code{
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px;
+  }
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:16px 16px 18px;
+  }
+
+  .grid{
+    display:grid;
+    gap:12px;
+  }
+  .grid.cols-2{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+
+  @media (max-width:900px){
+    .grid.cols-2{ grid-template-columns:1fr; }
+  }
+
+  label{
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  input, select{
+    width:100%;
+    padding:9px 11px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:transparent;
+    color:inherit;
+    font:14px ui-sans-serif,system-ui;
+  }
+  input::placeholder{ color:var(--muted); }
+
+  input:focus,
+  select:focus{
+    outline:2px solid color-mix(in srgb,var(--accent) 55%,transparent);
+    outline-offset:1px;
+    border-color:color-mix(in srgb,var(--accent) 60%,var(--border));
+  }
+
+  .field-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:4px;
+  }
+  .field-row > *{ flex:1 1 0; min-width:0; }
+
+  .side-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:8px;
+  }
+  .side-title{
+    font-size:15px;
+    font-weight:700;
+  }
+  .side-tag{
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.18em;
+  }
+
+  .filter-bar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:8px;
+  }
+  .class-filter{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .class-pill{
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--tab);
+    color:var(--muted);
+    font-size:11px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .class-pill.active{
+    background:var(--tabActive);
+    color:var(--fg);
+    border-color:color-mix(in srgb,var(--accent) 50%,var(--border));
+  }
+
+.summary-box{
+  margin-top:10px;
+  padding:9px 11px;
+  border-radius:12px;
+  border:1px solid color-mix(in srgb,var(--border) 85%,var(--bg));
+  /* ★ 패널과 비슷한 톤 */
+  background:color-mix(in srgb,var(--card) 94%,var(--bg));
+  font-size:13px;
+  color:var(--muted);
+}
+
+.car-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 9px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb,var(--border) 80%,var(--bg));
+  /* ★ 요약 박스보다 살짝 진하게 */
+  background:color-mix(in srgb,var(--card) 88%,var(--bg));
+  font-size:12px;
+  color:var(--fg);
+}
+.car-chip .cls{
+  font-weight:700;
+  color:var(--accent);
+}
+
+
+  .result-header{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .result-title{
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .badge{
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--tab);
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  thead th{
+    border-bottom:1px solid var(--border);
+    padding:6px 6px 8px;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--muted);
+    text-align:center;
+  }
+  thead th:first-child{ text-align:left; }
+
+  /* 행 배경 – 테마 색에 따라 자동으로 어두워지도록 */
+  tbody tr:nth-child(odd){
+    background:color-mix(in srgb, var(--card) 90%, var(--bg));
+  }
+  tbody tr:nth-child(even){
+    background:color-mix(in srgb, var(--card) 78%, var(--bg));
+  }
+
+
+  tbody th,
+  tbody td{
+    padding:7px 6px;
+    border-bottom:1px solid rgba(15,23,42,.8);
+  }
+  tbody th{
+    text-align:left;
+    font-weight:600;
+    color:var(--muted);
+    width:26%;
+  }
+  tbody td{
+    text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .value-better{
+    background:linear-gradient(
+      90deg,
+      color-mix(in srgb,var(--accent) 38%,transparent),
+      transparent
+    );
+  }
+  .value-worse{
+    opacity:.72;
+  }
+
+  .indicator{
+    font-size:10px;
+    margin-left:4px;
+  }
+  .indicator.up{ color:#4ade80; }
+  .indicator.down{ color:#f97373; }
+
+  .empty-state{
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  #searchInput{ min-width:220px; }
+
+  @media (max-width:600px){
+    header .inner{ padding-inline:10px; }
+    main{ padding-inline:10px; }
+  }
+</style>
+
+<link rel="stylesheet" href="../assets/themes.css">
+
+<!-- 테마 어댑터 (fullstar 방식) -->
+<script>
+(function(){
+  var SIM_ID = "car_compare";
+  var GKEY = "simhub_theme_global";
+  var OKEY = "simhub_theme_overrides";
+
+  function resolveSystem(theme){
+    if(theme!=="system") return theme;
+    var isDark = window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return isDark ? "dark" : "light";
+  }
+
+  function apply(){
+    var g = localStorage.getItem(GKEY) || "asphalt";
+    var map;
+    try{ map = JSON.parse(localStorage.getItem(OKEY) || "{}"); }
+    catch(_){ map = {}; }
+    var t = map[SIM_ID] || g;
+    document.documentElement.dataset.theme = resolveSystem(t);
+  }
+
+  try{ apply(); }catch(e){ console.warn(e); }
+})();
+</script>
+
+<link rel="stylesheet" href="../assets/theme-adapter.css">
+</head>
+
+<body>
+<header>
+  <div class="inner">
+    <div class="brand">
+      <div class="dot"></div>
+      차량 성능 비교기
+    </div>
+    <div style="font-size:14px;color:var(--muted)">스톡~금딱 단계별 비교 (좌/우 각각 선택)</div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h1>두 차량 스탯 비교</h1>
+    <p class="subtitle">
+      각 차량에 대해 스톡, 1성, 2성, 3성, 4성, 5성, 특부 제외 풀업, 금딱 중 하나를 선택해서 랭크/최고속도/가속/핸들/니트로를 비교합니다.
+      <small>데이터는 <code>cars.json</code>의 <code>stat</code> 배열을 사용합니다.</small>
+    </p>
+    <div class="chip-row">
+      <div class="chip">📁 데이터 소스: <code>cars.json</code></div>
+      <div class="chip">⚙ 정렬: 클래스 D → C → B → A → S, 클래스 내에서는 id 오름차순</div>
+    </div>
+  </section>
+
+  <!-- 전체 필터 -->
+  <section class="panel">
+    <label>전체 차량 필터</label>
+    <div class="filter-bar">
+      <div class="class-filter" id="classFilter">
+        <div class="class-pill active" data-class="ALL">ALL</div>
+        <div class="class-pill" data-class="D">D</div>
+        <div class="class-pill" data-class="C">C</div>
+        <div class="class-pill" data-class="B">B</div>
+        <div class="class-pill" data-class="A">A</div>
+        <div class="class-pill" data-class="S">S</div>
+      </div>
+      <input id="searchInput" type="text" placeholder="차량 이름 검색..." />
+    </div>
+  </section>
+
+  <!-- 좌/우 선택 -->
+  <section class="grid cols-2">
+    <div class="panel">
+      <div class="side-header">
+        <div class="side-title">좌측 차량</div>
+        <div class="side-tag">PLAYER A</div>
+      </div>
+      <label>차량 선택</label>
+      <div class="field-row">
+        <select id="carSelectLeft">
+          <option value="">차량을 선택하세요</option>
+        </select>
+      </div>
+
+      <label style="margin-top:8px;">좌측 단계</label>
+      <div class="field-row">
+        <select id="stageSelectLeft"></select>
+      </div>
+
+      <div id="summaryLeft" class="summary-box">
+        차량과 단계를 선택하면 요약 정보가 이곳에 표시됩니다.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="side-header">
+        <div class="side-title">우측 차량</div>
+        <div class="side-tag">PLAYER B</div>
+      </div>
+      <label>차량 선택</label>
+      <div class="field-row">
+        <select id="carSelectRight">
+          <option value="">차량을 선택하세요</option>
+        </select>
+      </div>
+
+      <label style="margin-top:8px;">우측 단계</label>
+      <div class="field-row">
+        <select id="stageSelectRight"></select>
+      </div>
+
+      <div id="summaryRight" class="summary-box">
+        차량과 단계를 선택하면 요약 정보가 이곳에 표시됩니다.
+      </div>
+    </div>
+  </section>
+
+  <!-- 결과 -->
+  <section class="panel">
+    <div class="result-header">
+      <div class="result-title">STAT COMPARISON</div>
+      <div id="headlineBadge" class="badge">
+        두 차량과 단계를 모두 선택하면 비교가 시작됩니다.
+      </div>
+    </div>
+    <div id="tableContainer">
+      <div class="empty-state">
+        좌/우 차량과 각자의 단계를 모두 선택하면, 여기에서 해당 단계의 스펙을 비교할 수 있습니다.
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 비교 로직 -->
+<script>
+(function(){
+  const CLASS_ORDER = { "D":0, "C":1, "B":2, "A":3, "S":4 };
+
+  let allCars = [];
+  let filteredCars = [];
+  let leftSel  = { carId:null };
+  let rightSel = { carId:null };
+
+  const carSelectLeft   = document.getElementById("carSelectLeft");
+  const carSelectRight  = document.getElementById("carSelectRight");
+  const classFilter     = document.getElementById("classFilter");
+  const searchInput     = document.getElementById("searchInput");
+  const summaryLeft     = document.getElementById("summaryLeft");
+  const summaryRight    = document.getElementById("summaryRight");
+  const headlineBadge   = document.getElementById("headlineBadge");
+  const tableContainer  = document.getElementById("tableContainer");
+  const stageSelectLeft = document.getElementById("stageSelectLeft");
+  const stageSelectRight= document.getElementById("stageSelectRight");
+
+  // ===== 단계 정의 =====
+  const STAGES = [
+    { id:"stock",        label:"스톡 (1★ stock)" },
+    { id:"star1",        label:"1성 (1★ full)" },
+    { id:"star2",        label:"2성 (2★ full)" },
+    { id:"star3",        label:"3성 (3★ full)" },
+    { id:"star4",        label:"4성 (4★ full)" },
+    { id:"star5",        label:"5성 (5★ full)" },
+    { id:"max_wo_epics", label:"특부 제외 풀업 (max★ max_wo_epics)" },
+    { id:"gold",         label:"금딱 (max★ gold)" }
+  ];
+
+  const STAGE_PRIORITY = [
+    "gold","max_wo_epics","star5","star4","star3","star2","star1","stock"
+  ];
+
+  async function loadCars(){
+    try{
+      const res = await fetch("./cars.json");
+      const data = await res.json();
+      allCars = Array.isArray(data) ? data.slice() : [];
+
+      allCars.sort((a,b)=>{
+        const ca = CLASS_ORDER[a.class] ?? 99;
+        const cb = CLASS_ORDER[b.class] ?? 99;
+        if(ca !== cb) return ca - cb;
+        return (a.id ?? 0) - (b.id ?? 0);
+      });
+
+      filteredCars = allCars.slice();
+      populateCarSelects(false);
+
+      // 처음엔 아무 차도 없으니까, 단계 드롭다운은 비활성화 상태로
+      initEmptyStageSelect(stageSelectLeft);
+      initEmptyStageSelect(stageSelectRight);
+    }catch(e){
+      console.error(e);
+      tableContainer.innerHTML =
+        "<div class='empty-state' style='color:#fca5a5;'>cars.json을 불러오는 중 오류가 발생했습니다. 경로와 형식을 확인해주세요.</div>";
+    }
+  }
+
+  function getCarById(id){
+    if(!id) return null;
+    return allCars.find(c => String(c.id) === String(id)) || null;
+  }
+
+  function getStars(car){
+    if(!car || !Array.isArray(car.stat)) return [];
+    const set = new Set();
+    car.stat.forEach(s => { if(typeof s.star === "number") set.add(s.star); });
+    return Array.from(set).sort((a,b)=>a-b);
+  }
+
+  function getMaxStar(car){
+    if(!car) return null;
+    if(typeof car.max_star === "number") return car.max_star;
+    const stars = getStars(car);
+    return stars.length ? stars[stars.length-1] : null;
+  }
+
+  function getStat(car, star, type){
+    if(!car || !Array.isArray(car.stat)) return null;
+    return car.stat.find(s =>
+      s.star === star &&
+      (type ? s.type === type : true)
+    ) || null;
+  }
+
+  // 선택된 단계에 따른 단일 stat
+  function getStatForStage(car, stageId){
+    if(!car) return null;
+    const maxStar = getMaxStar(car);
+
+    switch(stageId){
+      case "stock":
+        return getStat(car, 1, "stock") || null;
+      case "star1":
+        return getStat(car, 1, "full") || null;
+      case "star2":
+        return getStat(car, 2, "full") || null;
+      case "star3":
+        return getStat(car, 3, "full") || null;
+      case "star4":
+        return getStat(car, 4, "full") || null;
+      case "star5":
+        return getStat(car, 5, "full") || null;
+      case "max_wo_epics":
+        if(maxStar == null) return null;
+        return getStat(car, maxStar, "max_wo_epics") || null;
+      case "gold":
+        if(maxStar == null) return null;
+        return getStat(car, maxStar, "gold") || null;
+      default:
+        return null;
+    }
+  }
+
+  // ===== 단계 드롭다운 관련 =====
+
+  // 차가 없을 때: 모든 옵션을 disabled로 보여주기
+  function initEmptyStageSelect(selectEl){
+    selectEl.innerHTML = "";
+    STAGES.forEach(s=>{
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.label + " (차량 선택 필요)";
+      opt.disabled = true;
+      selectEl.appendChild(opt);
+    });
+    selectEl.value = "gold";
+    selectEl.disabled = true;
+  }
+
+  // 특정 차 기준으로, 실제 존재하는 단계만 다시 채우기
+  function rebuildStageSelectForCar(selectEl, car){
+    if(!car){
+      initEmptyStageSelect(selectEl);
+      return;
+    }
+
+    const prev = selectEl.value || "gold";
+
+    const available = STAGES.filter(s => !!getStatForStage(car, s.id));
+
+    // 혹시라도 진짜로 아무 스탯도 없는 차라면 보호
+    if(!available.length){
+      initEmptyStageSelect(selectEl);
+      return;
+    }
+
+    selectEl.innerHTML = "";
+    available.forEach(s=>{
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.label;
+      selectEl.appendChild(opt);
+    });
+
+    // 이전에 선택했던 단계가 아직도 유효하면 유지
+    let chosen = available.some(s=>s.id===prev) ? prev : null;
+
+    // 아니면 우선순위대로 제일 좋은 단계 선택
+    if(!chosen){
+      for(const id of STAGE_PRIORITY){
+        if(available.some(s=>s.id===id)){
+          chosen = id;
+          break;
+        }
+      }
+    }
+    if(!chosen) chosen = available[available.length-1].id;
+
+    selectEl.value = chosen;
+    selectEl.disabled = false;
+  }
+
+  function updateSummary(side, car){
+    const box = side === "left" ? summaryLeft : summaryRight;
+    const stageSelect = side === "left" ? stageSelectLeft : stageSelectRight;
+    const stage = STAGES.find(s=>s.id===stageSelect.value);
+
+    if(!car){
+      box.textContent = "차량과 단계를 선택하면 요약 정보가 이곳에 표시됩니다.";
+      return;
+    }
+    const stars = getStars(car);
+    const minS  = stars[0];
+    const maxS  = stars[stars.length-1];
+
+    box.innerHTML = `
+      <div class="car-chip">
+        <span class="cls">[${car.class || "?"}]</span>
+        <span>${car.name || "Unknown"}</span>
+      </div>
+      <div style="margin-top:4px;font-size:12px;color:var(--muted);">
+        사용 가능 성급 범위: ${minS ?? "?"}★ ~ ${maxS ?? "?"}★<br>
+        현재 선택 단계: ${stage ? stage.label : "-"}
+      </div>
+    `;
+  }
+
+  function populateCarSelects(keepValue=true){
+    function build(selectEl){
+      const prev = keepValue ? selectEl.value : "";
+      selectEl.innerHTML = "<option value=''>차량을 선택하세요</option>";
+      filteredCars.forEach(car=>{
+        const opt = document.createElement("option");
+        opt.value = String(car.id);
+        opt.textContent = `[${car.class}] ${car.name} (#${car.id})`;
+        selectEl.appendChild(opt);
+      });
+      if(prev) selectEl.value = prev;
+    }
+
+    build(carSelectLeft);
+    build(carSelectRight);
+
+    if(!getCarById(leftSel.carId)){
+      leftSel.carId = null;
+      carSelectLeft.value = "";
+      rebuildStageSelectForCar(stageSelectLeft, null);
+      updateSummary("left", null);
+    }else{
+      rebuildStageSelectForCar(stageSelectLeft, getCarById(leftSel.carId));
+      updateSummary("left", getCarById(leftSel.carId));
+    }
+
+    if(!getCarById(rightSel.carId)){
+      rightSel.carId = null;
+      carSelectRight.value = "";
+      rebuildStageSelectForCar(stageSelectRight, null);
+      updateSummary("right", null);
+    }else{
+      rebuildStageSelectForCar(stageSelectRight, getCarById(rightSel.carId));
+      updateSummary("right", getCarById(rightSel.carId));
+    }
+
+    renderTable();
+  }
+
+  function applyFilters(){
+    const activePill = classFilter.querySelector(".class-pill.active");
+    const cls = activePill ? activePill.dataset.class : "ALL";
+    const q = (searchInput.value || "").trim().toLowerCase();
+
+    filteredCars = allCars.filter(car=>{
+      const classOk  = (cls === "ALL") || (car.class === cls);
+      const text     = `${car.name || ""} ${car.id || ""}`.toLowerCase();
+      const searchOk = !q || text.includes(q);
+      return classOk && searchOk;
+    });
+
+    populateCarSelects(true);
+  }
+
+  classFilter.addEventListener("click", e=>{
+    const pill = e.target.closest(".class-pill");
+    if(!pill) return;
+    classFilter.querySelectorAll(".class-pill").forEach(p => p.classList.remove("active"));
+    pill.classList.add("active");
+    applyFilters();
+  });
+
+  searchInput.addEventListener("input", applyFilters);
+
+  carSelectLeft.addEventListener("change", ()=>{
+    leftSel.carId = carSelectLeft.value || null;
+    const car = getCarById(leftSel.carId);
+    rebuildStageSelectForCar(stageSelectLeft, car);
+    updateSummary("left", car);
+    renderTable();
+  });
+
+  carSelectRight.addEventListener("change", ()=>{
+    rightSel.carId = carSelectRight.value || null;
+    const car = getCarById(rightSel.carId);
+    rebuildStageSelectForCar(stageSelectRight, car);
+    updateSummary("right", car);
+    renderTable();
+  });
+
+  stageSelectLeft.addEventListener("change", ()=>{
+    updateSummary("left", getCarById(leftSel.carId));
+    renderTable();
+  });
+  stageSelectRight.addEventListener("change", ()=>{
+    updateSummary("right", getCarById(rightSel.carId));
+    renderTable();
+  });
+
+function renderTable(){
+  const carL = getCarById(leftSel.carId);
+  const carR = getCarById(rightSel.carId);
+  const stageIdL = stageSelectLeft.value;
+  const stageIdR = stageSelectRight.value;
+
+  if(!carL || !carR || stageSelectLeft.disabled || stageSelectRight.disabled){
+    headlineBadge.textContent = "두 차량과 단계를 모두 선택하면 비교가 시작됩니다.";
+    tableContainer.innerHTML = `
+      <div class="empty-state">
+        좌/우 차량과 각자의 단계를 모두 선택하면, 여기에서 해당 단계의 스펙을 비교할 수 있습니다.
+      </div>`;
+    return;
+  }
+
+  const nameL = carL.name || "Unknown";
+  const nameR = carR.name || "Unknown";
+  const stageLabelL = (STAGES.find(s=>s.id===stageIdL) || {}).label || stageIdL;
+  const stageLabelR = (STAGES.find(s=>s.id===stageIdR) || {}).label || stageIdR;
+
+  headlineBadge.innerHTML = `
+    <span>${nameL}</span>
+    <span style="color:var(--muted);margin-inline:4px;">(${stageLabelL})</span>
+    <span style="color:var(--muted);margin-inline:4px;">vs</span>
+    <span>${nameR}</span>
+    <span style="color:var(--muted);margin-left:4px;">(${stageLabelR})</span>
+  `;
+
+  const sL = getStatForStage(carL, stageIdL);
+  const sR = getStatForStage(carR, stageIdR);
+
+  if(!sL && !sR){
+    tableContainer.innerHTML =
+      "<div class='empty-state' style='color:#fca5a5;'>선택한 단계 조합에 대한 스탯 데이터가 없습니다. cars.json의 stat 배열을 확인해주세요.</div>";
+    return;
+  }
+
+  const STAT_ROWS = [
+    { key:"rank",      label:"랭크",            fmt:v => v?.toLocaleString("ko-KR") ?? "—",       type:"int"   },
+    { key:"top_speed", label:"최고속도 (km/h)", fmt:v => v!=null ? v.toFixed(1) : "—",           type:"float" },
+    { key:"accel",     label:"가속",            fmt:v => v!=null ? v.toFixed(2) : "—",           type:"float" },
+    { key:"handling",  label:"핸들링",          fmt:v => v!=null ? v.toFixed(2) : "—",           type:"float" },
+    { key:"nitro",     label:"니트로",          fmt:v => v!=null ? v.toFixed(2) : "—",           type:"float" }
+  ];
+
+  function formatDiff(row, diff){
+    if(diff == null || Number.isNaN(diff)) return "—";
+    if(row.type === "int"){
+      const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+      const val  = Math.abs(Math.round(diff)).toLocaleString("ko-KR");
+      return sign + val;
+    }else{
+      const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+      const val  = Math.abs(diff).toFixed(2);
+      return sign + val;
+    }
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>스탯</th>
+          <th>${nameL}<br><span style="font-size:11px;color:var(--muted);">${stageLabelL}</span></th>
+          <th>차이 (L - R)</th>
+          <th>${nameR}<br><span style="font-size:11px;color:var(--muted);">${stageLabelR}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  STAT_ROWS.forEach(row=>{
+    const vL = sL ? sL[row.key] : null;
+    const vR = sR ? sR[row.key] : null;
+
+    const bothNum =
+      typeof vL === "number" && typeof vR === "number" &&
+      !Number.isNaN(vL) && !Number.isNaN(vR);
+
+    let clsL = "";
+    let clsR = "";
+    let indL = "";
+    let indR = "";
+    let styleL = "";
+    let styleR = "";
+    let diffVal = null;
+
+    if(bothNum){
+      diffVal = vL - vR;
+      const maxAbs = Math.max(Math.abs(vL), Math.abs(vR), 0.0001);
+      const rel    = Math.min(1, Math.abs(diffVal) / (maxAbs * 0.4)); // 40% 차이 이상이면 풀강
+      const pct    = 10 + Math.round(50 * rel); // 10% ~ 60%
+
+      if(vL > vR){
+        clsL   = "value-better";
+        clsR   = "value-worse";
+        indL   = `<span class="indicator up">▲</span>`;
+        indR   = `<span class="indicator down">▼</span>`;
+        styleL = `background:linear-gradient(90deg,color-mix(in srgb,var(--accent) ${pct}%, transparent), transparent);`;
+      }else if(vR > vL){
+        clsR   = "value-better";
+        clsL   = "value-worse";
+        indR   = `<span class="indicator up">▲</span>`;
+        indL   = `<span class="indicator down">▼</span>`;
+        styleR = `background:linear-gradient(270deg,color-mix(in srgb,var(--accent) ${pct}%, transparent), transparent);`;
+      }
+    }
+
+    const diffText = formatDiff(row, diffVal);
+    let diffClass  = "diff-chip zero";
+    let dirSymbol  = "";
+
+    if(bothNum){
+      if(diffVal > 0){
+        diffClass = "diff-chip positive";
+        dirSymbol = "L>";
+      }else if(diffVal < 0){
+        diffClass = "diff-chip negative";
+        dirSymbol = "R>";
+      }
+    }
+
+    html += `
+      <tr>
+        <th>${row.label}</th>
+        <td class="${clsL}" style="${styleL}">${row.fmt(vL)}${indL}</td>
+        <td class="diff-cell">
+          <div class="${diffClass}">
+            <span class="dir">${dirSymbol}</span>
+            <span>${diffText}</span>
+          </div>
+        </td>
+        <td class="${clsR}" style="${styleR}">${row.fmt(vR)}${indR}</td>
+      </tr>
+    `;
+  });
+
+  html += "</tbody></table>";
+  tableContainer.innerHTML = html;
+}
+
+  loadCars();
+})();
+</script>
+
+
+<!-- Hub Back Button -->
+<style>
+  #hubBackWrap{
+    position:fixed;
+    left:16px;
+    top:16px;
+    z-index:2147483647;
+    font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial
+  }
+  #hubBackBtn{
+    padding:10px 14px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--tabActive);
+    color:var(--fg);
+    cursor:pointer;
+    box-shadow:0 6px 20px rgba(0,0,0,.35);
+    opacity:.9;
+  }
+  #hubBackBtn:hover{ opacity:1; }
+.diff-cell{
+  font-size:12px;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+
+/* diff 칩도 테마 카드색 기반으로 */
+.diff-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:64px;
+  padding:2px 8px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--border) 70%, var(--fg));
+  background:color-mix(in srgb, var(--card) 85%, var(--bg));
+}
+
+
+.diff-chip span.dir{
+  font-size:10px;
+  margin-right:4px;
+}
+
+.diff-chip.positive{
+  border-color:rgba(52,211,153,.8);
+}
+.diff-chip.negative{
+  border-color:rgba(248,113,113,.85);
+}
+.diff-chip.zero{
+  opacity:.7;
+}
+#hubBackBtn{
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  /* ★ 테마 카드색 기반으로 */
+  background:color-mix(in srgb, var(--card) 92%, var(--bg));
+  color:var(--fg);
+  cursor:pointer;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);
+  opacity:.9;
+}
+#hubBackBtn:hover{ opacity:1; }
+
+
+</style>
+<div id="hubBackWrap">
+  <button id="hubBackBtn" title="메인 메뉴로">← 메인으로</button>
+</div>
+<script>
+  (function(){
+    var btn=document.getElementById('hubBackBtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      if(document.referrer && document.referrer.indexOf('index.html') !== -1){
+        history.back();
+      }else{
+        location.href='../index.html';
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
