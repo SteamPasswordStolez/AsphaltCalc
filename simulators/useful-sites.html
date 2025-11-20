@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Useful Links — 유용한 사이트</title>
+  <meta name="color-scheme" content="light dark" />
+
+  <link rel="icon" href="../assets/favicon.png">
+  <!-- 글로벌 테마 토큰 -->
+  <link rel="stylesheet" href="../assets/themes.css">
+
+  <!-- 허브 테마 선택 (SIM_ID: useful-sites) -->
+  <script>
+  (function(){
+    var SIM_ID = "useful-sites";
+    var GKEY = "simhub_theme_global";
+    var OKEY = "simhub_theme_overrides";
+
+    function resolveSystem(theme){
+      if(theme !== "system") return theme;
+      var isDark = window.matchMedia &&
+                   window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return isDark ? "dark" : "light";
+    }
+
+    function applyTheme(){
+      var globalTheme = localStorage.getItem(GKEY) || "asphalt";
+      var overrides;
+      try{
+        overrides = JSON.parse(localStorage.getItem(OKEY) || "{}");
+      }catch(e){
+        overrides = {};
+      }
+      var theme = overrides[SIM_ID] || globalTheme;
+      document.documentElement.dataset.theme = resolveSystem(theme);
+    }
+
+    try{ applyTheme(); }catch(e){ console.warn(e); }
+  })();
+  </script>
+
+  <!-- theme-adapter (card / input / button 토큰 매핑) -->
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Apple SD Gothic Neo,Roboto,Noto Sans KR,Arial;
+      background:var(--bg);
+      color:var(--ink);
+    }
+
+    .page-wrap{
+      max-width:1180px;
+      margin:32px auto 40px;
+      padding:0 24px;
+    }
+
+    .page-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:12px;
+      margin-bottom:18px;
+      flex-wrap:wrap;
+    }
+
+    .page-title{
+      margin:0;
+      font-size:26px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
+    .page-sub{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .page-meta{
+      font-size:11px;
+      color:var(--muted);
+      text-align:right;
+      white-space:nowrap;
+    }
+
+    /* 메인 패널 */
+    .panel{
+      border-radius:18px;
+      padding:18px 20px 20px;
+      background:var(--panel);
+      border:1px solid var(--border);
+      box-shadow:0 18px 45px rgba(0,0,0,.55);
+    }
+
+    .panel-title-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:16px;
+      flex-wrap:wrap;
+    }
+
+    .panel-title{
+      margin:0;
+      font-size:16px;
+      font-weight:800;
+      letter-spacing:.02em;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .badge-small{
+      padding:2px 6px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      font-size:10px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:var(--muted);
+      background:var(--chip-bg);
+      white-space:nowrap;
+    }
+
+    /* 카테고리 / 검색 바 */
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:14px;
+      align-items:center;
+    }
+
+    .search-wrap{
+      flex:1 1 220px;
+      min-width:0;
+    }
+    .search-input{
+      width:100%;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--control-border);
+      background:var(--control-bg);
+      color:var(--ink);
+      font-size:13px;
+      outline:none;
+    }
+    .search-input::placeholder{
+      color:var(--muted);
+    }
+
+    .category-chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      list-style:none;
+      padding:0;
+      margin:0;
+    }
+    .category-chip{
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:11px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      border:1px solid var(--border);
+      background:var(--chip-bg);
+      color:var(--muted);
+      cursor:pointer;
+      user-select:none;
+    }
+    .category-chip.is-active{
+      border-color:var(--accent);
+      background:color-mix(in srgb, var(--accent) 20%, transparent);
+      color:var(--ink);
+      font-weight:600;
+    }
+
+    /* 카드 그리드 */
+    .link-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+      gap:14px;
+    }
+
+    .link-card{
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:8px;
+      padding:14px 14px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      text-decoration:none;
+
+      background:var(--panel);
+      border:1px solid var(--border);
+      color:var(--ink);
+      transition:transform .12s ease, box-shadow .15s ease, border-color .12s ease, background .12s ease;
+    }
+
+    .link-card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 10px 26px rgba(0,0,0,.45);
+      border-color:var(--accent);
+    }
+
+    .link-header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:8px;
+    }
+
+    .link-icon{
+      width:32px;
+      height:32px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      background:linear-gradient(135deg,
+        color-mix(in srgb, var(--accent) 45%, transparent),
+        color-mix(in srgb, var(--accent2) 45%, transparent)
+      );
+      box-shadow:0 0 0 1px rgba(0,0,0,.4);
+    }
+
+    .link-title-wrap{
+      flex:1 1 auto;
+      min-width:0;
+    }
+    .link-title{
+      font-size:15px;
+      font-weight:700;
+      margin:0 0 2px;
+      white-space:normal;
+    }
+    .link-domain{
+      font-size:11px;
+      color:var(--muted);
+      white-space:normal;
+    }
+
+    .link-footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      margin-top:4px;
+    }
+
+    .link-desc{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.4;
+      white-space:normal;
+    }
+
+    .link-tag{
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      font-size:11px;
+      color:var(--muted);
+      background:var(--chip-bg);
+      white-space:nowrap;
+    }
+
+    @media (max-width:720px){
+      .page-wrap{padding:0 16px; margin:24px auto 32px;}
+      .page-header{align-items:flex-start;}
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">유용한 사이트</h1>
+        <p class="page-sub">자주 쓰는 외부 사이트들을 한 곳에 모아둔 컬렉션입니다. </p>
+      </div>
+      <div class="page-meta">
+        Useful Links · v1.0<br>
+        엔진: SimHub Theme System
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="panel-title-row">
+          <h2 class="panel-title">
+            🔗 사이트 모음
+            <span class="badge-small">CARD VIEW</span>
+          </h2>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-wrap">
+            <input
+              type="search"
+              id="searchInput"
+              class="search-input"
+              placeholder="사이트 이름 / 설명 검색."
+            />
+          </div>
+
+          <ul class="category-chips" id="categoryChips">
+            <li class="category-chip is-active" data-cat="all">ALL</li>
+            <li class="category-chip" data-cat="game">GAME / TOOL</li>
+            <li class="category-chip" data-cat="wiki">WIKI</li>
+            <li class="category-chip" data-cat="etc">ETC</li>
+          </ul>
+        </div>
+
+        <!-- 카드 영역 -->
+        <div class="link-grid" id="linkGrid">
+          <!-- 카드 4: 공식 사이트 -->
+          <a class="link-card"
+             href="https://asphaltlegends.com/ko"
+             target="_blank" rel="noopener noreferrer"
+             data-cat="game">
+            <div class="link-header">
+              <div class="link-icon">🏁</div>
+              <div class="link-title-wrap">
+                <h3 class="link-title">아스팔트 레전드 공식사이트</h3>
+                <div class="link-domain">asphaltlegends.com</div>
+              </div>
+            </div>
+            <div class="link-footer">
+              <p class="link-desc">
+                AL 관련 공지, 다운로드, 공식 정보 등을 제공하는 공식 사이트.
+              </p>
+              <span class="link-tag">GAME/TOOL</span>
+            </div>
+          </a>
+
+          <!-- 카드 1: asec.tools -->
+          <a class="link-card"
+             href="https://asec.tools"
+             target="_blank" rel="noopener noreferrer"
+             data-cat="game">
+            <div class="link-header">
+              <div class="link-icon">🔢</div>
+              <div class="link-title-wrap">
+                <h3 class="link-title">아스팔트 특별 이벤트 계산기/캘린더</h3>
+                <div class="link-domain">asec.tools</div>
+              </div>
+            </div>
+            <div class="link-footer">
+              <p class="link-desc">
+                현재 청사진/성 수를 통해 여러 결과값을 제공하는 AL 특이벤트 계산기 및 캘린더.
+              </p>
+              <span class="link-tag">GAME/TOOL</span>
+            </div>
+          </a>
+
+          <!-- 카드 2: asphalt9.info -->
+          <a class="link-card"
+             href="https://asphalt9.info/"
+             target="_blank" rel="noopener noreferrer"
+             data-cat="wiki">
+            <div class="link-header">
+              <div class="link-icon">📚</div>
+              <div class="link-title-wrap">
+                <h3 class="link-title">아스팔트 데이터베이스</h3>
+                <div class="link-domain">asphalt9.info</div>
+              </div>
+            </div>
+            <div class="link-footer">
+              <p class="link-desc">
+                자동차 정보, 과거 특별 이벤트, 자동차 사냥 등 기록을 모아놓은 데이터베이스 사이트.
+              </p>
+              <span class="link-tag">WIKI</span>
+            </div>
+          </a>
+
+          <!-- 카드 6: MEI -->
+          <a class="link-card"
+             href="https://www.mei-a9.info/"
+             target="_blank" rel="noopener noreferrer"
+             data-cat="wiki">
+            <div class="link-header">
+              <div class="link-icon">📚</div>
+              <div class="link-title-wrap">
+                <h3 class="link-title">MEI 데이터베이스</h3>
+                <div class="link-domain">mei-a9.info</div>
+              </div>
+            </div>
+            <div class="link-footer">
+              <p class="link-desc">
+                자동차 상세 정보, 업그레이드 비용, 특별 이벤트 정보를 자세하게 모아놓은 데이터베이스.
+              </p>
+              <span class="link-tag">WIKI</span>
+            </div>
+          </a>
+
+          <!-- 카드 3: Fandom -->
+          <a class="link-card"
+             href="https://asphalt.fandom.com/wiki/Asphalt_Legends"
+             target="_blank" rel="noopener noreferrer"
+             data-cat="wiki">
+            <div class="link-header">
+              <div class="link-icon">📚</div>
+              <div class="link-title-wrap">
+                <h3 class="link-title">아스팔트 레전드 위키</h3>
+                <div class="link-domain">asphalt.fandom.com</div>
+              </div>
+            </div>
+            <div class="link-footer">
+              <p class="link-desc">
+                자동차, 이벤트, 용어 등 아스팔트 레전드 관련 전반적인 정보를 다루는 커뮤니티 위키.
+              </p>
+              <span class="link-tag">WIKI</span>
+            </div>
+          </a>
+
+          <!-- 카드 5: 네이비즘 시계 -->
+          <a class="link-card"
+             href="https://time.navyism.com/?host=gameloft.com"
+             target="_blank" rel="noopener noreferrer"
+             data-cat="etc">
+            <div class="link-header">
+              <div class="link-icon">⌚</div>
+              <div class="link-title-wrap">
+                <h3 class="link-title">건틀렛용 시계</h3>
+                <div class="link-domain">time.navyism.com</div>
+              </div>
+            </div>
+            <div class="link-footer">
+              <p class="link-desc">
+                건틀렛 매칭/리셋 타이밍을 맞추는 데 사용하는 네이비즘 시계.
+              </p>
+              <span class="link-tag">ETC</span>
+            </div>
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+  // 검색 + 카테고리 필터
+  (function(){
+    var searchInput = document.getElementById("searchInput");
+    var chips = Array.prototype.slice.call(
+      document.querySelectorAll("#categoryChips .category-chip")
+    );
+    var cards = Array.prototype.slice.call(
+      document.querySelectorAll(".link-card")
+    );
+
+    function applyFilter(){
+      var q = (searchInput && searchInput.value || "").toLowerCase();
+      var activeChip = chips.find(function(c){ return c.classList.contains("is-active"); });
+      var cat = activeChip ? activeChip.getAttribute("data-cat") : "all";
+
+      cards.forEach(function(card){
+        var text = card.innerText.toLowerCase();
+        var cardCat = card.getAttribute("data-cat") || "all";
+
+        var matchText = !q || text.indexOf(q) !== -1;
+        var matchCat = (cat === "all") || (cardCat === cat);
+
+        card.style.display = (matchText && matchCat) ? "" : "none";
+      });
+    }
+
+    if(searchInput){
+      searchInput.addEventListener("input", applyFilter);
+    }
+
+    chips.forEach(function(chip){
+      chip.addEventListener("click", function(){
+        chips.forEach(function(c){ c.classList.remove("is-active"); });
+        chip.classList.add("is-active");
+        applyFilter();
+      });
+    });
+  })();
+  </script>
+<!-- Hub Back Button Inject -->
+<style>
+  #hubBackWrap{position:fixed; left:16px; top:16px; z-index:2147483647; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial}
+  #hubBackBtn{padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:var(--chip-bg); color:var(--ink); cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:.9}
+  #hubBackBtn:hover{opacity:1}
+  @media (prefers-color-scheme: light){
+    #hubBackBtn{background:var(--chip-bg); color:var(--ink)}
+  }
+</style>
+<div id="hubBackWrap">
+  <button id="hubBackBtn" title="메인 메뉴로">
+    ← 메인으로
+  </button>
+</div>
+<script>
+  (function(){
+    var btn = document.getElementById('hubBackBtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      // If navigated from hub, try back; otherwise go to hub index.html
+      if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+        history.back();
+      } else {
+        // assume hub is one level up
+        location.href = '../index.html';
+      }
+    });
+  })();
+</script>
+</body>
+</html>
