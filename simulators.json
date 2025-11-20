@@ -67,4 +67,16 @@
       "compare"
     ],
     "featured": false
+  },
+  {
+    "id": "useful-sites",
+    "name": "유용한 사이트 모음",
+    "path": "simulators/useful-sites.html",
+    "description": "다양한 기능과 정보를 제공하는 사이트 제공",
+    "tags": [
+      "useful",
+      "links",
+      "sites"
+    ],
+    "featured": true
   }
