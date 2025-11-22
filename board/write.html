@@ -4,58 +4,152 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>글 작성/수정 — AsphaltCalc 게시판</title>
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/themes.css">
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
   <style>
     *{box-sizing:border-box;}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,"Segoe UI","Noto Sans KR",sans-serif;
-      background:#020617;
-      color:#e5e7eb;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Apple SD Gothic Neo,Roboto,Noto Sans KR,Arial;
+      background:var(--bg);
+      color:var(--ink);
     }
     .wrap{
       max-width:720px;
-      margin:32px auto;
+      margin:32px auto 40px;
       padding:0 16px;
     }
-    h1{margin:0 0 6px;font-size:22px;}
-    .sub{font-size:13px;color:#9ca3af;margin:0 0 14px;}
-    .card{
-      background:#020617;
-      border-radius:12px;
-      border:1px solid #1f2937;
-      padding:14px 16px 16px;
-      box-shadow:0 18px 40px rgba(0,0,0,.6);
+    h1{
+      margin:0 0 6px;
+      font-size:24px;
+      font-weight:800;
+      letter-spacing:.02em;
     }
-    label{display:block;font-size:13px;margin-bottom:4px;}
-    input,textarea{
+    .sub{
+      margin:0 0 16px;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .card{
+      border-radius:18px;
+      padding:18px 20px 20px;
+      background:var(--panel);
+      box-shadow:0 18px 45px rgba(0,0,0,.75);
+    }
+    .info{
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:8px;
+    }
+    label{
+      display:block;
+      font-size:13px;
+      margin:10px 0 4px;
+    }
+    input[type="text"]{
       width:100%;
       padding:8px 10px;
+      font-size:14px;
       border-radius:8px;
-      border:1px solid #374151;
-      background:#020617;
-      color:#e5e7eb;
-      margin-bottom:8px;
-      font-family:inherit;
-      font-size:14px;
+      border:1px solid var(--control-border);
+      background:var(--control-bg);
+      color:var(--ink);
     }
-    textarea{min-height:180px;resize:vertical;}
-    input:focus,textarea:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 1px #3b82f6;}
-    .btn-row{display:flex;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap;}
+    input[type="text"]:focus{
+      outline:none;
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px var(--accent);
+    }
+    textarea{
+      width:100%;
+      min-height:220px;
+      padding:10px 11px;
+      font-size:13px;
+      line-height:1.6;
+      resize:vertical;
+      font-family:ui-monospace,Menlo,Consolas,monospace;
+      border-radius:10px;
+      border:1px solid var(--control-border);
+      background:var(--control-bg);
+      color:var(--ink);
+    }
+    textarea:focus{
+      outline:none;
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px var(--accent);
+    }
+    .btn-row{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      margin-top:14px;
+      flex-wrap:wrap;
+    }
     .btn{
-      padding:8px 12px;
+      padding:7px 13px;
       border-radius:999px;
-      border:1px solid #374151;
-      background:#111827;
-      color:#e5e7eb;
-      font-size:14px;
+      border:1px solid var(--border);
+      background:var(--chip-bg);
+      color:var(--ink);
+      font-size:13px;
       cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
     }
-    .btn-primary{background:#3b82f6;border-color:#2563eb;color:white;}
-    .btn:disabled{opacity:.6;cursor:default;}
-    .msg{font-size:13px;margin-top:8px;min-height:18px;}
-    a{color:#60a5fa;text-decoration:none;}
-    a:hover{text-decoration:underline;}
-    .info{font-size:13px;color:#9ca3af;margin-bottom:10px;}
+    .btn.primary{
+      border-color:var(--accent);
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff;
+    }
+    .btn:disabled{
+      opacity:.6;
+      cursor:default;
+    }
+    .msg{
+      font-size:13px;
+      margin-top:8px;
+      min-height:18px;
+      color:var(--danger);
+    }
+    a{
+      color:var(--accent);
+      text-decoration:none;
+    }
+    a:hover{
+      text-decoration:underline;
+    }
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      padding:6px 8px;
+      margin-bottom:6px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:var(--panelSoft);
+    }
+    .tool-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:5px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--chip-bg);
+      color:var(--ink);
+      font-size:12px;
+      cursor:pointer;
+      gap:4px;
+    }
+    .tool-btn.accent{
+      border-color:var(--accent);
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff;
+    }
   </style>
 </head>
 <body>
@@ -64,29 +158,66 @@
     <p class="sub" id="pageSub">이메일 인증 + 글쓰기 권한이 있는 계정만 실제로 글을 저장할 수 있습니다.</p>
 
     <div class="card">
-      <div class="info" id="userInfo">로그인 및 권한 확인 중…</div>
-      <div class="info" id="guardMsg"></div>
+      <div id="userInfo" class="info">로그인 및 권한 확인 중…</div>
+      <div id="guardMsg" class="info"></div>
 
       <div id="formWrap" style="display:none;">
         <label for="title">제목</label>
         <input id="title" type="text" maxlength="80" />
 
         <label for="content">내용</label>
-        <textarea id="content" maxlength="8000"></textarea>
+        <div class="toolbar" aria-label="마크다운 도구">
+          <button type="button" class="tool-btn" data-md="bold">굵게</button>
+          <button type="button" class="tool-btn" data-md="italic">기울임</button>
+          <button type="button" class="tool-btn" data-md="h2">제목</button>
+          <button type="button" class="tool-btn" data-md="list">목록</button>
+          <button type="button" class="tool-btn" data-md="link">링크</button>
+          <button type="button" class="tool-btn" data-md="code">코드블럭</button>
+          <button type="button" class="tool-btn accent" data-md="img-url">🖼 이미지 링크</button>
+          <button type="button" class="tool-btn accent" data-md="video-url">🎬 동영상 링크</button>
+        </div>
+        <textarea id="content" maxlength="8000" placeholder="마크다운을 사용할 수 있습니다. (굵게, 제목, 목록, 링크, 코드블럭, 이미지, 동영상 등)"></textarea>
 
         <div class="btn-row">
           <button id="backBtn" class="btn" type="button">← 목록으로</button>
-          <button id="submitBtn" class="btn btn-primary" type="button">게시</button>
+          <button id="submitBtn" class="btn primary" type="button">게시</button>
         </div>
 
         <div id="msg" class="msg"></div>
       </div>
 
-      <div style="margin-top:10px;font-size:12px;">
-        <a href="./index.html">게시판으로 돌아가기</a>
+      <div class="info" style="margin-top:12px;font-size:12px;">
+        <a href="./index.html">← 게시판으로 돌아가기</a>
       </div>
     </div>
   </div>
+
+<script>
+(function(){
+  var GKEY = 'simhub_theme_global';
+  function resolveSystem(theme){
+    if (theme === 'system') {
+      var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+      return (mq && mq.matches) ? 'dark' : 'light';
+    }
+    return theme || 'asphalt';
+  }
+  function currentTheme(){
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr) return attr;
+    var g = localStorage.getItem(GKEY);
+    return g || 'asphalt';
+  }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme', resolveSystem(t));
+  }
+  try {
+    applyTheme(currentTheme());
+  } catch(e) {
+    console.warn(e);
+  }
+})();
+</script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
@@ -96,15 +227,15 @@
     } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
     import {
       getFirestore,
-      collection,
-      addDoc,
-      serverTimestamp,
       doc,
       getDoc,
-      updateDoc
+      collection,
+      addDoc,
+      updateDoc,
+      serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-    const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyCKIndVVlblrQfZGjaGpLBSxlWicLZiqPc",
   authDomain: "asphaltcalc-5d7f3.firebaseapp.com",
   projectId: "asphaltcalc-5d7f3",
@@ -113,49 +244,123 @@
   appId: "1:388017703504:web:117317163e1ec45a1d5f55"
 };
 
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    const db   = getFirestore(app);
 
-    const userInfo = document.getElementById("userInfo");
-    const guardMsg = document.getElementById("guardMsg");
-    const formWrap = document.getElementById("formWrap");
-    const titleEl = document.getElementById("title");
-    const contentEl = document.getElementById("content");
-    const backBtn = document.getElementById("backBtn");
-    const submitBtn = document.getElementById("submitBtn");
-    const msgEl = document.getElementById("msg");
     const pageTitle = document.getElementById("pageTitle");
-    const pageSub = document.getElementById("pageSub");
+    const pageSub   = document.getElementById("pageSub");
+    const userInfo  = document.getElementById("userInfo");
+    const guardMsg  = document.getElementById("guardMsg");
+    const formWrap  = document.getElementById("formWrap");
+    const titleEl   = document.getElementById("title");
+    const contentEl = document.getElementById("content");
+    const backBtn   = document.getElementById("backBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const msgEl     = document.getElementById("msg");
+    const toolbar   = document.querySelector(".toolbar");
 
     const params = new URLSearchParams(location.search);
-    const editId = params.get("id");
-    const isEdit = !!editId;
+    const postId = params.get("id");
+    const isEdit = !!postId;
 
     let currentUser = null;
-    let loadedPost = null;
+    let loadedPost  = null;
 
-    if (isEdit) {
-      pageTitle.textContent = "게시글 수정";
-      pageSub.textContent = "이 게시글을 작성한 계정만 수정할 수 있습니다. (이메일 인증 + 권한 필요)";
+    function insertAroundSelection(before, after) {
+      const el = contentEl;
+      const start = el.selectionStart || 0;
+      const end   = el.selectionEnd || 0;
+      const value = el.value;
+      const selected = value.slice(start, end) || "텍스트";
+      const nextValue = value.slice(0, start) + before + selected + after + value.slice(end);
+      el.value = nextValue;
+      const cursor = start + before.length + selected.length + after.length;
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    }
+
+    function insertTemplate(template, cursorOffset) {
+      const el = contentEl;
+      const start = (typeof el.selectionStart === "number") ? el.selectionStart : el.value.length;
+      const value = el.value;
+      const nextValue = value.slice(0, start) + template + value.slice(start);
+      el.value = nextValue;
+      const cursor = start + (cursorOffset || template.length);
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    }
+
+    if (toolbar) {
+      toolbar.addEventListener("click", function(e) {
+        const btn = e.target.closest(".tool-btn");
+        if (!btn) return;
+        const type = btn.getAttribute("data-md");
+        switch (type) {
+          case "bold":
+            insertAroundSelection("**", "**");
+            break;
+          case "italic":
+            insertAroundSelection("*", "*");
+            break;
+          case "h2":
+            insertTemplate("\n\n## 제목\n\n", 4);
+            break;
+          case "list":
+            insertTemplate("\n\n- 항목 1\n- 항목 2\n\n", 4);
+            break;
+          case "link":
+            insertTemplate("[텍스트](https://example.com)", 1);
+            break;
+          case "code":
+            insertTemplate("\n\n```\n코드를 여기에 작성하세요\n```\n\n", 6);
+            break;
+          case "img-url": {
+            const url = window.prompt("이미지 URL을 입력하세요 (https://...)");
+            if (!url) return;
+            const alt = window.prompt("이미지 설명(대체 텍스트)을 입력하세요 (선택)");
+            const altText = alt && alt.trim() ? alt.trim() : "이미지";
+            insertTemplate("\n\n![" + altText + "](" + url + ")\n\n");
+            break;
+          }
+          case "video-url": {
+            const url = window.prompt("동영상 URL을 입력하세요 (YouTube, Twitch 등)");
+            if (!url) return;
+            insertTemplate("\n\n[동영상 링크](" + url + ")\n\n");
+            break;
+          }
+        }
+      });
+    }
+
+    function applyEditModeUI() {
+      if (!isEdit) return;
+      pageTitle.textContent = "글 수정";
+      pageSub.textContent   = "이전에 작성한 게시글을 수정합니다. 작성자 계정으로만 수정할 수 있습니다.";
       submitBtn.textContent = "수정 저장";
     }
 
-    async function loadPostForEdit(id) {
+    async function loadPostIfEdit() {
+      if (!isEdit) {
+        formWrap.style.display = "none";
+        return;
+      }
       try {
-        const ref = doc(db, "posts", id);
+        msgEl.textContent = "";
+        guardMsg.textContent = "게시글을 불러오는 중입니다…";
+        const ref = doc(db, "posts", postId);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
           guardMsg.textContent = "해당 게시글을 찾을 수 없습니다.";
           formWrap.style.display = "none";
           return;
         }
-        const d = snap.data();
-        loadedPost = { id, ...d };
-        titleEl.value = d.title || "";
-        contentEl.value = d.content || "";
-        // 작성자 체크는 onAuthStateChanged에서 처리
-        checkAuthorPermission();
+        loadedPost = snap.data();
+        loadedPost.id = snap.id;
+        titleEl.value   = loadedPost.title || "";
+        contentEl.value = loadedPost.content || "";
+        guardMsg.textContent = "게시글을 불러왔습니다. 작성자 계정으로 로그인하면 수정할 수 있습니다.";
       } catch (e) {
         console.error(e);
         guardMsg.textContent = "게시글을 불러오는 중 오류가 발생했습니다.";
@@ -174,10 +379,10 @@
       }
     }
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, function(user) {
       currentUser = user;
       msgEl.textContent = "";
-      msgEl.style.color = "#fca5a5";
+      msgEl.style.color = "var(--danger)";
 
       if (!user) {
         userInfo.textContent = "로그아웃 상태";
@@ -186,7 +391,7 @@
         return;
       }
       const name = user.displayName || (user.email ? user.email.split("@")[0] : "사용자");
-      userInfo.textContent = `로그인: \${name} (\${user.email})`;
+      userInfo.textContent = "로그인: " + name + " (" + user.email + ")";
 
       if (!user.emailVerified) {
         guardMsg.textContent = "이메일 인증이 완료되지 않아 글을 작성/수정할 수 없습니다. 메일함에서 인증 링크를 클릭한 뒤 다시 로그인해주세요.";
@@ -194,22 +399,22 @@
         return;
       }
 
-      if (isEdit) {
-        if (!loadedPost) loadPostForEdit(editId);
-        else checkAuthorPermission();
-      } else {
-        guardMsg.textContent = "이메일 인증은 완료되었습니다. 실제 글쓰기 권한은 Firestore 규칙(화이트리스트)에서 결정됩니다.";
+      if (!isEdit) {
+        guardMsg.textContent = "이메일 인증이 완료되었습니다. 실제 글쓰기 권한은 Firestore 규칙(화이트리스트)에서 결정됩니다.";
         formWrap.style.display = "";
+      } else {
+        checkAuthorPermission();
       }
     });
 
-    backBtn.addEventListener("click", () => {
-      location.href = "./index.html";
+    backBtn.addEventListener("click", function() {
+      if (history.length > 1) history.back();
+      else location.href = "./index.html";
     });
 
-    submitBtn.addEventListener("click", async () => {
+    submitBtn.addEventListener("click", async function() {
       msgEl.textContent = "";
-      msgEl.style.color = "#fca5a5";
+      msgEl.style.color = "var(--danger)";
 
       if (!currentUser) {
         msgEl.textContent = "먼저 로그인하세요.";
@@ -220,62 +425,60 @@
         return;
       }
 
-      const title = titleEl.value.trim();
-      const content = contentEl.value.trim();
-
+      const title   = (titleEl.value || "").trim();
+      const content = (contentEl.value || "").trim();
       if (!title || !content) {
         msgEl.textContent = "제목과 내용을 모두 입력하세요.";
         return;
       }
 
+      submitBtn.disabled = true;
       try {
-        submitBtn.disabled = true;
-        const displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split("@")[0] : "사용자");
-
         if (isEdit) {
           if (!loadedPost) {
-            msgEl.textContent = "게시글을 아직 불러오지 못했습니다.";
+            msgEl.textContent = "게시글을 불러오지 못했습니다.";
             return;
           }
-          const ref = doc(db, "posts", editId);
-          await updateDoc(ref, {
-            title,
-            content,
+          await updateDoc(doc(db, "posts", postId), {
+            title: title,
+            content: content,
             updatedAt: serverTimestamp()
           });
-          msgEl.style.color = "#a5f3fc";
-          msgEl.textContent = "수정되었습니다! 잠시 후 글 상세 페이지로 이동합니다.";
-          setTimeout(() => {
-            location.href = `./read.html?id=\${encodeURIComponent(editId)}`;
-          }, 900);
+          msgEl.style.color = "var(--success)";
+          msgEl.textContent = "수정이 완료되었습니다.";
+          window.setTimeout(function() {
+            location.href = "./read.html?id=" + encodeURIComponent(postId);
+          }, 700);
         } else {
-          const docRef = await addDoc(collection(db, "posts"), {
-            title,
-            content,
+          const displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split("@")[0] : "사용자");
+          const ref = await addDoc(collection(db, "posts"), {
+            title: title,
+            content: content,
             authorUid: currentUser.uid,
             authorEmail: currentUser.email,
             authorName: displayName,
             createdAt: serverTimestamp()
           });
-          msgEl.style.color = "#a5f3fc";
-          msgEl.textContent = "작성되었습니다! 잠시 후 글 상세 페이지로 이동합니다.";
-          setTimeout(() => {
-            location.href = `./read.html?id=\${encodeURIComponent(docRef.id)}`;
-          }, 900);
+          msgEl.style.color = "var(--success)";
+          msgEl.textContent = "작성되었습니다!";
+          window.setTimeout(function() {
+            location.href = "./read.html?id=" + encodeURIComponent(ref.id);
+          }, 700);
         }
       } catch (e) {
         console.error(e);
-        if (e.code === "permission-denied") {
-          msgEl.style.color = "#fca5a5";
-          msgEl.textContent = "글쓰기/수정 권한이 없습니다. (이메일 인증/화이트리스트 권한을 운영자에게 문의하세요)";
+        if (e && e.code === "permission-denied") {
+          msgEl.textContent = "글쓰기 권한이 없는 계정입니다. 관리자가 화이트리스트에 추가해야 합니다.";
         } else {
-          msgEl.style.color = "#fca5a5";
-          msgEl.textContent = "글 저장 중 오류가 발생했습니다.";
+          msgEl.textContent = "저장 중 오류가 발생했습니다.";
         }
       } finally {
         submitBtn.disabled = false;
       }
     });
+
+    applyEditModeUI();
+    loadPostIfEdit();
   </script>
 </body>
 </html>
