@@ -3,17 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>게시판 메인 — AsphaltCalc</title>
+  <title>아스팔트 레전드 게시판</title>
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/themes.css">
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
   <style>
     *{box-sizing:border-box;}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
-      background:#050816;
-      color:#e5e7eb;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Apple SD Gothic Neo,Roboto,Noto Sans KR,Arial;
+      background:var(--bg);
+      color:var(--ink);
     }
-    a{color:#60a5fa;text-decoration:none;}
+    a{color:var(--accent);text-decoration:none;}
     a:hover{text-decoration:underline;}
+
     .wrap{
       max-width:960px;
       margin:24px auto 40px;
@@ -24,56 +29,86 @@
       justify-content:space-between;
       align-items:flex-end;
       gap:12px;
+      flex-wrap:wrap;
       margin-bottom:16px;
+    }
+    h1{
+      margin:0;
+      font-size:24px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+    .sub{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .user-area{
+      font-size:13px;
+      text-align:right;
+    }
+    .btn-row{
+      margin-top:4px;
+      display:flex;
+      gap:6px;
+      justify-content:flex-end;
       flex-wrap:wrap;
     }
-    h1{margin:0;font-size:24px;}
-    .sub{margin:4px 0 0;font-size:13px;color:#9ca3af;}
-    .user-area{font-size:13px;text-align:right;}
     .btn{
-      padding:6px 12px;
       border-radius:999px;
-      border:1px solid #374151;
-      background:#111827;
-      color:#e5e7eb;
+      border:1px solid var(--border);
+      background:var(--chip-bg);
+      color:var(--ink);
+      padding:6px 12px;
       font-size:13px;
       cursor:pointer;
     }
-    .btn-primary{
-      background:#3b82f6;
-      border-color:#2563eb;
-      color:white;
+    .btn.primary{
+      border-color:var(--accent);
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff;
     }
-    .btn:disabled{opacity:.6;cursor:default;}
+    .btn:disabled{
+      opacity:.6;
+      cursor:default;
+    }
+
     .card{
-      background:#020617;
-      border-radius:12px;
-      border:1px solid #111827;
-      padding:14px 16px;
-      box-shadow:0 18px 45px rgba(0,0,0,.6);
+      border-radius:18px;
+      padding:18px 20px;
+      background:var(--panel);
+      box-shadow:0 18px 45px rgba(0,0,0,.7);
     }
+
     .row{
       display:flex;
       justify-content:space-between;
       align-items:center;
-      gap:8px;
+      gap:10px;
       flex-wrap:wrap;
     }
-    .top-row-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .top-row-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
     .search-input{
       padding:6px 10px;
       border-radius:999px;
-      border:1px solid #374151;
-      background:#020617;
-      color:#e5e7eb;
+      border:1px solid var(--control-border);
+      background:var(--control-bg);
+      color:var(--ink);
       font-size:13px;
       min-width:160px;
     }
     .search-input:focus{
       outline:none;
-      border-color:#3b82f6;
-      box-shadow:0 0 0 1px #3b82f6;
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px var(--accent);
     }
+
     .post-list{
       margin-top:12px;
       display:flex;
@@ -85,19 +120,43 @@
     .post{
       padding:8px 10px;
       border-radius:10px;
-      border:1px solid #1f2937;
-      background:#020617;
+      border:1px solid var(--border);
+      background:var(--panelSoft);
       cursor:pointer;
     }
     .post:hover{
-      border-color:#2563eb;
-      background:#020617;
+      border-color:var(--accent);
     }
-    .post-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .post-meta{font-size:11px;color:#9ca3af;margin-top:2px;}
-    .post-body-preview{font-size:12px;margin-top:3px;color:#d1d5db;max-height:32px;overflow:hidden;}
-    .msg{font-size:13px;margin-top:8px;color:#f9a8d4;}
-    .info{font-size:13px;margin-top:6px;color:#9ca3af;}
+    .post-title{
+      font-size:14px;
+      font-weight:600;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .post-meta{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+    .post-body-preview{
+      font-size:12px;
+      margin-top:3px;
+      color:var(--ink);
+      max-height:32px;
+      overflow:hidden;
+    }
+    .info{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:6px;
+    }
+    .msg{
+      font-size:13px;
+      margin-top:8px;
+      color:var(--danger);
+      min-height:18px;
+    }
   </style>
 </head>
 <body>
@@ -105,15 +164,13 @@
     <header>
       <div>
         <h1>AsphaltCalc 게시판</h1>
-        <p class="sub">
-          글 읽기는 누구나 가능하고, 글 작성/수정/삭제와 댓글은 이메일 인증 + 로그인 후에만 가능합니다.
-        </p>
+        <p class="sub">글 읽기는 모두 가능하며, 글쓰기/수정/삭제는 인증된 계정만 가능합니다.</p>
       </div>
       <div class="user-area">
         <div id="userStatus">로그인 상태 확인 중…</div>
-        <div style="margin-top:4px;">
-          <button id="loginBtn" class="btn" onclick="location.href='./login.html'">로그인</button>
-          <button id="signupBtn" class="btn" onclick="location.href='./signup.html'">회원가입</button>
+        <div class="btn-row">
+          <button id="loginBtn"  class="btn">로그인</button>
+          <button id="signupBtn" class="btn">회원가입</button>
           <button id="logoutBtn" class="btn" style="display:none;">로그아웃</button>
         </div>
       </div>
@@ -123,13 +180,11 @@
       <div class="row">
         <div>
           <strong>게시글 목록</strong>
-          <div class="info" id="accessInfo">누구나 읽을 수 있고, 검색도 가능합니다.</div>
+          <div id="accessInfo" class="info">누구나 읽을 수 있고, 검색도 가능합니다.</div>
         </div>
         <div class="top-row-right">
           <input id="searchInput" class="search-input" type="search" placeholder="제목/내용 검색" />
-          <button id="writeBtn" class="btn-primary btn">
-            ✍️ 글 쓰기
-          </button>
+          <button id="writeBtn" class="btn primary">✍️ 글 쓰기</button>
         </div>
       </div>
 
@@ -137,26 +192,53 @@
         <div class="info">게시글을 불러오는 중…</div>
       </div>
 
-      <div class="msg" id="mainMsg"></div>
+      <div id="mainMsg" class="msg"></div>
     </main>
   </div>
 
+<script>
+(function(){
+  var GKEY = 'simhub_theme_global';
+  function resolveSystem(theme){
+    if (theme === 'system') {
+      var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+      return (mq && mq.matches) ? 'dark' : 'light';
+    }
+    return theme || 'asphalt';
+  }
+  function currentTheme(){
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr) return attr;
+    var g = localStorage.getItem(GKEY);
+    return g || 'asphalt';
+  }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme', resolveSystem(t));
+  }
+  try {
+    applyTheme(currentTheme());
+  } catch(e) {
+    console.warn(e);
+  }
+})();
+</script>
+
   <script type="module">
-    import {{ initializeApp }} from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-    import {{
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import {
       getAuth,
       onAuthStateChanged,
       signOut
-    }} from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-    import {{
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+    import {
       getFirestore,
       collection,
       getDocs,
       query,
       orderBy
-    }} from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-    const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyCKIndVVlblrQfZGjaGpLBSxlWicLZiqPc",
   authDomain: "asphaltcalc-5d7f3.firebaseapp.com",
   projectId: "asphaltcalc-5d7f3",
@@ -165,30 +247,35 @@
   appId: "1:388017703504:web:117317163e1ec45a1d5f55"
 };
 
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    const db   = getFirestore(app);
 
-    const userStatus = document.getElementById("userStatus");
-    const accessInfo = document.getElementById("accessInfo");
-    const postListEl = document.getElementById("postList");
-    const mainMsg = document.getElementById("mainMsg");
-    const loginBtn = document.getElementById("loginBtn");
-    const signupBtn = document.getElementById("signupBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const writeBtn = document.getElementById("writeBtn");
+    const userStatus  = document.getElementById("userStatus");
+    const accessInfo  = document.getElementById("accessInfo");
+    const postListEl  = document.getElementById("postList");
+    const mainMsg     = document.getElementById("mainMsg");
+    const loginBtn    = document.getElementById("loginBtn");
+    const signupBtn   = document.getElementById("signupBtn");
+    const logoutBtn   = document.getElementById("logoutBtn");
+    const writeBtn    = document.getElementById("writeBtn");
     const searchInput = document.getElementById("searchInput");
 
     let currentUser = null;
     let allPosts = [];
 
-    function renderPosts(filterText = "") {
-      const q = filterText.trim().toLowerCase();
+    function renderPosts(filterText) {
+      const q = (filterText || "").trim().toLowerCase();
       postListEl.innerHTML = "";
+
       let list = allPosts;
       if (q) {
-        list = allPosts.filter(p => (p.title + " " + p.content).toLowerCase().includes(q));
+        list = allPosts.filter(function (p) {
+          return (p.title + " " + p.content).toLowerCase().indexOf(q) !== -1;
+        });
       }
+
       if (list.length === 0) {
         const div = document.createElement("div");
         div.className = "info";
@@ -196,45 +283,72 @@
         postListEl.appendChild(div);
         return;
       }
-      for (const p of list) {
+
+      list.forEach(function (p) {
         const div = document.createElement("div");
         div.className = "post";
-        div.innerHTML = `
-          <div class="post-title">\${p.title || "(제목 없음)"}</div>
-          <div class="post-meta">\${p.authorText}\${p.dateText ? " · " + p.dateText : ""}</div>
-          <div class="post-body-preview">\${p.content.slice(0, 120)}</div>
-        `;
-        div.addEventListener("click", () => {
-          location.href = \`./read.html?id=\${encodeURIComponent(p.id)}\`;
+
+        const titleHtml = '<div class="post-title">' + p.title + '</div>';
+        const metaHtml  = '<div class="post-meta">' + p.authorText +
+          (p.dateText ? " · " + p.dateText : "") + '</div>';
+        const bodyHtml  = '<div class="post-body-preview">' +
+          p.content.slice(0, 120) + '</div>';
+
+        div.innerHTML = titleHtml + metaHtml + bodyHtml;
+
+        div.addEventListener("click", function () {
+          location.href = "./read.html?id=" + encodeURIComponent(p.id);
         });
+
         postListEl.appendChild(div);
-      }
+      });
     }
 
     async function loadPosts() {
       postListEl.innerHTML = '<div class="info">게시글을 불러오는 중…</div>';
+      mainMsg.textContent = "";
+
       try {
-        const qRef = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+        const qRef = query(
+          collection(db, "posts"),
+          orderBy("createdAt", "desc")
+        );
         const snap = await getDocs(qRef);
+
         allPosts = [];
-        snap.forEach(docSnap => {
-          const d = docSnap.data();
+        snap.forEach(function (docSnap) {
+          const d  = docSnap.data();
           const id = docSnap.id;
-          const title = d.title || "(제목 없음)";
+
+          const title   = d.title   || "(제목 없음)";
           const content = d.content || "";
-          const author = d.authorName || (d.authorEmail ? d.authorEmail.split("@")[0] : "알 수 없음");
-          const createdAt = d.createdAt?.toDate ? d.createdAt.toDate() : null;
-          const dateStr = createdAt
-            ? createdAt.toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
-            : "";
+          const author  = d.authorName ||
+            (d.authorEmail ? d.authorEmail.split("@")[0] : "알 수 없음");
+
+          let createdAt = null;
+          if (d.createdAt && typeof d.createdAt.toDate === "function") {
+            createdAt = d.createdAt.toDate();
+          }
+
+          let dateStr = "";
+          if (createdAt) {
+            dateStr = createdAt.toLocaleString("ko-KR", {
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit"
+            });
+          }
+
           allPosts.push({
-            id,
-            title,
-            content,
+            id: id,
+            title: title,
+            content: content,
             authorText: author,
             dateText: dateStr
           });
         });
+
         renderPosts(searchInput.value);
       } catch (e) {
         console.error(e);
@@ -243,28 +357,39 @@
       }
     }
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, function (user) {
       currentUser = user;
+
       if (!user) {
         userStatus.textContent = "로그아웃 상태 (읽기만 가능)";
-        loginBtn.style.display = "";
+        loginBtn.style.display  = "";
         signupBtn.style.display = "";
         logoutBtn.style.display = "none";
-      } else {
-        const name = user.displayName || (user.email ? user.email.split("@")[0] : "사용자");
-        const verifyTag = user.emailVerified ? "✅" : "⚠️";
-        userStatus.textContent = `로그인: \${name} (\${user.email}) \${verifyTag}`;
-        loginBtn.style.display = "none";
-        signupBtn.style.display = "none";
-        logoutBtn.style.display = "";
+        return;
+      }
+
+      const name = user.displayName ||
+        (user.email ? user.email.split("@")[0] : "사용자");
+      const emailText = user.email || "";
+      const verifyTag = user.emailVerified ? "[인증됨]" : "[미인증]";
+
+      userStatus.textContent =
+        "로그인: " + name + " (" + emailText + ") " + verifyTag;
+
+      loginBtn.style.display  = "none";
+      signupBtn.style.display = "none";
+      logoutBtn.style.display = "";
+    });
+
+    logoutBtn.addEventListener("click", async function () {
+      try {
+        await signOut(auth);
+      } catch (e) {
+        console.error(e);
       }
     });
 
-    logoutBtn.addEventListener("click", async () => {
-      try { await signOut(auth); } catch (e) { console.error(e); }
-    });
-
-    writeBtn.addEventListener("click", () => {
+    writeBtn.addEventListener("click", function () {
       if (!currentUser) {
         alert("글을 작성하려면 먼저 로그인해야 합니다.");
         location.href = "./login.html";
@@ -277,12 +402,70 @@
       location.href = "./write.html";
     });
 
-    searchInput.addEventListener("input", () => {
+    loginBtn.addEventListener("click", function(){
+      location.href = "./login.html";
+    });
+    signupBtn.addEventListener("click", function(){
+      location.href = "./signup.html";
+    });
+
+    searchInput.addEventListener("input", function () {
       renderPosts(searchInput.value);
     });
 
-    // 처음 로드시 바로 게시글 로드 (로그인 여부 무관)
     loadPosts();
+  </script>
+  <!-- Hub Back Button Inject -->
+  <style>
+    #hubBackWrap {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 2147483647;
+      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
+    }
+
+    #hubBackBtn {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--chip-bg);
+      color: var(--ink);
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+      opacity: .9
+    }
+
+    #hubBackBtn:hover {
+      opacity: 1
+    }
+
+    @media (prefers-color-scheme: light) {
+      #hubBackBtn {
+        background: var(--chip-bg);
+        color: var(--ink)
+      }
+    }
+  </style>
+  <div id="hubBackWrap">
+    <button id="hubBackBtn" title="메인 메뉴로">
+      ← 메인으로
+    </button>
+  </div>
+  <script>
+    (function () {
+      var btn = document.getElementById('hubBackBtn');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        // If navigated from hub, try back; otherwise go to hub index.html
+        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+          history.back();
+        } else {
+          // assume hub is one level up
+          location.href = '../index.html';
+        }
+      });
+    })();
   </script>
 </body>
 </html>
