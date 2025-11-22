@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>게시글 보기 — AsphaltCalc 게시판</title>
+  <style>
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,"Segoe UI","Noto Sans KR",sans-serif;
+      background:#020617;
+      color:#e5e7eb;
+    }
+    .wrap{
+      max-width:720px;
+      margin:32px auto;
+      padding:0 16px;
+    }
+    h1{margin:0 0 6px;font-size:22px;}
+    .sub{font-size:13px;color:#9ca3af;margin:0 0 14px;}
+    .card{
+      background:#020617;
+      border-radius:12px;
+      border:1px solid #1f2937;
+      padding:14px 16px 16px;
+      box-shadow:0 18px 40px rgba(0,0,0,.6);
+      margin-bottom:16px;
+    }
+    .title{font-size:18px;font-weight:600;margin:0 0 4px;}
+    .meta{font-size:12px;color:#9ca3af;margin-bottom:10px;}
+    .body{font-size:14px;line-height:1.6;white-space:pre-wrap;}
+    .msg{font-size:13px;margin-top:8px;color:#fca5a5;}
+    a{color:#60a5fa;text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    .btn-small{
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid #374151;
+      background:#111827;
+      color:#e5e7eb;
+      font-size:11px;
+      cursor:pointer;
+      margin-left:4px;
+    }
+    .btn-small.danger{border-color:#b91c1c;background:#7f1d1d;color:#fee2e2;}
+    .btn-small:disabled{opacity:.6;cursor:default;}
+    .comment-card{
+      margin-top:4px;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #1f2937;
+      background:#020617;
+      font-size:13px;
+    }
+    .comment-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:11px;color:#9ca3af;}
+    .comment-body{white-space:pre-wrap;font-size:13px;}
+    textarea.comment-input{
+      width:100%;
+      padding:8px 10px;
+      border-radius:8px;
+      border:1px solid #374151;
+      background:#020617;
+      color:#e5e7eb;
+      margin-bottom:6px;
+      font-family:inherit;
+      font-size:13px;
+      min-height:80px;
+      resize:vertical;
+    }
+    textarea.comment-input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 1px #3b82f6;}
+    .comment-btn-row{display:flex;justify-content:flex-end;}
+    .comment-submit{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid #2563eb;
+      background:#3b82f6;
+      color:white;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .comment-submit:disabled{opacity:.6;cursor:default;}
+    .comment-msg{font-size:12px;margin-top:4px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>게시글 보기</h1>
+    <p class="sub">글 읽기는 누구나 가능하고, 댓글/수정/삭제는 이메일 인증된 계정만 가능합니다.</p>
+
+    <div class="card">
+      <div id="topInfo" class="msg" style="margin-top:0;color:#9ca3af;"></div>
+
+      <div id="postBox" style="display:none;">
+        <h2 id="postTitle" class="title"></h2>
+        <div id="postMeta" class="meta"></div>
+        <div id="postBody" class="body"></div>
+
+        <div style="margin-top:8px;">
+          <button id="editBtn" class="btn-small" style="display:none;">✏️ 수정</button>
+          <button id="deleteBtn" class="btn-small danger" style="display:none;">🗑 삭제</button>
+        </div>
+      </div>
+
+      <div id="postError" class="msg"></div>
+
+      <div style="margin-top:10px;font-size:12px;">
+        <a href="./index.html">← 목록으로 돌아가기</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px;">댓글</div>
+      <div id="commentList">
+        <div class="msg" style="color:#9ca3af;margin-top:0;">댓글을 불러오는 중…</div>
+      </div>
+
+      <div id="commentFormWrap" style="margin-top:10px;">
+        <textarea id="commentInput" class="comment-input" placeholder="댓글을 입력하세요 (로그인 + 이메일 인증 필요)"></textarea>
+        <div class="comment-btn-row">
+          <button id="commentSubmit" class="comment-submit">댓글 달기</button>
+        </div>
+        <div id="commentMsg" class="comment-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      collection,
+      getDocs,
+      addDoc,
+      serverTimestamp,
+      deleteDoc,
+      query,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyCKIndVVlblrQfZGjaGpLBSxlWicLZiqPc",
+  authDomain: "asphaltcalc-5d7f3.firebaseapp.com",
+  projectId: "asphaltcalc-5d7f3",
+  storageBucket: "asphaltcalc-5d7f3.firebasestorage.app",
+  messagingSenderId: "388017703504",
+  appId: "1:388017703504:web:117317163e1ec45a1d5f55"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const topInfo = document.getElementById("topInfo");
+    const postBox = document.getElementById("postBox");
+    const postTitle = document.getElementById("postTitle");
+    const postMeta = document.getElementById("postMeta");
+    const postBody = document.getElementById("postBody");
+    const postError = document.getElementById("postError");
+    const editBtn = document.getElementById("editBtn");
+    const deleteBtn = document.getElementById("deleteBtn");
+
+    const commentList = document.getElementById("commentList");
+    const commentFormWrap = document.getElementById("commentFormWrap");
+    const commentInput = document.getElementById("commentInput");
+    const commentSubmit = document.getElementById("commentSubmit");
+    const commentMsg = document.getElementById("commentMsg");
+
+    const params = new URLSearchParams(location.search);
+    const postId = params.get("id");
+
+    let currentUser = null;
+    let postData = null;
+
+    if (!postId) {
+      topInfo.textContent = "id 파라미터가 없습니다. 링크를 다시 확인하세요.";
+      postBox.style.display = "none";
+      commentList.innerHTML = '<div class="msg">잘못된 접근입니다.</div>';
+      commentFormWrap.style.display = "none";
+    } else {
+      topInfo.textContent = "게시글 정보를 불러오는 중입니다…";
+    }
+
+    async function loadPost() {
+      if (!postId) return;
+      try {
+        const ref = doc(db, "posts", postId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          postError.textContent = "해당 게시글을 찾을 수 없습니다.";
+          topInfo.textContent = "";
+          postBox.style.display = "none";
+          commentList.innerHTML = '<div class="msg">게시글이 없어 댓글도 표시할 수 없습니다.</div>';
+          commentFormWrap.style.display = "none";
+          return;
+        }
+        const d = snap.data();
+        postData = d;
+        const title = d.title || "(제목 없음)";
+        const content = d.content || "";
+        const author = d.authorName || (d.authorEmail ? d.authorEmail.split("@")[0] : "알 수 없음");
+        const createdAt = d.createdAt?.toDate ? d.createdAt.toDate() : null;
+        const updatedAt = d.updatedAt?.toDate ? d.updatedAt.toDate() : null;
+        const dateStr = createdAt
+          ? createdAt.toLocaleString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" })
+          : "";
+        let meta = author;
+        if (dateStr) meta += " · " + dateStr;
+        if (updatedAt) {
+          const upStr = updatedAt.toLocaleString("ko-KR", { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+          meta += ` (수정: \${upStr})`;
+        }
+
+        postTitle.textContent = title;
+        postMeta.textContent = meta;
+        postBody.textContent = content;
+        postBox.style.display = "";
+        topInfo.textContent = "";
+
+        updateAuthorControls();
+        loadComments();
+      } catch (e) {
+        console.error(e);
+        postError.textContent = "게시글을 불러오는 중 오류가 발생했습니다.";
+        topInfo.textContent = "";
+      }
+    }
+
+    function updateAuthorControls() {
+      if (!currentUser || !postData) {
+        editBtn.style.display = "none";
+        deleteBtn.style.display = "none";
+        return;
+      }
+      if (currentUser.uid === postData.authorUid) {
+        editBtn.style.display = "";
+        deleteBtn.style.display = "";
+      } else {
+        editBtn.style.display = "none";
+        deleteBtn.style.display = "none";
+      }
+    }
+
+    async function loadComments() {
+      if (!postId) return;
+      commentList.innerHTML = '<div class="msg" style="color:#9ca3af;margin-top:0;">댓글을 불러오는 중…</div>';
+      try {
+        const qRef = query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc"));
+        const snap = await getDocs(qRef);
+        if (snap.empty) {
+          commentList.innerHTML = '<div class="msg" style="color:#9ca3af;margin-top:0;">아직 댓글이 없습니다.</div>';
+          return;
+        }
+        commentList.innerHTML = "";
+        snap.forEach(docSnap => {
+          const d = docSnap.data();
+          const id = docSnap.id;
+          const author = d.authorName || (d.authorEmail ? d.authorEmail.split("@")[0] : "알 수 없음");
+          const content = d.content || "";
+          const createdAt = d.createdAt?.toDate ? d.createdAt.toDate() : null;
+          const dateStr = createdAt
+            ? createdAt.toLocaleString("ko-KR", { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" })
+            : "";
+
+          const wrap = document.createElement("div");
+          wrap.className = "comment-card";
+          const head = document.createElement("div");
+          head.className = "comment-head";
+          const left = document.createElement("span");
+          left.textContent = author + (dateStr ? " · " + dateStr : "");
+          head.appendChild(left);
+
+          if (currentUser && currentUser.uid === d.authorUid) {
+            const delBtn = document.createElement("button");
+            delBtn.className = "btn-small danger";
+            delBtn.textContent = "삭제";
+            delBtn.addEventListener("click", async () => {
+              if (!confirm("이 댓글을 삭제할까요?")) return;
+              try {
+                delBtn.disabled = true;
+                await deleteDoc(doc(db, "posts", postId, "comments", id));
+                loadComments();
+              } catch (e) {
+                console.error(e);
+                alert("댓글 삭제 중 오류가 발생했습니다.");
+                delBtn.disabled = false;
+              }
+            });
+            head.appendChild(delBtn);
+          }
+
+          const body = document.createElement("div");
+          body.className = "comment-body";
+          body.textContent = content;
+
+          wrap.appendChild(head);
+          wrap.appendChild(body);
+          commentList.appendChild(wrap);
+        });
+      } catch (e) {
+        console.error(e);
+        commentList.innerHTML = '<div class="msg">댓글을 불러오는 중 오류가 발생했습니다.</div>';
+      }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+
+      if (!user) {
+        topInfo.textContent = "로그인하지 않은 상태입니다. 글 읽기는 가능하지만 댓글 작성/수정/삭제는 로그인 + 이메일 인증 후 이용할 수 있습니다.";
+        commentMsg.textContent = "로그인 + 이메일 인증된 계정만 댓글을 작성할 수 있습니다.";
+      } else if (!user.emailVerified) {
+        topInfo.textContent = "이메일 미인증 상태입니다. 글 읽기는 가능하지만, 댓글 작성/수정/삭제는 이메일 인증 후 이용할 수 있습니다.";
+        commentMsg.textContent = "이메일 인증이 완료되지 않아 댓글을 작성할 수 없습니다.";
+      } else {
+        topInfo.textContent = "이메일 인증된 계정입니다. 댓글 작성 및 자신의 댓글 삭제, 자신이 쓴 글 수정/삭제가 가능합니다.";
+        commentMsg.textContent = "";
+      }
+
+      updateAuthorControls();
+      loadComments();
+    });
+
+    editBtn.addEventListener("click", () => {
+      if (!postId) return;
+      location.href = `./write.html?id=\${encodeURIComponent(postId)}`;
+    });
+
+    deleteBtn.addEventListener("click", async () => {
+      if (!postId || !currentUser || !postData) return;
+      if (currentUser.uid !== postData.authorUid) {
+        alert("이 게시글을 삭제할 권한이 없습니다.");
+        return;
+      }
+      if (!confirm("이 게시글을 삭제할까요? (댓글은 별도로 남아있을 수 있습니다)")) return;
+      try {
+        deleteBtn.disabled = true;
+        await deleteDoc(doc(db, "posts", postId));
+        alert("삭제되었습니다.");
+        location.href = "./index.html";
+      } catch (e) {
+        console.error(e);
+        if (e.code === "permission-denied") {
+          alert("게시글 삭제 권한이 없습니다. (작성자 계정인지, Firestore 규칙을 확인하세요)");
+        } else {
+          alert("게시글 삭제 중 오류가 발생했습니다.");
+        }
+      } finally {
+        deleteBtn.disabled = false;
+      }
+    });
+
+    commentSubmit.addEventListener("click", async () => {
+      commentMsg.style.color = "#fca5a5";
+      commentMsg.textContent = "";
+      const text = commentInput.value.trim();
+
+      if (!currentUser) {
+        commentMsg.textContent = "로그인 후 댓글을 작성할 수 있습니다.";
+        return;
+      }
+      if (!currentUser.emailVerified) {
+        commentMsg.textContent = "이메일 인증이 필요합니다.";
+        return;
+      }
+      if (!text) {
+        commentMsg.textContent = "댓글 내용을 입력하세요.";
+        return;
+      }
+      if (!postId) {
+        commentMsg.textContent = "게시글 ID가 없어 댓글을 작성할 수 없습니다.";
+        return;
+      }
+
+      try {
+        commentSubmit.disabled = true;
+        const displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split("@")[0] : "사용자");
+        await addDoc(collection(db, "posts", postId, "comments"), {
+          content: text,
+          authorUid: currentUser.uid,
+          authorEmail: currentUser.email,
+          authorName: displayName,
+          createdAt: serverTimestamp()
+        });
+        commentInput.value = "";
+        commentMsg.style.color = "#a5f3fc";
+        commentMsg.textContent = "댓글이 작성되었습니다.";
+        loadComments();
+      } catch (e) {
+        console.error(e);
+        if (e.code === "permission-denied") {
+          commentMsg.textContent = "댓글 작성 권한이 없습니다. (이메일 인증/규칙 상태를 확인하세요)";
+        } else {
+          commentMsg.textContent = "댓글 작성 중 오류가 발생했습니다.";
+        }
+      } finally {
+        commentSubmit.disabled = false;
+      }
+    });
+
+    if (postId) loadPost();
+  </script>
+</body>
+</html>

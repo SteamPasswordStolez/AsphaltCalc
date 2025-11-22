@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>로그인 — AsphaltCalc 게시판</title>
+  <style>
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,"Segoe UI","Noto Sans KR",sans-serif;
+      background:#020617;
+      color:#e5e7eb;
+    }
+    .wrap{
+      max-width:420px;
+      margin:40px auto;
+      padding:0 16px;
+    }
+    h1{margin:0 0 6px;font-size:22px;}
+    .sub{font-size:13px;color:#9ca3af;margin:0 0 16px;}
+    .card{
+      background:#020617;
+      border-radius:12px;
+      border:1px solid #1f2937;
+      padding:14px 16px 16px;
+      box-shadow:0 18px 40px rgba(0,0,0,.6);
+    }
+    label{display:block;font-size:13px;margin-bottom:4px;}
+    input{
+      width:100%;
+      padding:8px 10px;
+      border-radius:8px;
+      border:1px solid #374151;
+      background:#020617;
+      color:#e5e7eb;
+      margin-bottom:10px;
+    }
+    input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 1px #3b82f6;}
+    .btn{
+      width:100%;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid #2563eb;
+      background:#3b82f6;
+      color:white;
+      font-size:14px;
+      cursor:pointer;
+      margin-top:4px;
+    }
+    .btn:disabled{opacity:.6;cursor:default;}
+    .link-row{display:flex;justify-content:space-between;font-size:12px;margin-top:10px;}
+    a{color:#60a5fa;text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    .msg{font-size:13px;margin-top:6px;min-height:18px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>로그인</h1>
+    <p class="sub">이메일/비밀번호로 로그인합니다. 이메일을 인증해야 글 작성/댓글/수정/삭제가 가능합니다.</p>
+
+    <div class="card">
+      <label for="email">이메일</label>
+      <input id="email" type="email" autocomplete="email" />
+
+      <label for="password">비밀번호</label>
+      <input id="password" type="password" autocomplete="current-password" />
+
+      <button id="loginBtn" class="btn">로그인</button>
+      <div id="loginMsg" class="msg"></div>
+
+      <hr style="border:none;border-top:1px solid #1f2937;margin:10px 0;">
+
+      <label for="resetEmail">비밀번호 재설정 이메일</label>
+      <input id="resetEmail" type="email" placeholder="가입한 이메일 입력" />
+
+      <button id="resetBtn" class="btn" style="background:#111827;border-color:#374151;">재설정 메일 보내기</button>
+      <div id="resetMsg" class="msg" style="color:#a5f3fc;"></div>
+
+      <div class="link-row">
+        <a href="./index.html">← 게시판으로 돌아가기</a>
+        <a href="./signup.html">회원가입</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      sendPasswordResetEmail,
+      sendEmailVerification,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyCKIndVVlblrQfZGjaGpLBSxlWicLZiqPc",
+  authDomain: "asphaltcalc-5d7f3.firebaseapp.com",
+  projectId: "asphaltcalc-5d7f3",
+  storageBucket: "asphaltcalc-5d7f3.firebasestorage.app",
+  messagingSenderId: "388017703504",
+  appId: "1:388017703504:web:117317163e1ec45a1d5f55"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const emailEl = document.getElementById("email");
+    const pwEl = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginMsg = document.getElementById("loginMsg");
+
+    const resetEmailEl = document.getElementById("resetEmail");
+    const resetBtn = document.getElementById("resetBtn");
+    const resetMsg = document.getElementById("resetMsg");
+
+    onAuthStateChanged(auth, (user) => {
+      if (user && user.emailVerified) {
+        // 이미 인증된 상태면 메인으로 보내도 됨 (원하면 주석 해제)
+        // location.href = "./index.html";
+      }
+    });
+
+    loginBtn.addEventListener("click", async () => {
+      loginMsg.textContent = "";
+      try {
+        loginBtn.disabled = true;
+        const email = emailEl.value.trim();
+        const pw = pwEl.value.trim();
+        if (!email || !pw) {
+          loginMsg.textContent = "이메일과 비밀번호를 입력하세요.";
+          return;
+        }
+        const cred = await signInWithEmailAndPassword(auth, email, pw);
+        const user = cred.user;
+        if (!user.emailVerified) {
+          loginMsg.textContent = "이메일 인증이 완료되지 않았습니다. 메일함에서 인증 링크를 클릭한 뒤 다시 로그인해주세요.";
+          try { await sendEmailVerification(user); } catch(e){ console.error(e); }
+          await signOut(auth);
+          return;
+        }
+        location.href = "./index.html";
+      } catch (e) {
+        console.error(e);
+        if (e.code === "auth/invalid-credential") {
+          loginMsg.textContent = "이메일 또는 비밀번호가 올바르지 않습니다.";
+        } else {
+          loginMsg.textContent = "로그인 중 오류가 발생했습니다.";
+        }
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+
+    resetBtn.addEventListener("click", async () => {
+      resetMsg.textContent = "";
+      try {
+        resetBtn.disabled = true;
+        const email = resetEmailEl.value.trim();
+        if (!email) {
+          resetMsg.textContent = "이메일을 입력하세요.";
+          return;
+        }
+        await sendPasswordResetEmail(auth, email);
+        resetMsg.textContent = "비밀번호 재설정 메일을 보냈습니다.";
+      } catch (e) {
+        console.error(e);
+        resetMsg.textContent = "메일 전송 중 오류가 발생했습니다.";
+      } finally {
+        resetBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
