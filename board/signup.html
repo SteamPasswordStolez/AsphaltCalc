@@ -4,54 +4,96 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>회원가입 — AsphaltCalc 게시판</title>
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/themes.css">
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
   <style>
     *{box-sizing:border-box;}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,"Segoe UI","Noto Sans KR",sans-serif;
-      background:#020617;
-      color:#e5e7eb;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Apple SD Gothic Neo,Roboto,Noto Sans KR,Arial;
+      background:var(--bg);
+      color:var(--ink);
     }
     .wrap{
       max-width:420px;
       margin:40px auto;
       padding:0 16px;
     }
-    h1{margin:0 0 6px;font-size:22px;}
-    .sub{font-size:13px;color:#9ca3af;margin:0 0 16px;}
-    .card{
-      background:#020617;
-      border-radius:12px;
-      border:1px solid #1f2937;
-      padding:14px 16px 16px;
-      box-shadow:0 18px 40px rgba(0,0,0,.6);
+    h1{
+      margin:0 0 6px;
+      font-size:22px;
+      font-weight:800;
     }
-    label{display:block;font-size:13px;margin-bottom:4px;}
+    .sub{
+      font-size:13px;
+      color:var(--muted);
+      margin:0 0 16px;
+    }
+    .card{
+      border-radius:12px;
+      padding:14px 16px 16px;
+      background:var(--panel);
+      box-shadow:0 18px 40px rgba(0,0,0,.7);
+    }
+    label{
+      display:block;
+      font-size:13px;
+      margin-bottom:4px;
+    }
     input{
       width:100%;
       padding:8px 10px;
-      border-radius:8px;
-      border:1px solid #374151;
-      background:#020617;
-      color:#e5e7eb;
       margin-bottom:10px;
+      border-radius:8px;
+      border:1px solid var(--control-border);
+      background:var(--control-bg);
+      color:var(--ink);
+      font-size:14px;
     }
-    input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 1px #3b82f6;}
+    input:focus{
+      outline:none;
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px var(--accent);
+    }
     .btn{
       width:100%;
       padding:8px 12px;
+      margin-top:4px;
       border-radius:999px;
-      border:1px solid #2563eb;
-      background:#3b82f6;
-      color:white;
+      border:1px solid var(--border);
+      background:var(--chip-bg);
+      color:var(--ink);
       font-size:14px;
       cursor:pointer;
-      margin-top:4px;
     }
-    .btn:disabled{opacity:.6;cursor:default;}
-    .msg{font-size:13px;margin-top:6px;min-height:18px;}
-    a{color:#60a5fa;text-decoration:none;}
-    a:hover{text-decoration:underline;}
+    .btn.primary{
+      border-color:var(--accent);
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#fff;
+    }
+    .btn:disabled{
+      opacity:.6;
+      cursor:default;
+    }
+    .msg{
+      font-size:13px;
+      margin-top:6px;
+      min-height:18px;
+      color:var(--danger);
+    }
+    a{
+      color:var(--accent);
+      text-decoration:none;
+    }
+    a:hover{
+      text-decoration:underline;
+    }
+    .footer-links{
+      margin-top:10px;
+      font-size:12px;
+    }
   </style>
 </head>
 <body>
@@ -69,14 +111,41 @@
       <label for="nickname">닉네임 (선택)</label>
       <input id="nickname" type="text" placeholder="예: Multong" />
 
-      <button id="signupBtn" class="btn">회원가입</button>
+      <button id="signupBtn" class="btn primary">회원가입</button>
       <div id="signupMsg" class="msg"></div>
 
-      <div style="margin-top:10px;font-size:12px;">
+      <div class="footer-links">
         이미 계정이 있나요? <a href="./login.html">로그인</a> · <a href="./index.html">게시판으로 돌아가기</a>
       </div>
     </div>
   </div>
+
+<script>
+(function(){
+  var GKEY = 'simhub_theme_global';
+  function resolveSystem(theme){
+    if (theme === 'system') {
+      var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+      return (mq && mq.matches) ? 'dark' : 'light';
+    }
+    return theme || 'asphalt';
+  }
+  function currentTheme(){
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr) return attr;
+    var g = localStorage.getItem(GKEY);
+    return g || 'asphalt';
+  }
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme', resolveSystem(t));
+  }
+  try {
+    applyTheme(currentTheme());
+  } catch(e) {
+    console.warn(e);
+  }
+})();
+</script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
@@ -88,7 +157,7 @@
       signOut
     } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
 
-    const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyCKIndVVlblrQfZGjaGpLBSxlWicLZiqPc",
   authDomain: "asphaltcalc-5d7f3.firebaseapp.com",
   projectId: "asphaltcalc-5d7f3",
@@ -97,22 +166,25 @@
   appId: "1:388017703504:web:117317163e1ec45a1d5f55"
 };
 
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    const emailEl = document.getElementById("email");
-    const pwEl = document.getElementById("password");
-    const nickEl = document.getElementById("nickname");
+    const emailEl   = document.getElementById("email");
+    const pwEl      = document.getElementById("password");
+    const nickEl    = document.getElementById("nickname");
     const signupBtn = document.getElementById("signupBtn");
     const signupMsg = document.getElementById("signupMsg");
 
-    signupBtn.addEventListener("click", async () => {
+    signupBtn.addEventListener("click", async function() {
       signupMsg.textContent = "";
+      signupMsg.style.color = "var(--danger)";
+
       try {
         signupBtn.disabled = true;
-        const email = emailEl.value.trim();
-        const pw = pwEl.value.trim();
-        const nick = nickEl.value.trim();
+        const email = (emailEl.value || "").trim();
+        const pw    = (pwEl.value || "").trim();
+        const nick  = (nickEl.value || "").trim();
 
         if (!email || !pw) {
           signupMsg.textContent = "이메일과 비밀번호를 입력하세요.";
@@ -127,13 +199,14 @@
         }
 
         await sendEmailVerification(user);
+        signupMsg.style.color = "var(--success)";
         signupMsg.textContent = "회원가입 완료! 이메일로 전송된 인증 링크를 클릭한 뒤, 로그인해주세요.";
         await signOut(auth);
       } catch (e) {
         console.error(e);
-        if (e.code === "auth/email-already-in-use") {
+        if (e && e.code === "auth/email-already-in-use") {
           signupMsg.textContent = "이미 사용 중인 이메일입니다.";
-        } else if (e.code === "auth/weak-password") {
+        } else if (e && e.code === "auth/weak-password") {
           signupMsg.textContent = "비밀번호는 6자 이상이어야 합니다.";
         } else {
           signupMsg.textContent = "회원가입 중 오류가 발생했습니다.";
