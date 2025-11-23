@@ -1,1457 +1,1138 @@
 <!doctype html>
 <html lang="ko">
-
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="../assets/favicon.png">
-  <title>Car Pack — 풀성 시뮬레이터</title>
-  <meta name="color-scheme" content="light dark" />
-  <style>
-    :root {
-      --bg: #0b1220;
-      --fg: #e5e7eb;
-      --muted: #9aa4b2;
-      --card: #111827;
-      --border: #1f2937;
-      --brand: #7c3aed;
-      --accent: #22d3ee;
-      --radius: 16px;
-      --shadow: 0 10px 24px rgba(0, 0, 0, .35), 0 2px 10px rgba(0, 0, 0, .35);
-      --tab: #0f172a;
-      --tabActive: #1f2937;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="../assets/favicon.png">
+<title>Car Pack — 풀성 시뮬레이터</title>
+<meta name="color-scheme" content="light dark" />
+<style>
+  :root{
+    --bg:#0b1220; --fg:#e5e7eb; --muted:#9aa4b2; --card:#111827; --border:#1f2937;
+    --brand:#7c3aed; --accent:#22d3ee; --radius:16px; --shadow:0 10px 24px rgba(0,0,0,.35),0 2px 10px rgba(0,0,0,.35);
+    --tab:#0f172a; --tabActive:#1f2937;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#ffffff; --fg:#0f172a; --muted:#475569; --card:#f8fafc; --border:#e2e8f0; --brand:#6d28d9; --accent:#0891b2; --shadow:0 10px 20px rgba(2,6,23,.06),0 2px 6px rgba(2,6,23,.08); --tab:#eef2f7; --tabActive:#ffffff; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  header{position:sticky;top:0;backdrop-filter:saturate(160%) blur(8px);border-bottom:1px solid var(--border);background:color-mix(in srgb, var(--bg) 82%, transparent);z-index:20}
+  header .inner{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px}
+  .dot{width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--brand) 25%,#fff),var(--shadow)}
+  main{max-width:1100px;margin:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+  .tabs{display:flex;gap:10px;flex-wrap:wrap}
+  .tab{cursor:pointer;border:1px solid var(--border);border-bottom:none;background:var(--tab);color:var(--fg);padding:10px 14px;border-top-left-radius:12px;border-top-right-radius:12px;box-shadow:var(--shadow);font-weight:700}
+  .tab.active{background:var(--tabActive);outline:2px solid color-mix(in srgb,var(--brand) 35%,transparent)}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+  .grid{display:grid;gap:12px}
+  .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  label{font-size:12px;color:var(--muted)}
+  input,textarea,select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:inherit}
+  textarea{min-height:80px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .btn{cursor:pointer;border:1px solid var(--border);background:linear-gradient(135deg,color-mix(in srgb,var(--brand) 25%,transparent),color-mix(in srgb,var(--accent) 20%,transparent))}
+  .btn:hover{outline:2px solid color-mix(in srgb,var(--brand) 35%,transparent)}
+  .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  .k{padding:12px;border:1px dashed var(--border);border-radius:12px}
+  .k .v{font-weight:800;font-size:20px}
+  .subtle{font-size:12px;color:var(--muted);margin-top:6px}
+  canvas{width:100%;height:280px;border-radius:12px;margin-top:10px}
+  .tooltip{position:fixed;pointer-events:none;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:color-mix(in srgb,var(--card) 92%, black 8%);color:var(--fg);font:12px ui-sans-serif,system-ui;box-shadow:var(--shadow);opacity:0;transform:translateY(-6px);transition:opacity .12s ease, transform .12s ease;z-index:1000}
+  .hide{display:none}
+  /* Badge styles for budget classification */
+  .badge{margin-top:8px;padding:14px 16px;border-radius:14px;font-weight:900;font-size:28px;text-align:center;letter-spacing:.3px;border:1px solid var(--border);box-shadow:var(--shadow)}
+  .c-unknown{background:#0a0a0a;color:#fff}
+  .c-impossible{background:#2b0b10;color:#fee2e2;border-color:#7f1d1d}
+  .c-ultramin{background:#3b0b0b;color:#fecaca;border-color:#ef4444}
+  .c-min{background:#3a2106;color:#ffedd5;border-color:#f59e0b}
+  .c-possible-yellow{background:#3a3006;color:#fef08a;border-color:#facc15}
+  .c-possible-green{background:#0b2b1a;color:#dcfce7;border-color:#22c55e}
+  .c-easy{background:#062a35;color:#e0f2fe;border-color:#38bdf8}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+  /* Disclaimer (integrated, visible but not oversized) */
+  .disclaimer {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(250, 204, 21, 0.10);
+    border: 1.5px solid rgba(234, 179, 8, 0.6);
+    color: #facc15;
+    font-weight: 800;
+    font-size: 15px;
+    text-align: center;
+    border-radius: 10px;
+  }
 
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #ffffff;
-        --fg: #0f172a;
-        --muted: #475569;
-        --card: #f8fafc;
-        --border: #e2e8f0;
-        --brand: #6d28d9;
-        --accent: #0891b2;
-        --shadow: 0 10px 20px rgba(2, 6, 23, .06), 0 2px 6px rgba(2, 6, 23, .08);
-        --tab: #eef2f7;
-        --tabActive: #ffffff;
-      }
+  /* Presets & History (Fullstar) */
+  
+  /* Presets & History (Fullstar) */
+  .preset-section{
+    margin-top:16px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:rgba(0,0,0,.30);
+  }
+  .preset-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-bottom:6px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--muted);
+  }
+  .preset-controls{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  @media (max-width:720px){
+    .preset-controls{
+      grid-template-columns:1fr;
     }
-
-    * {
-      box-sizing: border-box
+  }
+  .preset-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .preset-row input,
+  .preset-row select{
+    flex:1 1 0%;
+    min-width:0;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:rgba(0,0,0,.35);
+    color:var(--fg);
+    font-size:13px;
+    padding:6px 8px;
+  }
+  .preset-row input::placeholder{
+    color:var(--muted);
+  }
+  .preset-buttons{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:6px;
+  }
+  .preset-buttons .btn{
+    flex:1 1 calc(50% - 6px);
+    justify-content:center;
+  }
+  @media (max-width:720px){
+    .preset-buttons .btn{
+      flex:1 1 100%;
     }
+  }
+  .history-list{
+    margin-top:6px;
+    max-height:220px;
+    overflow:auto;
+    border-radius:10px;
+    border:1px dashed var(--border);
+    padding:6px 8px;
+    background:rgba(0,0,0,.25);
+  }
+  .history-empty{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .history-item{
+    padding:4px 0;
+    border-bottom:1px dashed rgba(148,163,184,.5);
+  }
+  .history-item:last-child{
+    border-bottom:none;
+  }
+  .history-item-title{
+    font-weight:600;
+    font-size:13px;
+  }
+  .history-item-meta{
+    font-size:11px;
+    color:var(--muted);
+    margin-top:1px;
+  }
 
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
-      font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial
-    }
-
-    header {
-      position: sticky;
-      top: 0;
-      backdrop-filter: saturate(160%) blur(8px);
-      border-bottom: 1px solid var(--border);
-      background: color-mix(in srgb, var(--bg) 82%, transparent);
-      z-index: 20
-    }
-
-    header .inner {
-      max-width: 1100px;
-      margin: auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 800;
-      letter-spacing: .2px
-    }
-
-    .dot {
-      width: 28px;
-      height: 28px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--brand), var(--accent));
-      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 25%, #fff), var(--shadow)
-    }
-
-    main {
-      max-width: 1100px;
-      margin: auto;
-      padding: 18px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px
-    }
-
-    .tabs {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap
-    }
-
-    .tab {
-      cursor: pointer;
-      border: 1px solid var(--border);
-      border-bottom: none;
-      background: var(--tab);
-      color: var(--fg);
-      padding: 10px 14px;
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
-      box-shadow: var(--shadow);
-      font-weight: 700
-    }
-
-    .tab.active {
-      background: var(--tabActive);
-      outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent)
-    }
-
-    .panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 16px
-    }
-
-    .grid {
-      display: grid;
-      gap: 12px
-    }
-
-    .grid.cols-4 {
-      grid-template-columns: repeat(4, minmax(0, 1fr))
-    }
-
-    label {
-      font-size: 12px;
-      color: var(--muted)
-    }
-
-    input,
-    textarea,
-    select,
-    button {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: inherit
-    }
-
-    textarea {
-      min-height: 80px;
-      font-family: ui-monospace, Menlo, Consolas, monospace
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 10px
-    }
-
-    .btn {
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 25%, transparent), color-mix(in srgb, var(--accent) 20%, transparent))
-    }
-
-    .btn:hover {
-      outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent)
-    }
-
-    .kpi {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 10px
-    }
-
-    .k {
-      padding: 12px;
-      border: 1px dashed var(--border);
-      border-radius: 12px
-    }
-
-    .k .v {
-      font-weight: 800;
-      font-size: 20px
-    }
-
-    .subtle {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 6px
-    }
-
-    canvas {
-      width: 100%;
-      height: 280px;
-      border-radius: 12px;
-      margin-top: 10px
-    }
-
-    .tooltip {
-      position: fixed;
-      pointer-events: none;
-      padding: 6px 8px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: color-mix(in srgb, var(--card) 92%, black 8%);
-      color: var(--fg);
-      font: 12px ui-sans-serif, system-ui;
-      box-shadow: var(--shadow);
-      opacity: 0;
-      transform: translateY(-6px);
-      transition: opacity .12s ease, transform .12s ease;
-      z-index: 1000
-    }
-
-    .hide {
-      display: none
-    }
-
-    /* Badge styles for budget classification */
-    .badge {
-      margin-top: 8px;
-      padding: 14px 16px;
-      border-radius: 14px;
-      font-weight: 900;
-      font-size: 28px;
-      text-align: center;
-      letter-spacing: .3px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow)
-    }
-
-    .c-unknown {
-      background: #0a0a0a;
-      color: #fff
-    }
-
-    .c-impossible {
-      background: #2b0b10;
-      color: #fee2e2;
-      border-color: #7f1d1d
-    }
-
-    .c-ultramin {
-      background: #3b0b0b;
-      color: #fecaca;
-      border-color: #ef4444
-    }
-
-    .c-min {
-      background: #3a2106;
-      color: #ffedd5;
-      border-color: #f59e0b
-    }
-
-    .c-possible-yellow {
-      background: #3a3006;
-      color: #fef08a;
-      border-color: #facc15
-    }
-
-    .c-possible-green {
-      background: #0b2b1a;
-      color: #dcfce7;
-      border-color: #22c55e
-    }
-
-    .c-easy {
-      background: #062a35;
-      color: #e0f2fe;
-      border-color: #38bdf8
-    }
-
-    .mono {
-      font-family: ui-monospace, Menlo, Consolas, monospace;
-      font-size: 13px
-    }
-
-    /* Disclaimer (integrated, visible but not oversized) */
-    .disclaimer {
-      margin-top: 12px;
-      padding: 10px 12px;
-      background: rgba(250, 204, 21, 0.10);
-      border: 1.5px solid rgba(234, 179, 8, 0.6);
-      color: #facc15;
-      font-weight: 800;
-      font-size: 15px;
-      text-align: center;
-      border-radius: 10px;
-    }
-
-    /* Presets & History (Fullstar) */
-
-    /* Presets & History (Fullstar) */
-    .preset-section {
-      margin-top: 16px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: rgba(0, 0, 0, .30);
-    }
-
-    .preset-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--muted);
-    }
-
-    .preset-controls {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    @media (max-width:720px) {
-      .preset-controls {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .preset-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .preset-row input,
-    .preset-row select {
-      flex: 1 1 0%;
-      min-width: 0;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(0, 0, 0, .35);
-      color: var(--fg);
-      font-size: 13px;
-      padding: 6px 8px;
-    }
-
-    .preset-row input::placeholder {
-      color: var(--muted);
-    }
-
-    .preset-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 6px;
-    }
-
-    .preset-buttons .btn {
-      flex: 1 1 calc(50% - 6px);
-      justify-content: center;
-    }
-
-    @media (max-width:720px) {
-      .preset-buttons .btn {
-        flex: 1 1 100%;
-      }
-    }
-
-    .history-list {
-      margin-top: 6px;
-      max-height: 220px;
-      overflow: auto;
-      border-radius: 10px;
-      border: 1px dashed var(--border);
-      padding: 6px 8px;
-      background: rgba(0, 0, 0, .25);
-    }
-
-    .history-empty {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .history-item {
-      padding: 4px 0;
-      border-bottom: 1px dashed rgba(148, 163, 184, .5);
-    }
-
-    .history-item:last-child {
-      border-bottom: none;
-    }
-
-    .history-item-title {
-      font-weight: 600;
-      font-size: 13px;
-    }
-
-    .history-item-meta {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 1px;
-    }
-  </style>
+</style>
   <link rel="stylesheet" href="../assets/themes.css">
 
-  <script>
-    (function () {
-      var SIM_ID = "fullstar";
-      var GKEY = "simhub_theme_global";
-      var OKEY = "simhub_theme_overrides";
-      function resolveSystem(theme) {
-        if (theme !== "system") return theme;
-        var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        return isDark ? "dark" : "light";
-      }
-      function apply() {
-        var g = localStorage.getItem(GKEY) || "asphalt";
-        try { var map = JSON.parse(localStorage.getItem(OKEY) || "{}"); } catch (_) {
-          var map = {};
-        }
-        var t = map[SIM_ID] || g;
-        document.documentElement.dataset.theme = resolveSystem(t);
-      }
-      try { apply(); } catch (e) { console.warn(e); }
-    })();
-  </script>
+<script>
+(function(){
+  var SIM_ID = "fullstar";
+  var GKEY = "simhub_theme_global";
+  var OKEY = "simhub_theme_overrides";
+  function resolveSystem(theme){
+    if(theme!=="system") return theme;
+    var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return isDark ? "dark" : "light";
+  }
+  function apply(){
+    var g = localStorage.getItem(GKEY) || "asphalt";
+    try{ var map = JSON.parse(localStorage.getItem(OKEY)||"{}"); }catch(_){
+      var map = {};
+    }
+    var t = map[SIM_ID] || g;
+    document.documentElement.dataset.theme = resolveSystem(t);
+  }
+  try{ apply(); }catch(e){ console.warn(e); }
+})();
+</script>
 
   <link rel="stylesheet" href="../assets/theme-adapter.css">
 
-  <style>
-    /* --- Fullstar budget status banner enhancements --- */
-    #bBadge.badge {
-      font-size: 22px !important;
-      line-height: 1.3 !important;
-      font-weight: 800 !important;
-      padding: 14px 18px !important;
-      letter-spacing: .5px !important;
-      border-radius: 18px !important;
-      text-align: center !important;
-    }
-
-    /* Ensure the surrounding container gets some separation */
-    #budgetResult,
-    #budgetStatus {
-      margin-top: 8px !important;
-      margin-bottom: 10px !important;
-    }
-  </style>
+<style>
+/* --- Fullstar budget status banner enhancements --- */
+#bBadge.badge{
+  font-size: 22px !important;
+  line-height: 1.3 !important;
+  font-weight: 800 !important;
+  padding: 14px 18px !important;
+  letter-spacing: .5px !important;
+  border-radius: 18px !important;
+  text-align: center !important;
+}
+/* Ensure the surrounding container gets some separation */
+#budgetResult, #budgetStatus {
+  margin-top: 8px !important;
+  margin-bottom: 10px !important;
+}
+</style>
 
 </head>
-
 <body>
-  <header>
-    <div class="inner">
-      <div class="brand">
-        <div class="dot"></div>풀성 시뮬레이터
-      </div>
-      <div style="font-size:14px;color:var(--muted)">v3.7 — 탭형</div>
-    </div>
-  </header>
-  <main>
-    <!-- Tabs -->
-    <div class="tabs" role="tablist">
-      <button id="tabExp" class="tab active" role="tab" aria-controls="expPanel">기댓값 시뮬레이터</button>
-      <button id="tabBud" class="tab" role="tab" aria-controls="budPanel">예산 시뮬레이터</button>
-    </div>
-
-    <!-- Expectation Panel -->
-    <section id="expPanel" class="panel" role="tabpanel">
-      <h2>기댓값 시뮬레이터</h2>
-      <div class="grid cols-4">
-        <div><label>차량 수</label><input id="carCount" type="number" min="1" value="6"></div>
-        <div><label>팩 가격 (토큰)</label><input id="packCost" type="number" min="0" value="75"></div>
-        <div><label>시뮬레이션 횟수</label><input id="runs" type="number" min="100" value="1000"></div>
-        <div><label>4장 확률</label><input id="p4" type="number" step="0.0001" min="0" max="1" value="0.197181"></div>
-      </div>
-      <div class="grid cols-4">
-        <div><label>15장 확률</label><input id="p15" type="number" step="0.0001" min="0" max="1" value="0.002943"></div>
-        <div><label>목표 청사진 (공통)</label><input id="needDefault" type="number" min="1" value="300"></div>
-        <div class="colspan-2"><label>차량별 목표 (쉼표, 비우면 공통값 사용)</label><input id="targets"
-            placeholder="예: 300,280,360,..." /></div>
-      </div>
-      <div class="subtle">※ 10연 확정은 고정값: 4장 <b>0.789266</b>, 15장 <b>0.210734</b></div>
-
-      <div class="actions">
-        <button class="btn" id="btnSim">시뮬레이션 시작</button>
-        <button class="btn" id="btnExport">CSV 내보내기</button>
-        <button class="btn" id="btnSavePNG">이미지 저장(PNG)</button>
-        <button class="btn" id="btnPresetS">기본값 복원</button>
-      </div>
-
-      <div class="kpi" style="margin-top:10px">
-        <div class="k">
-          <div>평균 토큰</div>
-          <div id="kMean" class="v">-</div>
-        </div>
-        <div class="k">
-          <div>표준편차</div>
-          <div id="kStd" class="v">-</div>
-        </div>
-        <div class="k">
-          <div>분산</div>
-          <div id="kVar" class="v">-</div>
-        </div>
-        <div class="k">
-          <div>중앙값 / 5% / 95%</div>
-          <div id="kPct" class="v">-</div>
-        </div>
-      </div>
-
-      <canvas id="chart" width="900" height="280" aria-label="토큰 분포 히스토그램"></canvas>
-      <label>로그</label>
-      <textarea id="log" readonly>준비 완료…</textarea>
-
-
-      <div class="preset-section" id="expPresetSection">
-        <div class="preset-header">
-          <span>프리셋</span>
-          <span class="tag">기댓값 탭</span>
-        </div>
-        <div class="preset-controls">
-          <div>
-            <label for="expPresetName">프리셋 이름</label>
-            <input id="expPresetName" type="text" placeholder="예: 기본 6대 목표" />
-          </div>
-          <div>
-            <label for="expPresetSelect">저장된 프리셋</label>
-            <select id="expPresetSelect">
-              <option value="">(선택)</option>
-            </select>
-          </div>
-        </div>
-        <div class="preset-row">
-          <button type="button" class="btn" id="expPresetSave">현재 입력 저장</button>
-          <button type="button" class="btn" id="expPresetLoad">불러오기</button>
-          <button type="button" class="btn" id="expPresetDelete">삭제</button>
-        </div>
-        <div class="preset-row">
-          <button type="button" class="btn" id="expPresetExport">프리셋 JSON 내보내기</button>
-          <button type="button" class="btn" id="expPresetImport">JSON 불러오기</button>
-          <input type="file" id="expPresetFile" accept=".json,application/json" style="display:none" />
-        </div>
-      </div>
-
-      <div class="preset-section" id="expHistorySection">
-        <div class="preset-header">
-          <span>히스토리</span>
-          <button type="button" class="btn" id="expHistoryClear" style="padding:4px 10px;font-size:11px">모두 지우기</button>
-        </div>
-        <div id="expHistoryList" class="history-list"></div>
-      </div>
-
-      <div class="disclaimer">⚠ 해당 결과는 참고용이며 절대 실제 결과가 아닙니다. 반드시 고민해가면서 사용하십시오.</div>
-    </section>
-
-    <!-- Budget Panel -->
-    <section id="budPanel" class="panel hide" role="tabpanel" aria-hidden="true">
-      <h2>예산 시뮬레이터</h2>
-      <div class="grid cols-4">
-        <div><label>예산 (토큰)</label><input id="budget" type="number" min="0" value="10000"></div>
-        <div><label>차량 수</label><input id="carCountB" type="number" min="1" value="6"></div>
-        <div><label>팩 가격 (토큰)</label><input id="packCostB" type="number" min="0" value="75"></div>
-        <div><label>4장 확률</label><input id="p4B" type="number" step="0.0001" min="0" max="1" value="0.197181"></div>
-      </div>
-      <div class="grid cols-4">
-        <div><label>15장 확률</label><input id="p15B" type="number" step="0.0001" min="0" max="1" value="0.002943"></div>
-        <div><label>목표 청사진 (공통)</label><input id="needDefaultB" type="number" min="1" value="300"></div>
-        <div class="colspan-2"><label>차량별 목표 (쉼표, 비우면 공통값 사용)</label><input id="targetsB"
-            placeholder="예: 300,280,360,..." /></div>
-      </div>
-      <div class="subtle">※ 시뮬레이션 횟수는 <b>1000회 고정</b>입니다. (예산 분류 전용)</div>
-      <div class="actions">
-        <button class="btn" id="btnBudgetCalc">계산</button>
-      </div>
-
-      <div id="bBadge" class="badge c-unknown" aria-live="polite">측정 불가</div>
-
-      <div class="kpi" style="margin-top:10px">
-        <div class="k">
-          <div>성공 확률 (토큰 ≤ 예산)</div>
-          <div id="bSucc" class="v">-</div>
-        </div>
-        <div class="k">
-          <div>E[max(0,토큰-예산)] (기대 부족분)</div>
-          <div id="bShort" class="v">-</div>
-        </div>
-        <div class="k">
-          <div>E[max(0,예산-토큰)] (기대 잔여분)</div>
-          <div id="bLeft" class="v">-</div>
-        </div>
-        <div class="k">
-          <div>임계값(정규근사)</div>
-          <div class="mono" id="bQuant">p95:- / p80:- / p60:- / p40:- / p05:-</div>
-        </div>
-      </div>
-
-      <label>상세 계산 로그</label>
-      <textarea id="bLog" class="mono" readonly>대기 중…</textarea>
-
-
-      <div class="preset-section" id="budPresetSection">
-        <div class="preset-header">
-          <span>프리셋</span>
-          <span class="tag">예산 탭</span>
-        </div>
-        <div class="preset-controls">
-          <div>
-            <label for="budPresetName">프리셋 이름</label>
-            <input id="budPresetName" type="text" placeholder="예: 12만 토큰 예산" />
-          </div>
-          <div>
-            <label for="budPresetSelect">저장된 프리셋</label>
-            <select id="budPresetSelect">
-              <option value="">(선택)</option>
-            </select>
-          </div>
-        </div>
-        <div class="preset-row">
-          <button type="button" class="btn" id="budPresetSave">현재 입력 저장</button>
-          <button type="button" class="btn" id="budPresetLoad">불러오기</button>
-          <button type="button" class="btn" id="budPresetDelete">삭제</button>
-        </div>
-        <div class="preset-row">
-          <button type="button" class="btn" id="budPresetExport">프리셋 JSON 내보내기</button>
-          <button type="button" class="btn" id="budPresetImport">JSON 불러오기</button>
-          <input type="file" id="budPresetFile" accept=".json,application/json" style="display:none" />
-        </div>
-      </div>
-
-      <div class="preset-section" id="budHistorySection">
-        <div class="preset-header">
-          <span>히스토리</span>
-          <button type="button" class="btn" id="budHistoryClear" style="padding:4px 10px;font-size:11px">모두 지우기</button>
-        </div>
-        <div id="budHistoryList" class="history-list"></div>
-      </div>
-
-      <div class="disclaimer">⚠ 해당 결과는 참고용이며 절대 실제 결과가 아닙니다. 반드시 고민해가면서 사용하십시오.</div>
-    </section>
-  </main>
-  <script>
-    (function () {
-      // ===== Utilities =====
-      function byId(id) { return document.getElementById(id); }
-      var PITY4 = 0.789266, PITY15 = 0.210734;
-      var rand = Math.random;
-      var tip = document.createElement('div'); tip.className = 'tooltip'; document.body.appendChild(tip);
-      function showTip(x, y, html) { tip.innerHTML = html; tip.style.left = (x + 12) + 'px'; tip.style.top = (y + 12) + 'px'; tip.style.opacity = '1'; tip.style.transform = 'translateY(0)'; }
-      function hideTip() { tip.style.opacity = '0'; tip.style.transform = 'translateY(-6px)'; }
-
-      // ===== Tabs =====
-      function activate(tab) {
-        var exp = byId('expPanel'), bud = byId('budPanel');
-        byId('tabExp').classList.toggle('active', tab === 'exp');
-        byId('tabBud').classList.toggle('active', tab === 'bud');
-        exp.classList.toggle('hide', tab !== 'exp');
-        bud.classList.toggle('hide', tab !== 'bud');
-        bud.setAttribute('aria-hidden', tab !== 'bud');
-      }
-      byId('tabExp').onclick = function () { activate('exp'); };
-      byId('tabBud').onclick = function () { activate('bud'); };
-
-      // ===== Core =====
-      function parseTargets(txt, count, fallback) {
-        var arr = (txt || '').split(/[\,\s]+/).filter(Boolean).map(Number).filter(function (n) { return n > 0; });
-        if (arr.length === 0) arr = Array.from({ length: count }, function () { return fallback; });
-        if (arr.length < count) {
-          var last = arr[arr.length - 1] || fallback;
-          while (arr.length < count) arr.push(last);
-        } else if (arr.length > count) {
-          arr = arr.slice(0, count);
-        }
-        return arr;
-      }
-
-      function simulateOnce(cfg) {
-        var targets = cfg.targets, p4 = cfg.p4, p15 = cfg.p15;
-        var n = targets.length, progress = new Array(n).fill(0);
-        var packs = 0, guard = 0, drawCount = 0, pLose = Math.max(0, 1 - p4 - p15);
-        while (progress.some(function (v, i) { return v < targets[i]; })) {
-          packs++; if (++guard > 10000000) throw new Error('Guard overflow');
-          drawCount = (drawCount + 1) % 10;
-          var gain = 0;
-          if (drawCount === 0) { var r0 = rand(); gain = (r0 < PITY15) ? 15 : 4; }
-          else {
-            var r = rand();
-            if (r < pLose) gain = 0; else if (r < pLose + p4) gain = 4; else gain = 15;
-          }
-          if (gain > 0) {
-            var candidates = []; for (var j = 0; j < n; j++) { if (progress[j] < targets[j]) candidates.push(j); }
-            if (!candidates.length) break;
-            var idx = candidates[Math.floor(rand() * candidates.length)];
-            progress[idx] = Math.min(targets[idx], progress[idx] + gain);
-          }
-        }
-        return packs;
-      }
-
-      function computeStats(arr) {
-        var n = arr.length, sum = 0; for (var i = 0; i < n; i++) sum += arr[i];
-        var mean = sum / n, variance = 0; for (i = 0; i < n; i++) { variance += Math.pow(arr[i] - mean, 2); } variance /= n; var std = Math.sqrt(variance);
-        return { mean: mean, variance: variance, std: std };
-      }
-
-      function buildHistData(sorted) {
-        var n = sorted.length, min = sorted[0], max = sorted[n - 1];
-        var bins = 24, pad = 24; var step = (max - min) / bins || 1; var counts = new Array(bins).fill(0);
-        for (var i = 0; i < n; i++) { var v = sorted[i], idx = Math.floor((v - min) / step); if (idx >= bins) idx = bins - 1; if (idx < 0) idx = 0; counts[idx]++; }
-        return { min: min, max: max, step: step, bins: bins, counts: counts, pad: pad };
-      }
-
-      var animId = null, lastHistData = null, lastBudget = null;
-      function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
-
-      function drawBudgetLine(ctx, data, budget) {
-        if (!data || budget == null) return;
-        var cvs = byId('chart'), w = cvs.width, h = cvs.height, pad = data.pad;
-        var xRatio = (budget - data.min) / Math.max(1e-9, (data.max - data.min));
-        var x = pad + xRatio * (w - pad * 2);
-        x = Math.max(pad, Math.min(w - pad, x));
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255,99,132,.9)'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
-        ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.stroke();
-        ctx.fillStyle = 'rgba(255,99,132,.95)'; ctx.font = '12px ui-sans-serif, system-ui'; ctx.textAlign = 'center';
-        ctx.fillText('예산', x, pad - 2);
-        ctx.restore();
-      }
-
-      function drawHistAnimated(data, budget) {
-        var cvs = byId('chart'), ctx = cvs.getContext('2d');
-        var w = cvs.width, h = cvs.height, pad = data.pad, bins = data.bins, counts = data.counts.slice();
-        var maxC = Math.max.apply(null, counts) || 1; var barW = (w - pad * 2) / bins; var start = null; cancelAnimationFrame(animId);
-        function frame(ts) {
-          if (!start) start = ts; var t = Math.min(1, (ts - start) / 750); var e = easeOutCubic(t);
-          ctx.clearRect(0, 0, w, h);
-          ctx.strokeStyle = 'rgba(127,127,127,.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, h - pad); ctx.lineTo(w - pad, h - pad); ctx.stroke();
-          for (var i = 0; i < bins; i++) {
-            var x = pad + i * barW + 2, y = h - pad; var targetH = ((counts[i] / maxC) * (h - pad * 2)); var bh = targetH * e;
-            var g = ctx.createLinearGradient(0, y - bh, 0, y); g.addColorStop(0, 'rgba(124,58,237,.9)'); g.addColorStop(.7, 'rgba(34,211,238,.6)'); g.addColorStop(1, 'rgba(34,211,238,.35)');
-            ctx.fillStyle = g; ctx.fillRect(x, y - bh, Math.max(1, barW - 4), bh);
-          }
-          ctx.fillStyle = 'rgba(180,190,200,.9)'; ctx.font = '12px ui-sans-serif, system-ui'; ctx.textAlign = 'center';
-          function fmt(v) { return Math.round(v).toLocaleString(); }
-          ctx.fillText(fmt(data.min), pad, h - 6); ctx.fillText(fmt((data.min + data.max) / 2), w / 2, h - 6); ctx.fillText(fmt(data.max), w - pad, h - 6);
-          if (budget != null) drawBudgetLine(ctx, data, budget);
-          if (t < 1) animId = requestAnimationFrame(frame);
-        }
-        animId = requestAnimationFrame(frame);
-      }
-
-      function attachHover(data) {
-        var cvs = byId('chart'); var rect; function updateRect() { rect = cvs.getBoundingClientRect(); }
-        updateRect(); window.addEventListener('resize', updateRect);
-        var w = cvs.width, h = cvs.height, pad = data.pad; var barW = (w - pad * 2) / data.bins;
-        function idxFromX(clientX) { var x = clientX - rect.left; return Math.floor((x - pad) / barW); }
-        function clamp(i) { return Math.max(0, Math.min(data.bins - 1, i)); }
-        function fmt(n) { return Math.round(n).toLocaleString(); }
-        cvs.onmousemove = function (ev) { var i = clamp(idxFromX(ev.clientX)); var start = data.min + i * data.step; var end = start + data.step; var cnt = data.counts[i] || 0; var pct = (cnt / (data.counts.reduce(function (a, b) { return a + b; }, 0) || 1)) * 100; showTip(ev.clientX, ev.clientY, '구간: ' + fmt(start) + ' ~ ' + fmt(end) + '<br>개수: ' + fmt(cnt) + ' ( ' + pct.toFixed(1) + '% )'); };
-        cvs.onmouseleave = function () { hideTip(); };
-      }
-
-      // ===== Expectation tab =====
-      function run() {
-        var carCount = Math.max(1, +byId('carCount').value | 0);
-        var packCost = Math.max(0, +byId('packCost').value || 0);
-        var p4 = +byId('p4').value, p15 = +byId('p15').value;
-        var needDefault = Math.max(1, +byId('needDefault').value | 0);
-        var targetsStr = byId('targets').value || '';
-        if (!(p4 >= 0 && p15 >= 0 && p4 + p15 <= 1)) { alert('4장/15장 확률은 0~1 범위이고 합이 1 이하여야 합니다.'); return; }
-
-        var targets = parseTargets(targetsStr, carCount, needDefault);
-        var runs = Math.max(100, +byId('runs').value | 0);
-
-        var cfg = { targets: targets, p4: p4, p15: p15 };
-        var tokens = new Array(runs), t0 = performance.now();
-        for (var i = 0; i < runs; i++) { var packs = simulateOnce(cfg); tokens[i] = packs * packCost; }
-        var t1 = performance.now(); tokens.sort(function (a, b) { return a - b; });
-
-        var s = computeStats(tokens);
-        var p5 = tokens[Math.floor(tokens.length * 0.05)], p50 = tokens[Math.floor(tokens.length * 0.50)], p95 = tokens[Math.floor(tokens.length * 0.95)];
-
-        byId('kMean').textContent = Math.round(s.mean).toLocaleString();
-        byId('kVar').textContent = Math.round(s.variance).toLocaleString();
-        byId('kStd').textContent = Math.round(s.std).toLocaleString();
-        byId('kPct').textContent = Math.round(p50).toLocaleString() + ' / ' + Math.round(p5).toLocaleString() + ' / ' + Math.round(p95).toLocaleString();
-
-        var data = buildHistData(tokens); lastHistData = data; // store for budget overlay
-        drawHistAnimated(data, lastBudget);
-        attachHover(data);
-
-        var pLose = 1 - p4 - p15;
-        byId('log').value =
-          '실행 시간: ' + (t1 - t0).toFixed(1) + 'ms\n' +
-          '샘플 수: ' + runs.toLocaleString() + '회\n' +
-          '차량 수: ' + carCount + '\n' +
-          '목표: [' + targets.join(', ') + ']\n' +
-          '확률(팩 기준): 꽝 ' + (100 * pLose).toFixed(3) + '%, 4장 ' + (100 * p4).toFixed(3) + '%, 15장 ' + (100 * p15).toFixed(3) + '%\n' +
-          '10연 확정(고정): 4장 ' + (100 * 0.789266).toFixed(4) + '%, 15장 ' + (100 * 0.210734).toFixed(4) + '%\n' +
-          '드롭 배정: 완료 차량 제외(균등 분배)';
-
-        // expose globals
-        window.__tokens = tokens; window.__stats = s; window.__inputs = { carCount: carCount, packCost: packCost, p4: p4, p15: p15, needDefault: needDefault, targets: targetsStr };
-      }
-
-      function exportCSV() {
-        var arr = window.__tokens || []; if (!arr.length) { alert('먼저 시뮬레이션을 실행하세요.'); return; }
-        var csv = 'run,tokens\n'; for (var i = 0; i < arr.length; i++) { csv += (i + 1) + ',' + arr[i] + '\n'; }
-        var blob = new Blob([csv], { type: 'text/csv' }); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = 'fullstar_tokens.csv'; a.click(); URL.revokeObjectURL(url);
-      }
-
-      function exportPNG() {
-        var src = byId('chart'); var tokens = window.__tokens || []; var s = window.__stats; var inp = window.__inputs; if (!tokens.length || !s || !inp) { alert('먼저 시뮬레이션을 실행하세요.'); return; }
-        var scale = Math.max(1, Math.floor((window.devicePixelRatio || 1) * 2)); var w = src.width, h = src.height; var off = document.createElement('canvas'); off.width = w * scale; off.height = h * scale; var ctx = off.getContext('2d');
-        var bg = getComputedStyle(document.body).backgroundColor || '#ffffff'; ctx.fillStyle = bg; ctx.fillRect(0, 0, off.width, off.height);
-        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, 0, off.width, off.height);
-        var pad = 20 * scale, panelW = Math.min(off.width * 0.9, 820 * scale), panelH = 190 * scale; ctx.fillStyle = 'rgba(0,0,0,0.36)'; ctx.fillRect(pad, pad, panelW, panelH); ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 2 * scale; ctx.strokeRect(pad, pad, panelW, panelH);
-        ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'top'; function fmt(n) { return Math.round(n).toLocaleString(); }
-        ctx.font = (16 * scale) + 'px ui-sans-serif, system-ui'; ctx.fillText('풀성 히스토그램 (시뮬레이션 결과)', pad + 12 * scale, pad + 10 * scale);
-        var xL = pad + 12 * scale, yL = pad + 36 * scale; ctx.font = (13 * scale) + 'px ui-sans-serif, system-ui'; ctx.fillText('평균: ' + fmt(s.mean) + '   표준편차: ' + fmt(s.std), xL, yL); yL += 18 * scale; ctx.fillText('분산: ' + fmt(s.variance), xL, yL); yL += 18 * scale; var p5 = window.__tokens[Math.floor(window.__tokens.length * 0.05)], p50 = window.__tokens[Math.floor(window.__tokens.length * 0.50)], p95 = window.__tokens[Math.floor(window.__tokens.length * 0.95)]; ctx.fillText('중앙값 / 5% / 95%: ' + fmt(p50) + ' / ' + fmt(p5) + ' / ' + fmt(p95), xL, yL);
-        var xR = pad + panelW / 2 + 10 * scale, yR = pad + 36 * scale; function pctStr(v) { return (v * 100).toFixed(3) + '%'; } var targetsText = (inp.targets || '').trim(); ctx.fillText('입력값', xR, yR); yR += 18 * scale; ctx.font = (12 * scale) + 'px ui-sans-serif, system-ui'; ctx.fillText('차량 수: ' + inp.carCount, xR, yR); yR += 16 * scale; ctx.fillText('팩 가격: ' + inp.packCost, xR, yR); yR += 16 * scale; ctx.fillText('4장 확률: ' + pctStr(inp.p4), xR, yR); yR += 16 * scale; ctx.fillText('15장 확률: ' + pctStr(inp.p15), xR, yR); yR += 16 * scale; ctx.fillText('목표 청사진(공통): ' + inp.needDefault, xR, yR); yR += 16 * scale; ctx.fillText('차량별 목표: ' + (targetsText.length ? targetsText : ''), xR, yR);
-        // add disclaimer to PNG
-        ctx.textAlign = 'center'; ctx.font = (14 * scale) + 'px ui-sans-serif, system-ui'; ctx.fillStyle = '#facc15';
-        ctx.fillText('⚠ 해당 결과는 참고용이며 실제 결과가 아닙니다. 반드시 고민해가면서 사용하십시오.', off.width / 2, off.height - 20 * scale);
-        if (off.toBlob) { off.toBlob(function (blob) { var url = URL.createObjectURL(blob); var a = document.createElement('a'); var ts = new Date(); var pad2 = function (n) { return String(n).padStart(2, '0'); }; var name = 'fullstar_hist_' + ts.getFullYear() + pad2(ts.getMonth() + 1) + pad2(ts.getDate()) + '_' + pad2(ts.getHours()) + pad2(ts.getMinutes()) + pad2(ts.getSeconds()) + '.png'; a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); }, 'image/png'); } else { var a = document.createElement('a'); a.href = off.toDataURL('image/png'); a.download = 'fullstar_hist.png'; a.click(); }
-      }
-
-      function presetS() { byId('carCount').value = 6; byId('packCost').value = 75; byId('runs').value = 1000; byId('p4').value = 0.197181; byId('p15').value = 0.002943; byId('needDefault').value = 300; byId('targets').value = ''; }
-
-      // ===== Budget: classification =====
-      function classifyBudget(budget, p95, p80, p60, p40, p05) {
-        // 불가능: budget < thrExtreme
-        // 극최소컷: thrExtreme ≤ budget < p80
-        // 최소컷: p80 ≤ budget < p60
-        // 가능(노란): p60 ≤ budget < p40
-        // 가능(초록): p40 ≤ budget < p05
-        // 여유컷: budget ≥ p05
-        var thrExtreme = Math.max(0.9 * p95, (p95 + p80) / 2);
-        if (!isFinite(budget)) return { label: '측정 불가', cls: 'c-unknown' };
-        if (budget < thrExtreme) return { label: '불가능', cls: 'c-impossible' };
-        if (budget >= thrExtreme && budget < p80) return { label: '극최소컷', cls: 'c-ultramin' };
-        if (budget >= p80 && budget < p60) return { label: '최소컷', cls: 'c-min' };
-        if (budget >= p60 && budget < p40) return { label: '가능', cls: 'c-possible-yellow' };
-        if (budget >= p40 && budget < p05) return { label: '가능', cls: 'c-possible-green' };
-        if (budget >= p05) return { label: '여유컷', cls: 'c-easy' };
-        return { label: '측정 불가', cls: 'c-unknown' };
-      }
-
-      // ===== Budget tab =====
-      function budgetCalc() {
-        var carCount = Math.max(1, +byId('carCountB').value | 0);
-        var packCost = Math.max(0, +byId('packCostB').value || 0);
-        var p4 = +byId('p4B').value, p15 = +byId('p15B').value;
-        var needDefault = Math.max(1, +byId('needDefaultB').value | 0);
-        var targetsStr = byId('targetsB').value || '';
-        var budget = +byId('budget').value || 0;
-
-        var badge = byId('bBadge');
-        function setBadge(text, cls) { badge.className = 'badge ' + cls; badge.textContent = text; }
-
-        if (!(p4 >= 0 && p15 >= 0 && p4 + p15 <= 1)) {
-          setBadge('측정 불가', 'c-unknown');
-          byId('bSucc').textContent = '-'; byId('bShort').textContent = '-'; byId('bLeft').textContent = '-'; byId('bQuant').textContent = 'p95:- / p80:- / p60:- / p40:- / p05:-';
-          byId('bLog').value = '입력 오류: 4장/15장 확률은 0~1 범위이고 합이 1 이하여야 합니다.';
-          return;
-        }
-
-        var targets = parseTargets(targetsStr, carCount, needDefault);
-        var runs = 1000; // fixed for budget tab
-
-        try {
-          var cfg = { targets: targets, p4: p4, p15: p15 };
-          var tokens = new Array(runs);
-          for (var i = 0; i < runs; i++) { tokens[i] = simulateOnce(cfg) * packCost; }
-          tokens.sort(function (a, b) { return a - b; });
-
-          // 정규근사 기반 백분위 임계값 계산 (p95↔p05, p80↔p20, p60↔p40 해석 반전)
-          var s = computeStats(tokens);
-          function z(p) {
-            switch (p) {
-              case 0.95: return -1.6448536269514722; // p95 (낮은 쪽)
-              case 0.80: return -0.8416212335729143; // p80 (낮은 쪽)
-              case 0.60: return -0.2533471031357997; // p60 (낮은 쪽)
-              case 0.40: return 0.2533471031357997; // p40 (높은 쪽)
-              case 0.05: return 1.6448536269514722; // p05 (높은 쪽)
-              default: return 0;
-            }
-          }
-          var p95 = s.mean + z(0.95) * s.std;  // 낮은
-          var p80 = s.mean + z(0.80) * s.std;
-          var p60 = s.mean + z(0.60) * s.std;
-          var p40 = s.mean + z(0.40) * s.std;
-          var p05 = s.mean + z(0.05) * s.std;  // 높은
-
-          var clsRes = classifyBudget(budget, p95, p80, p60, p40, p05);
-
-          // 경험적 성공확률과 기대 부족/잔여값 계산
-          var succ = tokens.filter(function (v) { return v <= budget; }).length / tokens.length;
-          var short = 0, left = 0; for (var j = 0; j < tokens.length; j++) { var v = tokens[j]; if (v > budget) short += v - budget; else left += budget - v; } short /= tokens.length; left /= tokens.length;
-
-          setBadge(clsRes.label, clsRes.cls);
-          byId('bSucc').textContent = (succ * 100).toFixed(2) + '%';
-          byId('bShort').textContent = Math.round(short).toLocaleString();
-          byId('bLeft').textContent = Math.round(left).toLocaleString();
-          byId('bQuant').textContent = '정규근사 p95:' + Math.round(p95).toLocaleString() + ' / p80:' + Math.round(p80).toLocaleString() + ' / p60:' + Math.round(p60).toLocaleString() + ' / p40:' + Math.round(p40).toLocaleString() + ' / p05:' + Math.round(p05).toLocaleString();
-
-          var lines = []; function fmt(n) { return Math.round(n).toLocaleString(); }
-          var thrExtreme = Math.max(0.9 * p95, (p95 + p80) / 2);
-          lines.push('[입력] 차량 수:' + carCount + ', 팩 가격:' + packCost + ', p4:' + p4 + ', p15:' + p15 + ', 목표:' + targets.join(', '));
-          lines.push('[예산] ' + fmt(budget));
-          lines.push('[임계] 극최소컷 하한 max(0.9·p95, mid(p95,p80)):' + fmt(thrExtreme) + ' / p80:' + fmt(p80) + ' / p60:' + fmt(p60) + ' / p40:' + fmt(p40) + ' / p05:' + fmt(p05));
-          lines.push('[확률] 성공확률:' + (succ * 100).toFixed(2) + '%');
-          lines.push('[기댓값] 부족분 E[max(0,토큰-예산)]=' + fmt(short) + ' / 잔여분 E[max(0,예산-토큰)]=' + fmt(left));
-          byId('bLog').value = lines.join('\n');
-
-          lastBudget = budget; if (lastHistData) drawHistAnimated(lastHistData, lastBudget);
-        } catch (e) {
-          setBadge('측정 불가', 'c-unknown'); byId('bLog').value = '에러: ' + e.message;
-        }
-      }
-
-      // ===== Events =====
-      byId('btnSim').addEventListener('click', run);
-      byId('btnExport').addEventListener('click', exportCSV);
-      byId('btnSavePNG').addEventListener('click', exportPNG);
-      byId('btnPresetS').addEventListener('click', presetS);
-      byId('btnBudgetCalc').addEventListener('click', budgetCalc);
-
-      // ===== Minimal self-tests (console) =====
-      (function tests() {
-        try {
-          // z-score ordering (반전 해석에 맞게: p95 < p80 < p60 < p40 < p05)
-          var zs = { p95: -1.6448536269514722, p80: -0.8416212335729143, p60: -0.2533471031357997, p40: 0.2533471031357997, p05: 1.6448536269514722 };
-          console.assert(zs.p95 < zs.p80 && zs.p80 < zs.p60 && zs.p60 < zs.p40 && zs.p40 < zs.p05, 'Z-scores monotone (asc)');
-          // classification boundaries sanity with strengthened extreme threshold
-          var mean = 10000, std = 2000;
-          function thr(p) { var zmap = { 0.95: zs.p95, 0.80: zs.p80, 0.60: zs.p60, 0.40: zs.p40, 0.05: zs.p05 }; return mean + zmap[p] * std; }
-          var P95 = thr(0.95), P80 = thr(0.80), P60 = thr(0.60), P40 = thr(0.40), P05 = thr(0.05);
-          var ThrExtreme = Math.max(0.9 * P95, (P95 + P80) / 2);
-          function lab(b) { return classifyBudget(b, P95, P80, P60, P40, P05).label; }
-          console.assert(lab(ThrExtreme - 1) === '불가능', 'below ThrExtreme => 불가능');
-          console.assert(lab(ThrExtreme + 1) === '극최소컷', 'just above ThrExtreme => 극최소컷');
-          console.assert(lab(P80 + 1) === '최소컷' || lab(P80 + 1) === '가능', 'p80 ≤ b < p60 => 최소컷');
-          console.assert(lab(P60 + 1) === '가능', 'p60 ≤ b < p40 => 가능(노란/초록)');
-          console.assert(lab(P40 + 1) === '가능' || lab(P40 + 1) === '여유컷', 'p40 ≤ b < p05 => 가능(초록)/여유컷');
-          console.assert(lab(P05 + 1) === '여유컷', '≥ p05 => 여유컷');
-          // simulateOnce smoke test
-          var packsTest = simulateOnce({ targets: [4], p4: 1, p15: 0 });
-          console.assert(typeof packsTest === 'number' && packsTest > 0, 'simulateOnce positive');
-          // stats consistency
-          var arr = [100, 100, 100, 100]; var s2 = computeStats(arr); console.assert(s2.std === 0, 'constant std=0');
-        } catch (e) { console.warn('Self-tests warning:', e); }
-      })();
-
-      // ===== Presets & History (Fullstar) =====
-      var FS_EXP_PRESETS_KEY = 'fullstar_presets_exp_v1';
-      var FS_EXP_HISTORY_KEY = 'fullstar_history_exp_v1';
-      var FS_BUD_PRESETS_KEY = 'fullstar_presets_budget_v1';
-      var FS_BUD_HISTORY_KEY = 'fullstar_history_budget_v1';
-
-      function fsSafeParse(text, fallback) {
-        if (!text) return fallback;
-        try { return JSON.parse(text); } catch (e) { return fallback; }
-      }
-      function fsLoad(key) {
-        return fsSafeParse(localStorage.getItem(key), []) || [];
-      }
-      function fsSave(key, value) {
-        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { }
-      }
-      function fsTimestamp() {
-        var d = new Date();
-        function pad(x) { return (x < 10 ? '0' : '') + x; }
-        return '' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes());
-      }
-
-      // === Expectation presets ===
-      var expPresetNameEl = byId('expPresetName');
-      var expPresetSelectEl = byId('expPresetSelect');
-      var expPresetSaveBtn = byId('expPresetSave');
-      var expPresetLoadBtn = byId('expPresetLoad');
-      var expPresetDeleteBtn = byId('expPresetDelete');
-      var expPresetExportBtn = byId('expPresetExport');
-      var expPresetImportBtn = byId('expPresetImport');
-      var expPresetFileEl = byId('expPresetFile');
-      var expHistoryListEl = byId('expHistoryList');
-      var expHistoryClearBtn = byId('expHistoryClear');
-
-      var expPresets = fsLoad(FS_EXP_PRESETS_KEY);
-      var expHistory = fsLoad(FS_EXP_HISTORY_KEY);
-
-      function fsExpCollectInputs() {
-        return {
-          carCount: byId('carCount') ? Number(byId('carCount').value || 0) : 0,
-          packCost: byId('packCost') ? Number(byId('packCost').value || 0) : 0,
-          runs: byId('runs') ? Number(byId('runs').value || 0) : 0,
-          p4: byId('p4') ? Number(byId('p4').value || 0) : 0,
-          p15: byId('p15') ? Number(byId('p15').value || 0) : 0,
-          needDefault: byId('needDefault') ? Number(byId('needDefault').value || 0) : 0,
-          targets: byId('targets') ? byId('targets').value : ''
-        };
-      }
-
-      function fsExpApplyInputs(data) {
-        if (!data || !data.inputs) return;
-        var d = data.inputs;
-        if (byId('carCount')) byId('carCount').value = d.carCount != null ? d.carCount : '';
-        if (byId('packCost')) byId('packCost').value = d.packCost != null ? d.packCost : '';
-        if (byId('runs')) byId('runs').value = d.runs != null ? d.runs : '';
-        if (byId('p4')) byId('p4').value = d.p4 != null ? d.p4 : (d.p3 != null ? d.p3 : '');
-        if (byId('p15')) byId('p15').value = d.p15 != null ? d.p15 : '';
-        if (byId('needDefault')) byId('needDefault').value = d.needDefault != null ? d.needDefault : '';
-        if (byId('targets')) byId('targets').value = d.targets != null ? d.targets : '';
-      }
-
-      function fsExpRefreshSelect() {
-        if (!expPresetSelectEl) return;
-        var html = '<option value="">(선택)</option>';
-        for (var i = 0; i < expPresets.length; i++) {
-          var p = expPresets[i];
-          var label = p.name || ('프리셋 ' + (i + 1));
-          html += '<option value="' + i + '">' + label + '</option>';
-        }
-        expPresetSelectEl.innerHTML = html;
-      }
-
-      function fsExpRenderHistory(list) {
-        if (!expHistoryListEl) return;
-        if (!list || !list.length) {
-          expHistoryListEl.innerHTML = '<div class="history-item-meta">저장된 히스토리가 없습니다.</div>';
-          return;
-        }
-        var html = '';
-        for (var i = 0; i < list.length; i++) {
-          var it = list[i];
-          var main = it.main || '';
-          var meta = it.meta || '';
-          var ts = it.ts || '';
-          html += '<div class="history-item">'
-            + '<div class="history-item-title">' + main + '</div>'
-            + '<div class="history-item-meta">' + ts + (meta ? ' · ' + meta : '') + '</div>'
-            + '</div>';
-        }
-        expHistoryListEl.innerHTML = html;
-      }
-
-      fsExpRefreshSelect();
-      fsExpRenderHistory(expHistory);
-
-      if (expPresetSaveBtn) {
-        expPresetSaveBtn.addEventListener('click', function () {
-          var name = (expPresetNameEl && expPresetNameEl.value.trim()) || ('프리셋 ' + (expPresets.length + 1));
-          var snapshot = fsExpCollectInputs();
-          var idx = -1;
-          for (var i = 0; i < expPresets.length; i++) {
-            if (expPresets[i].name === name) { idx = i; break; }
-          }
-          var obj = { name: name, savedAt: new Date().toISOString(), inputs: snapshot };
-          if (idx >= 0) expPresets[idx] = obj; else expPresets.push(obj);
-          fsSave(FS_EXP_PRESETS_KEY, expPresets);
-          fsExpRefreshSelect();
-          alert('프리셋이 저장되었습니다.');
-        });
-      }
-
-      if (expPresetLoadBtn) {
-        expPresetLoadBtn.addEventListener('click', function () {
-          if (!expPresetSelectEl) return;
-          var v = expPresetSelectEl.value;
-          if (v === '') { alert('불러올 프리셋을 선택하세요.'); return; }
-          var idx = Number(v);
-          if (!(idx >= 0 && idx < expPresets.length)) return;
-          fsExpApplyInputs(expPresets[idx]);
-        });
-      }
-
-      if (expPresetDeleteBtn) {
-        expPresetDeleteBtn.addEventListener('click', function () {
-          if (!expPresetSelectEl) return;
-          var v = expPresetSelectEl.value;
-          if (v === '') return;
-          var idx = Number(v);
-          if (!(idx >= 0 && idx < expPresets.length)) return;
-          if (!confirm('선택한 프리셋을 삭제할까요?')) return;
-          expPresets.splice(idx, 1);
-          fsSave(FS_EXP_PRESETS_KEY, expPresets);
-          fsExpRefreshSelect();
-        });
-      }
-
-      if (expPresetExportBtn) {
-        expPresetExportBtn.addEventListener('click', function () {
-          if (!expPresets.length) {
-            alert('내보낼 프리셋이 없습니다.');
-            return;
-          }
-          var payload = { simId: 'fullstar-exp', exportedAt: new Date().toISOString(), presets: expPresets };
-          var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = 'fullstar-exp-' + fsTimestamp() + '.json';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(function () {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 0);
-        });
-      }
-
-      if (expPresetImportBtn && expPresetFileEl) {
-        expPresetImportBtn.addEventListener('click', function () {
-          expPresetFileEl.value = '';
-          expPresetFileEl.click();
-        });
-        expPresetFileEl.addEventListener('change', function (ev) {
-          var file = ev.target && ev.target.files && ev.target.files[0];
-          if (!file) return;
-          var reader = new FileReader();
-          reader.onload = function () {
-            var text = reader.result;
-            var json = fsSafeParse(text, null);
-            if (!json) { alert('JSON 파싱에 실패했습니다.'); return; }
-            var incoming = Array.isArray(json.presets) ? json.presets : (Array.isArray(json) ? json : []);
-            if (!incoming.length) { alert('가져올 프리셋이 없습니다.'); return; }
-            var byName = {};
-            expPresets.forEach(function (p) { if (p && p.name) byName[p.name] = p; });
-            incoming.forEach(function (p) {
-              if (!p || !p.name) return;
-              byName[p.name] = p;
-            });
-            expPresets = Object.keys(byName).map(function (k) { return byName[k]; });
-            fsSave(FS_EXP_PRESETS_KEY, expPresets);
-            fsExpRefreshSelect();
-            alert('프리셋을 불러왔습니다.');
-          };
-          reader.readAsText(file, 'utf-8');
-        });
-      }
-
-      if (expHistoryClearBtn) {
-        expHistoryClearBtn.addEventListener('click', function () {
-          if (!confirm('히스토리를 모두 지우시겠습니까?')) return;
-          expHistory = [];
-          fsSave(FS_EXP_HISTORY_KEY, expHistory);
-          fsExpRenderHistory(expHistory);
-        });
-      }
-
-      var btnSim = byId('btnSim');
-      if (btnSim && expHistoryListEl) {
-        btnSim.addEventListener('click', function () {
-          setTimeout(function () {
-            if (!window.__stats) return;
-            var s = window.__stats;
-            var info = 'avg ' + Math.round(s.mean).toLocaleString() + ' / p5 ' + Math.round(s.p5).toLocaleString() + ' / p95 ' + Math.round(s.p95).toLocaleString();
-            var meanLabelEl = byId('kMean');
-            var mainText = meanLabelEl ? (meanLabelEl.textContent || '').trim() : '';
-            if (!mainText) mainText = '평균 ' + Math.round(s.mean).toLocaleString() + ' 토큰';
-            var entry = { ts: new Date().toISOString(), main: mainText, meta: info };
-            expHistory.unshift(entry);
-            if (expHistory.length > 50) expHistory = expHistory.slice(0, 50);
-            fsSave(FS_EXP_HISTORY_KEY, expHistory);
-            fsExpRenderHistory(expHistory);
-          }, 0);
-        });
-      }
-
-      // === Budget presets ===
-      var budPresetNameEl = byId('budPresetName');
-      var budPresetSelectEl = byId('budPresetSelect');
-      var budPresetSaveBtn = byId('budPresetSave');
-      var budPresetLoadBtn = byId('budPresetLoad');
-      var budPresetDeleteBtn = byId('budPresetDelete');
-      var budPresetExportBtn = byId('budPresetExport');
-      var budPresetImportBtn = byId('budPresetImport');
-      var budPresetFileEl = byId('budPresetFile');
-      var budHistoryListEl = byId('budHistoryList');
-      var budHistoryClearBtn = byId('budHistoryClear');
-
-      var budPresets = fsLoad(FS_BUD_PRESETS_KEY);
-      var budHistory = fsLoad(FS_BUD_HISTORY_KEY);
-
-      function fsBudCollectInputs() {
-        return {
-          budget: byId('budget') ? Number(byId('budget').value || 0) : 0,
-          carCountB: byId('carCountB') ? Number(byId('carCountB').value || 0) : 0,
-          packCostB: byId('packCostB') ? Number(byId('packCostB').value || 0) : 0,
-          p3B: byId('p3B') ? Number(byId('p3B').value || 0) : 0,
-          p15B: byId('p15B') ? Number(byId('p15B').value || 0) : 0,
-          needDefaultB: byId('needDefaultB') ? Number(byId('needDefaultB').value || 0) : 0,
-          targetsB: byId('targetsB') ? byId('targetsB').value : ''
-        };
-      }
-
-      function fsBudApplyInputs(data) {
-        if (!data || !data.inputs) return;
-        var d = data.inputs;
-        if (byId('budget')) byId('budget').value = d.budget != null ? d.budget : '';
-        if (byId('carCountB')) byId('carCountB').value = d.carCountB != null ? d.carCountB : '';
-        if (byId('packCostB')) byId('packCostB').value = d.packCostB != null ? d.packCostB : '';
-        if (byId('p3B')) byId('p3B').value = d.p3B != null ? d.p3B : '';
-        if (byId('p15B')) byId('p15B').value = d.p15B != null ? d.p15B : '';
-        if (byId('needDefaultB')) byId('needDefaultB').value = d.needDefaultB != null ? d.needDefaultB : '';
-        if (byId('targetsB')) byId('targetsB').value = d.targetsB != null ? d.targetsB : '';
-      }
-
-      function fsBudRefreshSelect() {
-        if (!budPresetSelectEl) return;
-        var html = '<option value="">(선택)</option>';
-        for (var i = 0; i < budPresets.length; i++) {
-          var p = budPresets[i];
-          var label = p.name || ('프리셋 ' + (i + 1));
-          html += '<option value="' + i + '">' + label + '</option>';
-        }
-        budPresetSelectEl.innerHTML = html;
-      }
-
-      function fsBudRenderHistory(list) {
-        if (!budHistoryListEl) return;
-        if (!list || !list.length) {
-          budHistoryListEl.innerHTML = '<div class="history-item-meta">저장된 히스토리가 없습니다.</div>';
-          return;
-        }
-        var html = '';
-        for (var i = 0; i < list.length; i++) {
-          var it = list[i];
-          var main = it.main || '';
-          var meta = it.meta || '';
-          var ts = it.ts || '';
-          html += '<div class="history-item">'
-            + '<div class="history-item-title">' + main + '</div>'
-            + '<div class="history-item-meta">' + ts + (meta ? ' · ' + meta : '') + '</div>'
-            + '</div>';
-        }
-        budHistoryListEl.innerHTML = html;
-      }
-
-      fsBudRefreshSelect();
-      fsBudRenderHistory(budHistory);
-
-      if (budPresetSaveBtn) {
-        budPresetSaveBtn.addEventListener('click', function () {
-          var name = (budPresetNameEl && budPresetNameEl.value.trim()) || ('프리셋 ' + (budPresets.length + 1));
-          var snapshot = fsBudCollectInputs();
-          var idx = -1;
-          for (var i = 0; i < budPresets.length; i++) {
-            if (budPresets[i].name === name) { idx = i; break; }
-          }
-          var obj = { name: name, savedAt: new Date().toISOString(), inputs: snapshot };
-          if (idx >= 0) budPresets[idx] = obj; else budPresets.push(obj);
-          fsSave(FS_BUD_PRESETS_KEY, budPresets);
-          fsBudRefreshSelect();
-          alert('프리셋이 저장되었습니다.');
-        });
-      }
-
-      if (budPresetLoadBtn) {
-        budPresetLoadBtn.addEventListener('click', function () {
-          if (!budPresetSelectEl) return;
-          var v = budPresetSelectEl.value;
-          if (v === '') { alert('불러올 프리셋을 선택하세요.'); return; }
-          var idx = Number(v);
-          if (!(idx >= 0 && idx < budPresets.length)) return;
-          fsBudApplyInputs(budPresets[idx]);
-        });
-      }
-
-      if (budPresetDeleteBtn) {
-        budPresetDeleteBtn.addEventListener('click', function () {
-          if (!budPresetSelectEl) return;
-          var v = budPresetSelectEl.value;
-          if (v === '') return;
-          var idx = Number(v);
-          if (!(idx >= 0 && idx < budPresets.length)) return;
-          if (!confirm('선택한 프리셋을 삭제할까요?')) return;
-          budPresets.splice(idx, 1);
-          fsSave(FS_BUD_PRESETS_KEY, budPresets);
-          fsBudRefreshSelect();
-        });
-      }
-
-      if (budPresetExportBtn) {
-        budPresetExportBtn.addEventListener('click', function () {
-          if (!budPresets.length) {
-            alert('내보낼 프리셋이 없습니다.');
-            return;
-          }
-          var payload = { simId: 'fullstar-budget', exportedAt: new Date().toISOString(), presets: budPresets };
-          var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = 'fullstar-budget-' + fsTimestamp() + '.json';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(function () {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 0);
-        });
-      }
-
-      if (budPresetImportBtn && budPresetFileEl) {
-        budPresetImportBtn.addEventListener('click', function () {
-          budPresetFileEl.value = '';
-          budPresetFileEl.click();
-        });
-        budPresetFileEl.addEventListener('change', function (ev) {
-          var file = ev.target && ev.target.files && ev.target.files[0];
-          if (!file) return;
-          var reader = new FileReader();
-          reader.onload = function () {
-            var text = reader.result;
-            var json = fsSafeParse(text, null);
-            if (!json) { alert('JSON 파싱에 실패했습니다.'); return; }
-            var incoming = Array.isArray(json.presets) ? json.presets : (Array.isArray(json) ? json : []);
-            if (!incoming.length) { alert('가져올 프리셋이 없습니다.'); return; }
-            var byName = {};
-            budPresets.forEach(function (p) { if (p && p.name) byName[p.name] = p; });
-            incoming.forEach(function (p) {
-              if (!p || !p.name) return;
-              byName[p.name] = p;
-            });
-            budPresets = Object.keys(byName).map(function (k) { return byName[k]; });
-            fsSave(FS_BUD_PRESETS_KEY, budPresets);
-            fsBudRefreshSelect();
-            alert('프리셋을 불러왔습니다.');
-          };
-          reader.readAsText(file, 'utf-8');
-        });
-      }
-
-      if (budHistoryClearBtn) {
-        budHistoryClearBtn.addEventListener('click', function () {
-          if (!confirm('히스토리를 모두 지우시겠습니까?')) return;
-          budHistory = [];
-          fsSave(FS_BUD_HISTORY_KEY, budHistory);
-          fsBudRenderHistory(budHistory);
-        });
-      }
-
-      var btnBudgetCalc = byId('btnBudgetCalc');
-      if (btnBudgetCalc && budHistoryListEl) {
-        btnBudgetCalc.addEventListener('click', function () {
-          setTimeout(function () {
-            var badgeEl = byId('bBadge');
-            var succEl = byId('bSucc');
-            if (!badgeEl && !succEl) return;
-            var label = badgeEl ? (badgeEl.textContent || '').trim() : '';
-            var succ = succEl ? (succEl.textContent || '').trim() : '';
-            if (!label && !succ) return;
-            var entry = {
-              ts: new Date().toISOString(),
-              main: label || '예산 결과',
-              meta: succ ? ('성공 확률 ' + succ) : ''
-            };
-            budHistory.unshift(entry);
-            if (budHistory.length > 50) budHistory = budHistory.slice(0, 50);
-            fsSave(FS_BUD_HISTORY_KEY, budHistory);
-            fsBudRenderHistory(budHistory);
-          }, 0);
-        });
-      }
-    })();
-  </script>
-
-  <!-- Hub Back Button Inject -->
-  <style>
-    #hubBackWrap {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 2147483647;
-      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
-    }
-
-    #hubBackBtn {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid #203042;
-      background: #11202e;
-      color: #e9f1ff;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
-      opacity: .9
-    }
-
-    #hubBackBtn:hover {
-      opacity: 1
-    }
-
-    @media (prefers-color-scheme: light) {
-      #hubBackBtn {
-        background: #0f1825;
-        color: #e9f1ff
-      }
-    }
-  </style>
-
-  <!-- Hub Back Button Inject -->
-  <style>
-    #hubBackWrap {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 2147483647;
-      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
-    }
-
-    #hubBackBtn {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--chip-bg);
-      color: var(--ink);
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
-      opacity: .9
-    }
-
-    #hubBackBtn:hover {
-      opacity: 1
-    }
-
-    @media (prefers-color-scheme: light) {
-      #hubBackBtn {
-        background: var(--chip-bg);
-        color: var(--ink)
-      }
-    }
-  </style>
-  <div id="hubBackWrap">
-    <button id="hubBackBtn" title="메인 메뉴로">
-      ← 메인으로
-    </button>
+<header>
+  <div class="inner">
+    <div class="brand"><div class="dot"></div>풀성 시뮬레이터</div>
+    <div style="font-size:14px;color:var(--muted)">v3.7 — 탭형</div>
   </div>
-  <script>
-    (function () {
-      var btn = document.getElementById('hubBackBtn');
-      if (!btn) return;
-      btn.addEventListener('click', function () {
-        // If navigated from hub, try back; otherwise go to hub index.html
-        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
-          history.back();
-        } else {
-          // assume hub is one level up
-          location.href = '../index.html';
+</header>
+<main>
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button id="tabExp" class="tab active" role="tab" aria-controls="expPanel">기댓값 시뮬레이터</button>
+    <button id="tabBud" class="tab" role="tab" aria-controls="budPanel">예산 시뮬레이터</button>
+  </div>
+
+  <!-- Expectation Panel -->
+  <section id="expPanel" class="panel" role="tabpanel">
+    <h2>기댓값 시뮬레이터</h2>
+    <div class="grid cols-4">
+      <div><label>차량 수</label><input id="carCount" type="number" min="1" value="6"></div>
+      <div><label>팩 가격 (토큰)</label><input id="packCost" type="number" min="0" value="75"></div>
+      <div><label>시뮬레이션 횟수</label><input id="runs" type="number" min="100" value="1000"></div>
+      <div><label>3장 확률</label><input id="p3" type="number" step="0.0001" min="0" max="1" value="0.199"></div>
+    </div>
+    <div class="grid cols-4">
+      <div><label>15장 확률</label><input id="p15" type="number" step="0.0001" min="0" max="1" value="0.001"></div>
+      <div><label>목표 청사진 (공통)</label><input id="needDefault" type="number" min="1" value="300"></div>
+      <div class="colspan-2"><label>차량별 목표 (쉼표, 비우면 공통값 사용)</label><input id="targets" placeholder="예: 300,280,360,..." /></div>
+    </div>
+    <div class="subtle">※ 10연 확정은 고정값: 3장 <b>0.789266</b>, 15장 <b>0.210734</b></div>
+
+    <div class="actions">
+      <button class="btn" id="btnSim">시뮬레이션 시작</button>
+      <button class="btn" id="btnExport">CSV 내보내기</button>
+      <button class="btn" id="btnSavePNG">이미지 저장(PNG)</button>
+      <button class="btn" id="btnPresetS">기본값 복원</button>
+    </div>
+
+    <div class="kpi" style="margin-top:10px">
+      <div class="k"><div>평균 토큰</div><div id="kMean" class="v">-</div></div>
+      <div class="k"><div>표준편차</div><div id="kStd" class="v">-</div></div>
+      <div class="k"><div>분산</div><div id="kVar" class="v">-</div></div>
+      <div class="k"><div>중앙값 / 5% / 95%</div><div id="kPct" class="v">-</div></div>
+    </div>
+
+    <canvas id="chart" width="900" height="280" aria-label="토큰 분포 히스토그램"></canvas>
+    <label>로그</label>
+    <textarea id="log" readonly>준비 완료…</textarea>
+
+    
+    <div class="preset-section" id="expPresetSection">
+      <div class="preset-header">
+        <span>프리셋</span>
+        <span class="tag">기댓값 탭</span>
+      </div>
+      <div class="preset-controls">
+        <div>
+          <label for="expPresetName">프리셋 이름</label>
+          <input id="expPresetName" type="text" placeholder="예: 기본 6대 목표" />
+        </div>
+        <div>
+          <label for="expPresetSelect">저장된 프리셋</label>
+          <select id="expPresetSelect">
+            <option value="">(선택)</option>
+          </select>
+        </div>
+      </div>
+      <div class="preset-row">
+        <button type="button" class="btn" id="expPresetSave">현재 입력 저장</button>
+        <button type="button" class="btn" id="expPresetLoad">불러오기</button>
+        <button type="button" class="btn" id="expPresetDelete">삭제</button>
+      </div>
+      <div class="preset-row">
+        <button type="button" class="btn" id="expPresetExport">프리셋 JSON 내보내기</button>
+        <button type="button" class="btn" id="expPresetImport">JSON 불러오기</button>
+        <input type="file" id="expPresetFile" accept=".json,application/json" style="display:none" />
+      </div>
+    </div>
+
+    <div class="preset-section" id="expHistorySection">
+      <div class="preset-header">
+        <span>히스토리</span>
+        <button type="button" class="btn" id="expHistoryClear" style="padding:4px 10px;font-size:11px">모두 지우기</button>
+      </div>
+      <div id="expHistoryList" class="history-list"></div>
+    </div>
+
+<div class="disclaimer">⚠ 해당 결과는 참고용이며 절대 실제 결과가 아닙니다. 반드시 고민해가면서 사용하십시오.</div>
+  </section>
+
+  <!-- Budget Panel -->
+  <section id="budPanel" class="panel hide" role="tabpanel" aria-hidden="true">
+    <h2>예산 시뮬레이터</h2>
+    <div class="grid cols-4">
+      <div><label>예산 (토큰)</label><input id="budget" type="number" min="0" value="10000"></div>
+      <div><label>차량 수</label><input id="carCountB" type="number" min="1" value="6"></div>
+      <div><label>팩 가격 (토큰)</label><input id="packCostB" type="number" min="0" value="75"></div>
+      <div><label>3장 확률</label><input id="p3B" type="number" step="0.0001" min="0" max="1" value="0.199"></div>
+    </div>
+    <div class="grid cols-4">
+      <div><label>15장 확률</label><input id="p15B" type="number" step="0.0001" min="0" max="1" value="0.001"></div>
+      <div><label>목표 청사진 (공통)</label><input id="needDefaultB" type="number" min="1" value="300"></div>
+      <div class="colspan-2"><label>차량별 목표 (쉼표, 비우면 공통값 사용)</label><input id="targetsB" placeholder="예: 300,280,360,..." /></div>
+    </div>
+    <div class="subtle">※ 시뮬레이션 횟수는 <b>1000회 고정</b>입니다. (예산 분류 전용)</div>
+    <div class="actions">
+      <button class="btn" id="btnBudgetCalc">계산</button>
+    </div>
+
+    <div id="bBadge" class="badge c-unknown" aria-live="polite">측정 불가</div>
+
+    <div class="kpi" style="margin-top:10px">
+      <div class="k"><div>성공 확률 (토큰 ≤ 예산)</div><div id="bSucc" class="v">-</div></div>
+      <div class="k"><div>E[max(0,토큰-예산)] (기대 부족분)</div><div id="bShort" class="v">-</div></div>
+      <div class="k"><div>E[max(0,예산-토큰)] (기대 잔여분)</div><div id="bLeft" class="v">-</div></div>
+      <div class="k"><div>임계값(정규근사)</div>
+        <div class="mono" id="bQuant">p95:- / p80:- / p60:- / p40:- / p05:-</div>
+      </div>
+    </div>
+
+    <label>상세 계산 로그</label>
+    <textarea id="bLog" class="mono" readonly>대기 중…</textarea>
+
+    
+    <div class="preset-section" id="budPresetSection">
+      <div class="preset-header">
+        <span>프리셋</span>
+        <span class="tag">예산 탭</span>
+      </div>
+      <div class="preset-controls">
+        <div>
+          <label for="budPresetName">프리셋 이름</label>
+          <input id="budPresetName" type="text" placeholder="예: 12만 토큰 예산" />
+        </div>
+        <div>
+          <label for="budPresetSelect">저장된 프리셋</label>
+          <select id="budPresetSelect">
+            <option value="">(선택)</option>
+          </select>
+        </div>
+      </div>
+      <div class="preset-row">
+        <button type="button" class="btn" id="budPresetSave">현재 입력 저장</button>
+        <button type="button" class="btn" id="budPresetLoad">불러오기</button>
+        <button type="button" class="btn" id="budPresetDelete">삭제</button>
+      </div>
+      <div class="preset-row">
+        <button type="button" class="btn" id="budPresetExport">프리셋 JSON 내보내기</button>
+        <button type="button" class="btn" id="budPresetImport">JSON 불러오기</button>
+        <input type="file" id="budPresetFile" accept=".json,application/json" style="display:none" />
+      </div>
+    </div>
+
+    <div class="preset-section" id="budHistorySection">
+      <div class="preset-header">
+        <span>히스토리</span>
+        <button type="button" class="btn" id="budHistoryClear" style="padding:4px 10px;font-size:11px">모두 지우기</button>
+      </div>
+      <div id="budHistoryList" class="history-list"></div>
+    </div>
+
+<div class="disclaimer">⚠ 해당 결과는 참고용이며 절대 실제 결과가 아닙니다. 반드시 고민해가면서 사용하십시오.</div>
+  </section>
+</main>
+<script>
+(function(){
+  // ===== Utilities =====
+  function byId(id){ return document.getElementById(id); }
+  var PITY3 = 0.789266, PITY15 = 0.210734;
+  var rand = Math.random;
+  var tip=document.createElement('div'); tip.className='tooltip'; document.body.appendChild(tip);
+  function showTip(x,y,html){ tip.innerHTML=html; tip.style.left=(x+12)+'px'; tip.style.top=(y+12)+'px'; tip.style.opacity='1'; tip.style.transform='translateY(0)'; }
+  function hideTip(){ tip.style.opacity='0'; tip.style.transform='translateY(-6px)'; }
+
+  // ===== Tabs =====
+  function activate(tab){
+    var exp = byId('expPanel'), bud = byId('budPanel');
+    byId('tabExp').classList.toggle('active', tab==='exp');
+    byId('tabBud').classList.toggle('active', tab==='bud');
+    exp.classList.toggle('hide', tab!=='exp');
+    bud.classList.toggle('hide', tab!=='bud');
+    bud.setAttribute('aria-hidden', tab!=='bud');
+  }
+  byId('tabExp').onclick=function(){ activate('exp'); };
+  byId('tabBud').onclick=function(){ activate('bud'); };
+
+  // ===== Core =====
+  function parseTargets(txt, count, fallback){
+    var arr = (txt||'').split(/[\,\s]+/).filter(Boolean).map(Number).filter(function(n){return n>0;});
+    if (arr.length === 0) arr = Array.from({length:count}, function(){return fallback;});
+    if (arr.length < count){
+      var last = arr[arr.length-1] || fallback;
+      while(arr.length < count) arr.push(last);
+    } else if (arr.length > count){
+      arr = arr.slice(0, count);
+    }
+    return arr;
+  }
+
+  function simulateOnce(cfg){
+    var targets=cfg.targets, p3=cfg.p3, p15=cfg.p15;
+    var n=targets.length, progress=new Array(n).fill(0);
+    var packs=0, guard=0, drawCount=0, pLose=Math.max(0,1-p3-p15);
+    while(progress.some(function(v,i){ return v<targets[i]; })){
+      packs++; if(++guard>10000000) throw new Error('Guard overflow');
+      drawCount=(drawCount+1)%10;
+      var gain=0;
+      if(drawCount===0){ var r0=rand(); gain=(r0<PITY15)?15:3; }
+      else {
+        var r=rand();
+        if(r<pLose) gain=0; else if(r<pLose+p3) gain=3; else gain=15;
+      }
+      if(gain>0){
+        var candidates=[]; for (var j=0;j<n;j++){ if(progress[j]<targets[j]) candidates.push(j); }
+        if(!candidates.length) break;
+        var idx = candidates[Math.floor(rand()*candidates.length)];
+        progress[idx]=Math.min(targets[idx], progress[idx]+gain);
+      }
+    }
+    return packs;
+  }
+
+  function computeStats(arr){
+    var n=arr.length, sum=0; for(var i=0;i<n;i++) sum+=arr[i];
+    var mean=sum/n, variance=0; for(i=0;i<n;i++){ variance+=Math.pow(arr[i]-mean,2); } variance/=n; var std=Math.sqrt(variance);
+    return {mean:mean, variance:variance, std:std};
+  }
+
+  function buildHistData(sorted){
+    var n=sorted.length, min=sorted[0], max=sorted[n-1];
+    var bins=24, pad=24; var step=(max-min)/bins || 1; var counts=new Array(bins).fill(0);
+    for(var i=0;i<n;i++){ var v=sorted[i], idx=Math.floor((v-min)/step); if(idx>=bins) idx=bins-1; if(idx<0) idx=0; counts[idx]++; }
+    return {min:min,max:max,step:step,bins:bins,counts:counts,pad:pad};
+  }
+
+  var animId=null, lastHistData=null, lastBudget=null;
+  function easeOutCubic(t){ return 1-Math.pow(1-t,3); }
+
+  function drawBudgetLine(ctx, data, budget){
+    if(!data || budget==null) return;
+    var cvs=byId('chart'), w=cvs.width, h=cvs.height, pad=data.pad;
+    var xRatio = (budget - data.min) / Math.max(1e-9, (data.max - data.min));
+    var x = pad + xRatio * (w - pad*2);
+    x = Math.max(pad, Math.min(w-pad, x));
+    ctx.save();
+    ctx.strokeStyle='rgba(255,99,132,.9)'; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h-pad); ctx.stroke();
+    ctx.fillStyle='rgba(255,99,132,.95)'; ctx.font='12px ui-sans-serif, system-ui'; ctx.textAlign='center';
+    ctx.fillText('예산', x, pad-2);
+    ctx.restore();
+  }
+
+  function drawHistAnimated(data, budget){
+    var cvs=byId('chart'), ctx=cvs.getContext('2d');
+    var w=cvs.width, h=cvs.height, pad=data.pad, bins=data.bins, counts=data.counts.slice();
+    var maxC=Math.max.apply(null,counts)||1; var barW=(w-pad*2)/bins; var start=null; cancelAnimationFrame(animId);
+    function frame(ts){
+      if(!start) start=ts; var t=Math.min(1,(ts-start)/750); var e=easeOutCubic(t);
+      ctx.clearRect(0,0,w,h);
+      ctx.strokeStyle='rgba(127,127,127,.35)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,h-pad); ctx.lineTo(w-pad,h-pad); ctx.stroke();
+      for(var i=0;i<bins;i++){
+        var x=pad+i*barW+2, y=h-pad; var targetH=((counts[i]/maxC)*(h-pad*2)); var bh=targetH*e;
+        var g=ctx.createLinearGradient(0,y-bh,0,y); g.addColorStop(0,'rgba(124,58,237,.9)'); g.addColorStop(.7,'rgba(34,211,238,.6)'); g.addColorStop(1,'rgba(34,211,238,.35)');
+        ctx.fillStyle=g; ctx.fillRect(x, y-bh, Math.max(1,barW-4), bh);
+      }
+      ctx.fillStyle='rgba(180,190,200,.9)'; ctx.font='12px ui-sans-serif, system-ui'; ctx.textAlign='center';
+      function fmt(v){ return Math.round(v).toLocaleString(); }
+      ctx.fillText(fmt(data.min), pad, h-6); ctx.fillText(fmt((data.min+data.max)/2), w/2, h-6); ctx.fillText(fmt(data.max), w-pad, h-6);
+      if(budget!=null) drawBudgetLine(ctx, data, budget);
+      if(t<1) animId=requestAnimationFrame(frame);
+    }
+    animId=requestAnimationFrame(frame);
+  }
+
+  function attachHover(data){
+    var cvs=byId('chart'); var rect; function updateRect(){ rect=cvs.getBoundingClientRect(); }
+    updateRect(); window.addEventListener('resize', updateRect);
+    var w=cvs.width, h=cvs.height, pad=data.pad; var barW=(w-pad*2)/data.bins;
+    function idxFromX(clientX){ var x=clientX-rect.left; return Math.floor((x-pad)/barW); }
+    function clamp(i){ return Math.max(0, Math.min(data.bins-1, i)); }
+    function fmt(n){ return Math.round(n).toLocaleString(); }
+    cvs.onmousemove=function(ev){ var i=clamp(idxFromX(ev.clientX)); var start=data.min+i*data.step; var end=start+data.step; var cnt=data.counts[i]||0; var pct=(cnt/(data.counts.reduce(function(a,b){return a+b;},0)||1))*100; showTip(ev.clientX, ev.clientY,'구간: '+fmt(start)+' ~ '+fmt(end)+'<br>개수: '+fmt(cnt)+' ( '+pct.toFixed(1)+'% )'); };
+    cvs.onmouseleave=function(){ hideTip(); };
+  }
+
+  // ===== Expectation tab =====
+  function run(){
+    var carCount=Math.max(1, +byId('carCount').value|0);
+    var packCost=Math.max(0, +byId('packCost').value||0);
+    var p3=+byId('p3').value, p15=+byId('p15').value;
+    var needDefault=Math.max(1, +byId('needDefault').value|0);
+    var targetsStr=byId('targets').value||'';
+    if(!(p3>=0 && p15>=0 && p3+p15<=1)){ alert('3장/15장 확률은 0~1 범위이고 합이 1 이하여야 합니다.'); return; }
+
+    var targets=parseTargets(targetsStr, carCount, needDefault);
+    var runs=Math.max(100, +byId('runs').value|0);
+
+    var cfg={targets:targets,p3:p3,p15:p15};
+    var tokens=new Array(runs), t0=performance.now();
+    for(var i=0;i<runs;i++){ var packs=simulateOnce(cfg); tokens[i]=packs*packCost; }
+    var t1=performance.now(); tokens.sort(function(a,b){return a-b;});
+
+    var s=computeStats(tokens);
+    var p5=tokens[Math.floor(tokens.length*0.05)], p50=tokens[Math.floor(tokens.length*0.50)], p95=tokens[Math.floor(tokens.length*0.95)];
+
+    byId('kMean').textContent=Math.round(s.mean).toLocaleString();
+    byId('kVar').textContent=Math.round(s.variance).toLocaleString();
+    byId('kStd').textContent=Math.round(s.std).toLocaleString();
+    byId('kPct').textContent=Math.round(p50).toLocaleString()+' / '+Math.round(p5).toLocaleString()+' / '+Math.round(p95).toLocaleString();
+
+    var data=buildHistData(tokens); lastHistData=data; // store for budget overlay
+    drawHistAnimated(data, lastBudget);
+    attachHover(data);
+
+    var pLose=1-p3-p15;
+    byId('log').value =
+      '실행 시간: '+(t1-t0).toFixed(1)+'ms\n'+
+      '샘플 수: '+runs.toLocaleString()+'회\n'+
+      '차량 수: '+carCount+'\n'+
+      '목표: ['+targets.join(', ')+']\n'+
+      '확률(팩 기준): 꽝 '+(100*pLose).toFixed(3)+'%, 3장 '+(100*p3).toFixed(3)+'%, 15장 '+(100*p15).toFixed(3)+'%\n'+
+      '10연 확정(고정): 3장 '+(100*0.789266).toFixed(4)+'%, 15장 '+(100*0.210734).toFixed(4)+'%\n'+
+      '드롭 배정: 완료 차량 제외(균등 분배)';
+
+    // expose globals
+    window.__tokens=tokens; window.__stats=s; window.__inputs={carCount:carCount, packCost:packCost, p3:p3, p15:p15, needDefault:needDefault, targets:targetsStr};
+  }
+
+  function exportCSV(){
+    var arr=window.__tokens||[]; if(!arr.length){ alert('먼저 시뮬레이션을 실행하세요.'); return; }
+    var csv='run,tokens\n'; for(var i=0;i<arr.length;i++){ csv+=(i+1)+','+arr[i]+'\n'; }
+    var blob=new Blob([csv],{type:'text/csv'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='fullstar_tokens.csv'; a.click(); URL.revokeObjectURL(url);
+  }
+
+  function exportPNG(){
+    var src=byId('chart'); var tokens=window.__tokens||[]; var s=window.__stats; var inp=window.__inputs; if(!tokens.length||!s||!inp){ alert('먼저 시뮬레이션을 실행하세요.'); return; }
+    var scale=Math.max(1, Math.floor((window.devicePixelRatio||1)*2)); var w=src.width, h=src.height; var off=document.createElement('canvas'); off.width=w*scale; off.height=h*scale; var ctx=off.getContext('2d');
+    var bg=getComputedStyle(document.body).backgroundColor||'#ffffff'; ctx.fillStyle=bg; ctx.fillRect(0,0,off.width, off.height);
+    ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'; ctx.drawImage(src, 0, 0, off.width, off.height);
+    var pad=20*scale, panelW=Math.min(off.width*0.9, 820*scale), panelH=190*scale; ctx.fillStyle='rgba(0,0,0,0.36)'; ctx.fillRect(pad, pad, panelW, panelH); ctx.strokeStyle='rgba(255,255,255,0.28)'; ctx.lineWidth=2*scale; ctx.strokeRect(pad, pad, panelW, panelH);
+    ctx.fillStyle='#ffffff'; ctx.textBaseline='top'; function fmt(n){ return Math.round(n).toLocaleString(); }
+    ctx.font=(16*scale)+'px ui-sans-serif, system-ui'; ctx.fillText('풀성 히스토그램 (시뮬레이션 결과)', pad+12*scale, pad+10*scale);
+    var xL=pad+12*scale, yL=pad+36*scale; ctx.font=(13*scale)+'px ui-sans-serif, system-ui'; ctx.fillText('평균: '+fmt(s.mean)+'   표준편차: '+fmt(s.std), xL, yL); yL+=18*scale; ctx.fillText('분산: '+fmt(s.variance), xL, yL); yL+=18*scale; var p5=window.__tokens[Math.floor(window.__tokens.length*0.05)], p50=window.__tokens[Math.floor(window.__tokens.length*0.50)], p95=window.__tokens[Math.floor(window.__tokens.length*0.95)]; ctx.fillText('중앙값 / 5% / 95%: '+fmt(p50)+' / '+fmt(p5)+' / '+fmt(p95), xL, yL);
+    var xR=pad+panelW/2+10*scale, yR=pad+36*scale; function pctStr(v){ return (v*100).toFixed(3)+'%'; } var targetsText=(inp.targets||'').trim(); ctx.fillText('입력값', xR, yR); yR+=18*scale; ctx.font=(12*scale)+'px ui-sans-serif, system-ui'; ctx.fillText('차량 수: '+inp.carCount, xR, yR); yR+=16*scale; ctx.fillText('팩 가격: '+inp.packCost, xR, yR); yR+=16*scale; ctx.fillText('3장 확률: '+pctStr(inp.p3), xR, yR); yR+=16*scale; ctx.fillText('15장 확률: '+pctStr(inp.p15), xR, yR); yR+=16*scale; ctx.fillText('목표 청사진(공통): '+inp.needDefault, xR, yR); yR+=16*scale; ctx.fillText('차량별 목표: '+(targetsText.length? targetsText : ''), xR, yR);
+    // add disclaimer to PNG
+    ctx.textAlign='center'; ctx.font=(14*scale)+'px ui-sans-serif, system-ui'; ctx.fillStyle='#facc15';
+    ctx.fillText('⚠ 해당 결과는 참고용이며 실제 결과가 아닙니다. 반드시 고민해가면서 사용하십시오.', off.width/2, off.height - 20*scale);
+    if(off.toBlob){ off.toBlob(function(blob){ var url=URL.createObjectURL(blob); var a=document.createElement('a'); var ts=new Date(); var pad2=function(n){return String(n).padStart(2,'0');}; var name='fullstar_hist_'+ts.getFullYear()+pad2(ts.getMonth()+1)+pad2(ts.getDate())+'_'+pad2(ts.getHours())+pad2(ts.getMinutes())+pad2(ts.getSeconds())+'.png'; a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url); }, 'image/png'); } else { var a=document.createElement('a'); a.href=off.toDataURL('image/png'); a.download='fullstar_hist.png'; a.click(); }
+  }
+
+  function presetS(){ byId('carCount').value=6; byId('packCost').value=75; byId('runs').value=1000; byId('p3').value=0.199; byId('p15').value=0.001; byId('needDefault').value=300; byId('targets').value=''; }
+
+  // ===== Budget: classification =====
+  function classifyBudget(budget, p95, p80, p60, p40, p05){
+    // 불가능: budget < thrExtreme
+    // 극최소컷: thrExtreme ≤ budget < p80
+    // 최소컷: p80 ≤ budget < p60
+    // 가능(노란): p60 ≤ budget < p40
+    // 가능(초록): p40 ≤ budget < p05
+    // 여유컷: budget ≥ p05
+    var thrExtreme = Math.max(0.9 * p95, (p95 + p80) / 2);
+    if(!isFinite(budget)) return {label:'측정 불가', cls:'c-unknown'};
+    if(budget < thrExtreme) return {label:'불가능', cls:'c-impossible'};
+    if(budget >= thrExtreme && budget < p80) return {label:'극최소컷', cls:'c-ultramin'};
+    if(budget >= p80 && budget < p60) return {label:'최소컷', cls:'c-min'};
+    if(budget >= p60 && budget < p40) return {label:'가능', cls:'c-possible-yellow'};
+    if(budget >= p40 && budget < p05) return {label:'가능', cls:'c-possible-green'};
+    if(budget >= p05) return {label:'여유컷', cls:'c-easy'};
+    return {label:'측정 불가', cls:'c-unknown'};
+  }
+
+  // ===== Budget tab =====
+  function budgetCalc(){
+    var carCount=Math.max(1, +byId('carCountB').value|0);
+    var packCost=Math.max(0, +byId('packCostB').value||0);
+    var p3=+byId('p3B').value, p15=+byId('p15B').value;
+    var needDefault=Math.max(1, +byId('needDefaultB').value|0);
+    var targetsStr=byId('targetsB').value||'';
+    var budget=+byId('budget').value||0;
+
+    var badge=byId('bBadge');
+    function setBadge(text, cls){ badge.className='badge '+cls; badge.textContent=text; }
+
+    if(!(p3>=0 && p15>=0 && p3+p15<=1)){
+      setBadge('측정 불가', 'c-unknown');
+      byId('bSucc').textContent='-'; byId('bShort').textContent='-'; byId('bLeft').textContent='-'; byId('bQuant').textContent='p95:- / p80:- / p60:- / p40:- / p05:-';
+      byId('bLog').value='입력 오류: 3장/15장 확률은 0~1 범위이고 합이 1 이하여야 합니다.';
+      return;
+    }
+
+    var targets=parseTargets(targetsStr, carCount, needDefault);
+    var runs=1000; // fixed for budget tab
+
+    try{
+      var cfg={targets:targets,p3:p3,p15:p15};
+      var tokens=new Array(runs);
+      for(var i=0;i<runs;i++){ tokens[i]=simulateOnce(cfg)*packCost; }
+      tokens.sort(function(a,b){return a-b;});
+
+      // 정규근사 기반 백분위 임계값 계산 (p95↔p05, p80↔p20, p60↔p40 해석 반전)
+      var s = computeStats(tokens);
+      function z(p){
+        switch(p){
+          case 0.95: return -1.6448536269514722; // p95 (낮은 쪽)
+          case 0.80: return -0.8416212335729143; // p80 (낮은 쪽)
+          case 0.60: return -0.2533471031357997; // p60 (낮은 쪽)
+          case 0.40: return  0.2533471031357997; // p40 (높은 쪽)
+          case 0.05: return  1.6448536269514722; // p05 (높은 쪽)
+          default: return 0;
         }
-      });
-    })();
-  </script>
+      }
+      var p95 = s.mean + z(0.95)*s.std;  // 낮은
+      var p80 = s.mean + z(0.80)*s.std;
+      var p60 = s.mean + z(0.60)*s.std;
+      var p40 = s.mean + z(0.40)*s.std;
+      var p05 = s.mean + z(0.05)*s.std;  // 높은
+
+      var clsRes = classifyBudget(budget, p95, p80, p60, p40, p05);
+
+      // 경험적 성공확률과 기대 부족/잔여값 계산
+      var succ=tokens.filter(function(v){return v<=budget;}).length / tokens.length;
+      var short=0,left=0; for(var j=0;j<tokens.length;j++){ var v=tokens[j]; if(v>budget) short+=v-budget; else left+=budget-v; } short/=tokens.length; left/=tokens.length;
+
+      setBadge(clsRes.label, clsRes.cls);
+      byId('bSucc').textContent=(succ*100).toFixed(2)+'%';
+      byId('bShort').textContent=Math.round(short).toLocaleString();
+      byId('bLeft').textContent=Math.round(left).toLocaleString();
+      byId('bQuant').textContent='정규근사 p95:'+Math.round(p95).toLocaleString()+' / p80:'+Math.round(p80).toLocaleString()+' / p60:'+Math.round(p60).toLocaleString()+' / p40:'+Math.round(p40).toLocaleString()+' / p05:'+Math.round(p05).toLocaleString();
+
+      var lines=[]; function fmt(n){return Math.round(n).toLocaleString();}
+      var thrExtreme = Math.max(0.9*p95, (p95+p80)/2);
+      lines.push('[입력] 차량 수:'+carCount+', 팩 가격:'+packCost+', p3:'+p3+', p15:'+p15+', 목표:'+targets.join(', '));
+      lines.push('[예산] '+fmt(budget));
+      lines.push('[임계] 극최소컷 하한 max(0.9·p95, mid(p95,p80)):'+fmt(thrExtreme)+' / p80:'+fmt(p80)+' / p60:'+fmt(p60)+' / p40:'+fmt(p40)+' / p05:'+fmt(p05));
+      lines.push('[확률] 성공확률:'+ (succ*100).toFixed(2)+'%');
+      lines.push('[기댓값] 부족분 E[max(0,토큰-예산)]='+fmt(short)+' / 잔여분 E[max(0,예산-토큰)]='+fmt(left));
+      byId('bLog').value=lines.join('\n');
+
+      lastBudget=budget; if(lastHistData) drawHistAnimated(lastHistData, lastBudget);
+    }catch(e){
+      setBadge('측정 불가', 'c-unknown'); byId('bLog').value='에러: '+e.message;
+    }
+  }
+
+  // ===== Events =====
+  byId('btnSim').addEventListener('click', run);
+  byId('btnExport').addEventListener('click', exportCSV);
+  byId('btnSavePNG').addEventListener('click', exportPNG);
+  byId('btnPresetS').addEventListener('click', presetS);
+  byId('btnBudgetCalc').addEventListener('click', budgetCalc);
+
+  // ===== Minimal self-tests (console) =====
+  (function tests(){
+    try{
+      // z-score ordering (반전 해석에 맞게: p95 < p80 < p60 < p40 < p05)
+      var zs={p95:-1.6448536269514722,p80:-0.8416212335729143,p60:-0.2533471031357997,p40:0.2533471031357997,p05:1.6448536269514722};
+      console.assert(zs.p95<zs.p80 && zs.p80<zs.p60 && zs.p60<zs.p40 && zs.p40<zs.p05, 'Z-scores monotone (asc)');
+      // classification boundaries sanity with strengthened extreme threshold
+      var mean=10000, std=2000;
+      function thr(p){var zmap={0.95:zs.p95,0.80:zs.p80,0.60:zs.p60,0.40:zs.p40,0.05:zs.p05}; return mean+zmap[p]*std;}
+      var P95=thr(0.95), P80=thr(0.80), P60=thr(0.60), P40=thr(0.40), P05=thr(0.05);
+      var ThrExtreme = Math.max(0.9*P95, (P95+P80)/2);
+      function lab(b){return classifyBudget(b,P95,P80,P60,P40,P05).label;}
+      console.assert(lab(ThrExtreme-1)==='불가능', 'below ThrExtreme => 불가능');
+      console.assert(lab(ThrExtreme+1)==='극최소컷', 'just above ThrExtreme => 극최소컷');
+      console.assert(lab(P80+1)==='최소컷' || lab(P80+1)==='가능', 'p80 ≤ b < p60 => 최소컷');
+      console.assert(lab(P60+1)==='가능', 'p60 ≤ b < p40 => 가능(노란/초록)');
+      console.assert(lab(P40+1)==='가능' || lab(P40+1)==='여유컷', 'p40 ≤ b < p05 => 가능(초록)/여유컷');
+      console.assert(lab(P05+1)==='여유컷', '≥ p05 => 여유컷');
+      // simulateOnce smoke test
+      var packsTest = simulateOnce({targets:[3], p3:1, p15:0});
+      console.assert(typeof packsTest==='number' && packsTest>0, 'simulateOnce positive');
+      // stats consistency
+      var arr=[100,100,100,100]; var s2=computeStats(arr); console.assert(s2.std===0, 'constant std=0');
+    }catch(e){ console.warn('Self-tests warning:', e); }
+  })();
+
+  // ===== Presets & History (Fullstar) =====
+  var FS_EXP_PRESETS_KEY = 'fullstar_presets_exp_v1';
+  var FS_EXP_HISTORY_KEY = 'fullstar_history_exp_v1';
+  var FS_BUD_PRESETS_KEY = 'fullstar_presets_budget_v1';
+  var FS_BUD_HISTORY_KEY = 'fullstar_history_budget_v1';
+
+  function fsSafeParse(text, fallback){
+    if(!text) return fallback;
+    try{ return JSON.parse(text); }catch(e){ return fallback; }
+  }
+  function fsLoad(key){
+    return fsSafeParse(localStorage.getItem(key), []) || [];
+  }
+  function fsSave(key, value){
+    try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+  }
+  function fsTimestamp(){
+    var d = new Date();
+    function pad(x){ return (x<10?'0':'') + x; }
+    return '' + d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes());
+  }
+
+  // === Expectation presets ===
+  var expPresetNameEl = byId('expPresetName');
+  var expPresetSelectEl = byId('expPresetSelect');
+  var expPresetSaveBtn = byId('expPresetSave');
+  var expPresetLoadBtn = byId('expPresetLoad');
+  var expPresetDeleteBtn = byId('expPresetDelete');
+  var expPresetExportBtn = byId('expPresetExport');
+  var expPresetImportBtn = byId('expPresetImport');
+  var expPresetFileEl = byId('expPresetFile');
+  var expHistoryListEl = byId('expHistoryList');
+  var expHistoryClearBtn = byId('expHistoryClear');
+
+  var expPresets = fsLoad(FS_EXP_PRESETS_KEY);
+  var expHistory = fsLoad(FS_EXP_HISTORY_KEY);
+
+  function fsExpCollectInputs(){
+    return {
+      carCount: byId('carCount') ? Number(byId('carCount').value || 0) : 0,
+      packCost: byId('packCost') ? Number(byId('packCost').value || 0) : 0,
+      runs: byId('runs') ? Number(byId('runs').value || 0) : 0,
+      p3: byId('p3') ? Number(byId('p3').value || 0) : 0,
+      p15: byId('p15') ? Number(byId('p15').value || 0) : 0,
+      needDefault: byId('needDefault') ? Number(byId('needDefault').value || 0) : 0,
+      targets: byId('targets') ? byId('targets').value : ''
+    };
+  }
+
+  function fsExpApplyInputs(data){
+    if(!data || !data.inputs) return;
+    var d = data.inputs;
+    if(byId('carCount')) byId('carCount').value = d.carCount != null ? d.carCount : '';
+    if(byId('packCost')) byId('packCost').value = d.packCost != null ? d.packCost : '';
+    if(byId('runs')) byId('runs').value = d.runs != null ? d.runs : '';
+    if(byId('p3')) byId('p3').value = d.p3 != null ? d.p3 : '';
+    if(byId('p15')) byId('p15').value = d.p15 != null ? d.p15 : '';
+    if(byId('needDefault')) byId('needDefault').value = d.needDefault != null ? d.needDefault : '';
+    if(byId('targets')) byId('targets').value = d.targets != null ? d.targets : '';
+  }
+
+  function fsExpRefreshSelect(){
+    if(!expPresetSelectEl) return;
+    var html = '<option value="">(선택)</option>';
+    for(var i=0;i<expPresets.length;i++){
+      var p = expPresets[i];
+      var label = p.name || ('프리셋 ' + (i+1));
+      html += '<option value="'+ i +'">' + label + '</option>';
+    }
+    expPresetSelectEl.innerHTML = html;
+  }
+
+  function fsExpRenderHistory(list){
+    if(!expHistoryListEl) return;
+    if(!list || !list.length){
+      expHistoryListEl.innerHTML = '<div class="history-item-meta">저장된 히스토리가 없습니다.</div>';
+      return;
+    }
+    var html = '';
+    for(var i=0;i<list.length;i++){
+      var it = list[i];
+      var main = it.main || '';
+      var meta = it.meta || '';
+      var ts = it.ts || '';
+      html += '<div class="history-item">'
+           +  '<div class="history-item-title">' + main + '</div>'
+           +  '<div class="history-item-meta">' + ts + (meta ? ' · ' + meta : '') + '</div>'
+           +  '</div>';
+    }
+    expHistoryListEl.innerHTML = html;
+  }
+
+  fsExpRefreshSelect();
+  fsExpRenderHistory(expHistory);
+
+  if(expPresetSaveBtn){
+    expPresetSaveBtn.addEventListener('click', function(){
+      var name = (expPresetNameEl && expPresetNameEl.value.trim()) || ('프리셋 ' + (expPresets.length+1));
+      var snapshot = fsExpCollectInputs();
+      var idx = -1;
+      for(var i=0;i<expPresets.length;i++){
+        if(expPresets[i].name === name){ idx = i; break; }
+      }
+      var obj = {name:name, savedAt:new Date().toISOString(), inputs:snapshot};
+      if(idx >= 0) expPresets[idx] = obj; else expPresets.push(obj);
+      fsSave(FS_EXP_PRESETS_KEY, expPresets);
+      fsExpRefreshSelect();
+      alert('프리셋이 저장되었습니다.');
+    });
+  }
+
+  if(expPresetLoadBtn){
+    expPresetLoadBtn.addEventListener('click', function(){
+      if(!expPresetSelectEl) return;
+      var v = expPresetSelectEl.value;
+      if(v === ''){ alert('불러올 프리셋을 선택하세요.'); return; }
+      var idx = Number(v);
+      if(!(idx >= 0 && idx < expPresets.length)) return;
+      fsExpApplyInputs(expPresets[idx]);
+    });
+  }
+
+  if(expPresetDeleteBtn){
+    expPresetDeleteBtn.addEventListener('click', function(){
+      if(!expPresetSelectEl) return;
+      var v = expPresetSelectEl.value;
+      if(v === '') return;
+      var idx = Number(v);
+      if(!(idx >= 0 && idx < expPresets.length)) return;
+      if(!confirm('선택한 프리셋을 삭제할까요?')) return;
+      expPresets.splice(idx,1);
+      fsSave(FS_EXP_PRESETS_KEY, expPresets);
+      fsExpRefreshSelect();
+    });
+  }
+
+  if(expPresetExportBtn){
+    expPresetExportBtn.addEventListener('click', function(){
+      if(!expPresets.length){
+        alert('내보낼 프리셋이 없습니다.');
+        return;
+      }
+      var payload = {simId:'fullstar-exp', exportedAt:new Date().toISOString(), presets:expPresets};
+      var blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'fullstar-exp-' + fsTimestamp() + '.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+    });
+  }
+
+  if(expPresetImportBtn && expPresetFileEl){
+    expPresetImportBtn.addEventListener('click', function(){
+      expPresetFileEl.value = '';
+      expPresetFileEl.click();
+    });
+    expPresetFileEl.addEventListener('change', function(ev){
+      var file = ev.target && ev.target.files && ev.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        var text = reader.result;
+        var json = fsSafeParse(text, null);
+        if(!json){ alert('JSON 파싱에 실패했습니다.'); return; }
+        var incoming = Array.isArray(json.presets) ? json.presets : (Array.isArray(json) ? json : []);
+        if(!incoming.length){ alert('가져올 프리셋이 없습니다.'); return; }
+        var byName = {};
+        expPresets.forEach(function(p){ if(p && p.name) byName[p.name] = p; });
+        incoming.forEach(function(p){
+          if(!p || !p.name) return;
+          byName[p.name] = p;
+        });
+        expPresets = Object.keys(byName).map(function(k){ return byName[k]; });
+        fsSave(FS_EXP_PRESETS_KEY, expPresets);
+        fsExpRefreshSelect();
+        alert('프리셋을 불러왔습니다.');
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+
+  if(expHistoryClearBtn){
+    expHistoryClearBtn.addEventListener('click', function(){
+      if(!confirm('히스토리를 모두 지우시겠습니까?')) return;
+      expHistory = [];
+      fsSave(FS_EXP_HISTORY_KEY, expHistory);
+      fsExpRenderHistory(expHistory);
+    });
+  }
+
+  var btnSim = byId('btnSim');
+  if(btnSim && expHistoryListEl){
+    btnSim.addEventListener('click', function(){
+      setTimeout(function(){
+        if(!window.__stats) return;
+        var s = window.__stats;
+        var info = 'avg ' + Math.round(s.mean).toLocaleString() + ' / p5 ' + Math.round(s.p5).toLocaleString() + ' / p95 ' + Math.round(s.p95).toLocaleString();
+        var meanLabelEl = byId('kMean');
+        var mainText = meanLabelEl ? (meanLabelEl.textContent || '').trim() : '';
+        if(!mainText) mainText = '평균 ' + Math.round(s.mean).toLocaleString() + ' 토큰';
+        var entry = {ts:new Date().toISOString(), main:mainText, meta:info};
+        expHistory.unshift(entry);
+        if(expHistory.length > 50) expHistory = expHistory.slice(0,50);
+        fsSave(FS_EXP_HISTORY_KEY, expHistory);
+        fsExpRenderHistory(expHistory);
+      }, 0);
+    });
+  }
+
+  // === Budget presets ===
+  var budPresetNameEl = byId('budPresetName');
+  var budPresetSelectEl = byId('budPresetSelect');
+  var budPresetSaveBtn = byId('budPresetSave');
+  var budPresetLoadBtn = byId('budPresetLoad');
+  var budPresetDeleteBtn = byId('budPresetDelete');
+  var budPresetExportBtn = byId('budPresetExport');
+  var budPresetImportBtn = byId('budPresetImport');
+  var budPresetFileEl = byId('budPresetFile');
+  var budHistoryListEl = byId('budHistoryList');
+  var budHistoryClearBtn = byId('budHistoryClear');
+
+  var budPresets = fsLoad(FS_BUD_PRESETS_KEY);
+  var budHistory = fsLoad(FS_BUD_HISTORY_KEY);
+
+  function fsBudCollectInputs(){
+    return {
+      budget: byId('budget') ? Number(byId('budget').value || 0) : 0,
+      carCountB: byId('carCountB') ? Number(byId('carCountB').value || 0) : 0,
+      packCostB: byId('packCostB') ? Number(byId('packCostB').value || 0) : 0,
+      p3B: byId('p3B') ? Number(byId('p3B').value || 0) : 0,
+      p15B: byId('p15B') ? Number(byId('p15B').value || 0) : 0,
+      needDefaultB: byId('needDefaultB') ? Number(byId('needDefaultB').value || 0) : 0,
+      targetsB: byId('targetsB') ? byId('targetsB').value : ''
+    };
+  }
+
+  function fsBudApplyInputs(data){
+    if(!data || !data.inputs) return;
+    var d = data.inputs;
+    if(byId('budget')) byId('budget').value = d.budget != null ? d.budget : '';
+    if(byId('carCountB')) byId('carCountB').value = d.carCountB != null ? d.carCountB : '';
+    if(byId('packCostB')) byId('packCostB').value = d.packCostB != null ? d.packCostB : '';
+    if(byId('p3B')) byId('p3B').value = d.p3B != null ? d.p3B : '';
+    if(byId('p15B')) byId('p15B').value = d.p15B != null ? d.p15B : '';
+    if(byId('needDefaultB')) byId('needDefaultB').value = d.needDefaultB != null ? d.needDefaultB : '';
+    if(byId('targetsB')) byId('targetsB').value = d.targetsB != null ? d.targetsB : '';
+  }
+
+  function fsBudRefreshSelect(){
+    if(!budPresetSelectEl) return;
+    var html = '<option value="">(선택)</option>';
+    for(var i=0;i<budPresets.length;i++){
+      var p = budPresets[i];
+      var label = p.name || ('프리셋 ' + (i+1));
+      html += '<option value="'+ i +'">' + label + '</option>';
+    }
+    budPresetSelectEl.innerHTML = html;
+  }
+
+  function fsBudRenderHistory(list){
+    if(!budHistoryListEl) return;
+    if(!list || !list.length){
+      budHistoryListEl.innerHTML = '<div class="history-item-meta">저장된 히스토리가 없습니다.</div>';
+      return;
+    }
+    var html = '';
+    for(var i=0;i<list.length;i++){
+      var it = list[i];
+      var main = it.main || '';
+      var meta = it.meta || '';
+      var ts = it.ts || '';
+      html += '<div class="history-item">'
+           +  '<div class="history-item-title">' + main + '</div>'
+           +  '<div class="history-item-meta">' + ts + (meta ? ' · ' + meta : '') + '</div>'
+           +  '</div>';
+    }
+    budHistoryListEl.innerHTML = html;
+  }
+
+  fsBudRefreshSelect();
+  fsBudRenderHistory(budHistory);
+
+  if(budPresetSaveBtn){
+    budPresetSaveBtn.addEventListener('click', function(){
+      var name = (budPresetNameEl && budPresetNameEl.value.trim()) || ('프리셋 ' + (budPresets.length+1));
+      var snapshot = fsBudCollectInputs();
+      var idx = -1;
+      for(var i=0;i<budPresets.length;i++){
+        if(budPresets[i].name === name){ idx = i; break; }
+      }
+      var obj = {name:name, savedAt:new Date().toISOString(), inputs:snapshot};
+      if(idx >= 0) budPresets[idx] = obj; else budPresets.push(obj);
+      fsSave(FS_BUD_PRESETS_KEY, budPresets);
+      fsBudRefreshSelect();
+      alert('프리셋이 저장되었습니다.');
+    });
+  }
+
+  if(budPresetLoadBtn){
+    budPresetLoadBtn.addEventListener('click', function(){
+      if(!budPresetSelectEl) return;
+      var v = budPresetSelectEl.value;
+      if(v === ''){ alert('불러올 프리셋을 선택하세요.'); return; }
+      var idx = Number(v);
+      if(!(idx >= 0 && idx < budPresets.length)) return;
+      fsBudApplyInputs(budPresets[idx]);
+    });
+  }
+
+  if(budPresetDeleteBtn){
+    budPresetDeleteBtn.addEventListener('click', function(){
+      if(!budPresetSelectEl) return;
+      var v = budPresetSelectEl.value;
+      if(v === '') return;
+      var idx = Number(v);
+      if(!(idx >= 0 && idx < budPresets.length)) return;
+      if(!confirm('선택한 프리셋을 삭제할까요?')) return;
+      budPresets.splice(idx,1);
+      fsSave(FS_BUD_PRESETS_KEY, budPresets);
+      fsBudRefreshSelect();
+    });
+  }
+
+  if(budPresetExportBtn){
+    budPresetExportBtn.addEventListener('click', function(){
+      if(!budPresets.length){
+        alert('내보낼 프리셋이 없습니다.');
+        return;
+      }
+      var payload = {simId:'fullstar-budget', exportedAt:new Date().toISOString(), presets:budPresets};
+      var blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'fullstar-budget-' + fsTimestamp() + '.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+    });
+  }
+
+  if(budPresetImportBtn && budPresetFileEl){
+    budPresetImportBtn.addEventListener('click', function(){
+      budPresetFileEl.value = '';
+      budPresetFileEl.click();
+    });
+    budPresetFileEl.addEventListener('change', function(ev){
+      var file = ev.target && ev.target.files && ev.target.files[0];
+      if(!file) return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        var text = reader.result;
+        var json = fsSafeParse(text, null);
+        if(!json){ alert('JSON 파싱에 실패했습니다.'); return; }
+        var incoming = Array.isArray(json.presets) ? json.presets : (Array.isArray(json) ? json : []);
+        if(!incoming.length){ alert('가져올 프리셋이 없습니다.'); return; }
+        var byName = {};
+        budPresets.forEach(function(p){ if(p && p.name) byName[p.name] = p; });
+        incoming.forEach(function(p){
+          if(!p || !p.name) return;
+          byName[p.name] = p;
+        });
+        budPresets = Object.keys(byName).map(function(k){ return byName[k]; });
+        fsSave(FS_BUD_PRESETS_KEY, budPresets);
+        fsBudRefreshSelect();
+        alert('프리셋을 불러왔습니다.');
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+
+  if(budHistoryClearBtn){
+    budHistoryClearBtn.addEventListener('click', function(){
+      if(!confirm('히스토리를 모두 지우시겠습니까?')) return;
+      budHistory = [];
+      fsSave(FS_BUD_HISTORY_KEY, budHistory);
+      fsBudRenderHistory(budHistory);
+    });
+  }
+
+  var btnBudgetCalc = byId('btnBudgetCalc');
+  if(btnBudgetCalc && budHistoryListEl){
+    btnBudgetCalc.addEventListener('click', function(){
+      setTimeout(function(){
+        var badgeEl = byId('bBadge');
+        var succEl = byId('bSucc');
+        if(!badgeEl && !succEl) return;
+        var label = badgeEl ? (badgeEl.textContent || '').trim() : '';
+        var succ = succEl ? (succEl.textContent || '').trim() : '';
+        if(!label && !succ) return;
+        var entry = {
+          ts:new Date().toISOString(),
+          main: label || '예산 결과',
+          meta: succ ? ('성공 확률 ' + succ) : ''
+        };
+        budHistory.unshift(entry);
+        if(budHistory.length > 50) budHistory = budHistory.slice(0,50);
+        fsSave(FS_BUD_HISTORY_KEY, budHistory);
+        fsBudRenderHistory(budHistory);
+      }, 0);
+    });
+  }
+})();
+</script>
+
+<!-- Hub Back Button Inject -->
+<style>
+  #hubBackWrap{position:fixed; left:16px; top:16px; z-index:2147483647; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial}
+  #hubBackBtn{padding:10px 14px; border-radius:999px; border:1px solid #203042; background:#11202e; color:#e9f1ff; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:.9}
+  #hubBackBtn:hover{opacity:1}
+  @media (prefers-color-scheme: light){
+    #hubBackBtn{background:#0f1825; color:#e9f1ff}
+  }
+</style>
+
+<!-- Hub Back Button Inject -->
+<style>
+  #hubBackWrap{position:fixed; left:16px; top:16px; z-index:2147483647; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial}
+  #hubBackBtn{padding:10px 14px; border-radius:999px; border:1px solid var(--border); background:var(--chip-bg); color:var(--ink); cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:.9}
+  #hubBackBtn:hover{opacity:1}
+  @media (prefers-color-scheme: light){
+    #hubBackBtn{background:var(--chip-bg); color:var(--ink)}
+  }
+</style>
+<div id="hubBackWrap">
+  <button id="hubBackBtn" title="메인 메뉴로">
+    ← 메인으로
+  </button>
+</div>
+<script>
+  (function(){
+    var btn = document.getElementById('hubBackBtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      // If navigated from hub, try back; otherwise go to hub index.html
+      if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+        history.back();
+      } else {
+        // assume hub is one level up
+        location.href = '../index.html';
+      }
+    });
+  })();
+</script>
 
 </body>
-
 </html>
