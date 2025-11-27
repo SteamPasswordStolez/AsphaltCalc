@@ -8,6 +8,8 @@
   <link rel="icon" href="../assets/favicon.png">
   <link rel="stylesheet" href="../assets/themes.css">
   <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+
   <style>
     *{box-sizing:border-box;}
     body{
@@ -195,6 +197,17 @@
 <script>
 (function(){
   var GKEY = 'simhub_theme_global';
+  function isPostOwner(user, post) {
+    if (!user || !post) return false;
+
+    // 1) authorUid가 있으면 uid 기준
+    if (post.authorUid && user.uid && user.uid === post.authorUid) return true;
+
+    // 2) authorUid가 없거나, 옛날 글인 경우 -> email 기준으로 한 번 더 체크
+    if (post.authorEmail && user.email && user.email === post.authorEmail) return true;
+
+    return false;
+  }
   function resolveSystem(theme){
     if (theme === 'system') {
       var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
@@ -264,6 +277,12 @@ const firebaseConfig = {
     const params = new URLSearchParams(location.search);
     const postId = params.get("id");
     const isEdit = !!postId;
+
+    function isPostOwner(user, post) {
+      if (!user || !post) return false;
+      if (post.authorEmail && user.email && post.authorEmail === user.email) return true;
+      return false;
+    }
 
     let currentUser = null;
     let loadedPost  = null;
@@ -361,16 +380,17 @@ const firebaseConfig = {
         titleEl.value   = loadedPost.title || "";
         contentEl.value = loadedPost.content || "";
         guardMsg.textContent = "게시글을 불러왔습니다. 작성자 계정으로 로그인하면 수정할 수 있습니다.";
+        checkAuthorPermission();
       } catch (e) {
         console.error(e);
         guardMsg.textContent = "게시글을 불러오는 중 오류가 발생했습니다.";
         formWrap.style.display = "none";
       }
     }
-
     function checkAuthorPermission() {
       if (!isEdit || !currentUser || !loadedPost) return;
-      if (currentUser.uid !== loadedPost.authorUid) {
+
+      if (!isPostOwner(currentUser, loadedPost)) {
         guardMsg.textContent = "이 게시글을 작성한 계정이 아니어서 수정할 수 없습니다.";
         formWrap.style.display = "none";
       } else {
@@ -378,6 +398,9 @@ const firebaseConfig = {
         formWrap.style.display = "";
       }
     }
+
+
+
 
     onAuthStateChanged(auth, function(user) {
       currentUser = user;
