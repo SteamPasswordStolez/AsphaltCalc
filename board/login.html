@@ -55,12 +55,17 @@
       border-radius:12px;
       padding:14px 16px 16px;
       box-shadow:0 18px 40px rgba(0,0,0,.6);
+      background:var(--card);
     }
     label{display:block;font-size:13px;margin-bottom:4px;}
     input{
       width:100%;
       padding:8px 10px;
       margin-bottom:10px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:var(--field);
+      color:var(--ink);
     }
     .btn{
       width:100%;
@@ -68,6 +73,14 @@
       margin-top:4px;
       border-radius:999px !important;
       font-size:14px;
+      border:none;
+      cursor:pointer;
+      background:var(--chip-bg);
+      color:var(--ink);
+    }
+    .btn.primary{
+      background:var(--accent);
+      color:#fff;
     }
     .btn:disabled{opacity:.6;cursor:default;}
     .msg{font-size:13px;margin-top:6px;min-height:18px;}
@@ -225,28 +238,28 @@
       projectId: "asphaltcalc-5d7f3",
       storageBucket: "asphaltcalc-5d7f3.firebasestorage.app",
       messagingSenderId: "388017703504",
-      appId: "1:388017703504:web:117317163e1ec45a1d5f55"
+      appId: "1:388017163e1ec45a1d5f55"
     };
 
     const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    const emailEl     = document.getElementById("email");
-    const pwEl        = document.getElementById("password");
-    const rememberEl  = document.getElementById("rememberMe");
-    const loginBtn    = document.getElementById("loginBtn");
-    const loginMsg    = document.getElementById("loginMsg");
+    const emailEl      = document.getElementById("email");
+    const pwEl         = document.getElementById("password");
+    const rememberEl   = document.getElementById("rememberMe");
+    const loginBtn     = document.getElementById("loginBtn");
+    const loginMsg     = document.getElementById("loginMsg");
 
     const resetEmailEl = document.getElementById("resetEmail");
     const resetBtn     = document.getElementById("resetBtn");
     const resetMsg     = document.getElementById("resetMsg");
 
-    const googleBtn   = document.getElementById("googleBtn");
-    const appleBtn    = document.getElementById("appleBtn");
+    const googleBtn    = document.getElementById("googleBtn");
+    const appleBtn     = document.getElementById("appleBtn");
 
     onAuthStateChanged(auth, function(user){
       if (user && user.emailVerified) {
-        // 이미 로그인 되어 있으면 자동 이동하고 싶으면 이 줄의 주석을 풀면 됨
+        // 이미 로그인 되어 있으면 자동 이동하려면 아래 줄 주석을 해제하세요.
         // location.href = "./index.html";
       }
     });
@@ -257,26 +270,26 @@
         : browserSessionPersistence;
     }
 
-    // 이메일/비번 로그인
+    // 이메일/비밀번호 로그인
     loginBtn.addEventListener("click", async function () {
       loginMsg.textContent = "";
       try {
-        loginBtn.disabled = true;
+        loginBtn.disabled  = true;
         googleBtn.disabled = true;
         appleBtn.disabled  = true;
 
-        var email = (emailEl.value || "").trim();
-        var pw    = (pwEl.value || "").trim();
+        const email = (emailEl.value || "").trim();
+        const pw    = (pwEl.value || "").trim();
         if (!email || !pw) {
           loginMsg.textContent = "이메일과 비밀번호를 입력하세요.";
           return;
         }
 
-        var persistence = getPersistenceFromRemember();
+        const persistence = getPersistenceFromRemember();
         await setPersistence(auth, persistence);
 
-        var cred = await signInWithEmailAndPassword(auth, email, pw);
-        var user = cred.user;
+        const cred = await signInWithEmailAndPassword(auth, email, pw);
+        const user = cred.user;
 
         if (!user.emailVerified) {
           loginMsg.textContent = "이메일 인증이 완료되지 않았습니다. 메일함에서 인증 링크를 클릭한 뒤 다시 로그인해주세요.";
@@ -305,7 +318,7 @@
       resetMsg.textContent = "";
       try {
         resetBtn.disabled = true;
-        var email = (resetEmailEl.value || "").trim();
+        const email = (resetEmailEl.value || "").trim();
         if (!email) {
           resetMsg.textContent = "이메일을 입력하세요.";
           return;
@@ -328,14 +341,12 @@
         appleBtn.disabled  = true;
         loginBtn.disabled  = true;
 
-        var persistence = getPersistenceFromRemember();
+        const persistence = getPersistenceFromRemember();
         await setPersistence(auth, persistence);
 
-        var provider = new GoogleAuthProvider();
-        var result   = await signInWithPopup(auth, provider);
-        var user     = result.user;
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
 
-        // Google은 이미 이메일 인증된 계정으로 들어오는 걸로 간주
         location.href = "./index.html";
       } catch (e) {
         console.error(e);
@@ -351,27 +362,23 @@
     appleBtn.addEventListener("click", async function () {
       loginMsg.textContent = "";
       try {
-        googleBtn.disabled = true;
         appleBtn.disabled  = true;
+        googleBtn.disabled = true;
         loginBtn.disabled  = true;
 
-        var persistence = getPersistenceFromRemember();
+        const persistence = getPersistenceFromRemember();
         await setPersistence(auth, persistence);
 
-        // Firebase에서 Apple 제공업체를 활성화해야 함
-        var provider = new OAuthProvider("apple.com");
-        var result   = await signInWithPopup(auth, provider);
-        var user     = result.user;
+        const provider = new OAuthProvider("apple.com");
+        await signInWithPopup(auth, provider);
 
-        // Apple도 이메일 인증된 것으로 취급 (Firebase가 검증)
         location.href = "./index.html";
       } catch (e) {
         console.error(e);
-        // 설정이 안 되어 있거나 도메인/서비스ID 문제면 여기서 에러 남
-        loginMsg.textContent = "Apple 로그인 중 오류가 발생했습니다. Firebase 콘솔의 Apple 설정을 확인하세요.";
+        loginMsg.textContent = "Apple 로그인 중 오류가 발생했습니다. 관리자에게 문의해주세요.";
       } finally {
-        googleBtn.disabled = false;
         appleBtn.disabled  = false;
+        googleBtn.disabled = false;
         loginBtn.disabled  = false;
       }
     });
