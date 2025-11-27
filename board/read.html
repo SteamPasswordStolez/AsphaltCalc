@@ -247,7 +247,8 @@
       getDocs,
       query,
       orderBy,
-      serverTimestamp
+      serverTimestamp,
+      updateDoc
     } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -287,6 +288,7 @@ const firebaseConfig = {
 
     let currentUser = null;
     let currentPost = null;
+    let editingCommentId = null;
 
     function formatDate(ts) {
       if (!ts) return "";
@@ -350,7 +352,11 @@ const firebaseConfig = {
 
         const title = d.title || "(제목 없음)";
         const content = d.content || "";
-        const author = d.authorName || (d.authorEmail ? d.authorEmail.split("@")[0] : "알 수 없음");
+        let author = d.authorName || (d.authorEmail ? d.authorEmail.split("@")[0] : "알 수 없음");
+        if (currentUser && currentUser.email && d.authorEmail && d.authorEmail === currentUser.email) {
+          const nick = currentUser.displayName || currentUser.email.split("@")[0];
+          author = nick;
+        }
 
         titleEl.textContent = title;
         if (window.marked) {
@@ -400,7 +406,10 @@ const firebaseConfig = {
             id: docSnap.id,
             author: d.authorName || (d.authorEmail ? d.authorEmail.split("@")[0] : "알 수 없음"),
             text: d.text || "",
-            createdAt: d.createdAt
+            createdAt: d.createdAt,
+            updatedAt: d.updatedAt,
+            authorUid: d.authorUid,
+            authorEmail: d.authorEmail
           });
         });
 
@@ -416,13 +425,58 @@ const firebaseConfig = {
         list.forEach(function(c) {
           const item = document.createElement("div");
           item.className = "comment";
+          item.dataset.id = c.id;
+          if (c.authorUid) item.dataset.authorUid = c.authorUid;
+          if (c.authorEmail) item.dataset.authorEmail = c.authorEmail || "";
+
           const meta = document.createElement("div");
           meta.className = "comment-meta";
           const timeText = c.createdAt ? formatDate(c.createdAt) : "";
-          meta.textContent = c.author + (timeText ? " · " + timeText : "");
+
+          let displayAuthor = c.author;
+          if (currentUser && c.authorEmail && currentUser.email && currentUser.email === c.authorEmail) {
+            const nick = currentUser.displayName || currentUser.email.split("@")[0];
+            displayAuthor = nick;
+          }
+
+          let metaText = displayAuthor;
+          if (timeText) metaText += " · " + timeText;
+          if (c.updatedAt) metaText += " · 수정됨";
+          meta.textContent = metaText;
+
           const body = document.createElement("div");
           body.className = "comment-body";
-          body.textContent = c.text;
+
+          const textDiv = document.createElement("div");
+          textDiv.className = "comment-text";
+          textDiv.textContent = c.text;
+          body.appendChild(textDiv);
+
+          let isOwner = false;
+          if (currentUser) {
+            if (c.authorUid && currentUser.uid === c.authorUid) {
+              isOwner = true;
+            } else if (c.authorEmail && currentUser.email && currentUser.email === c.authorEmail) {
+              isOwner = true;
+            }
+          }
+
+          if (isOwner) {
+            const actions = document.createElement("div");
+            actions.className = "comment-actions";
+            const editBtn = document.createElement("button");
+            editBtn.type = "button";
+            editBtn.className = "comment-action comment-edit-btn";
+            editBtn.textContent = "✏ 수정";
+            const delBtn = document.createElement("button");
+            delBtn.type = "button";
+            delBtn.className = "comment-action comment-delete-btn";
+            delBtn.textContent = "🗑 삭제";
+            actions.appendChild(editBtn);
+            actions.appendChild(delBtn);
+            body.appendChild(actions);
+          }
+
           item.appendChild(meta);
           item.appendChild(body);
           commentListEl.appendChild(item);
@@ -525,6 +579,108 @@ const firebaseConfig = {
         commentBtn.disabled = false;
       }
     });
+
+    commentListEl.addEventListener("click", async function(e) {
+      const target = e.target;
+      const item = target.closest(".comment");
+      if (!item) return;
+      const commentId = item.dataset.id;
+      if (!commentId) return;
+
+      // 삭제
+      if (target.classList.contains("comment-delete-btn")) {
+        if (!currentUser) return;
+        if (!confirm("이 댓글을 삭제하시겠습니까?")) return;
+        try {
+          await deleteDoc(doc(db, "posts", postId, "comments", commentId));
+          loadComments();
+        } catch (err) {
+          console.error(err);
+          alert("댓글 삭제 중 오류가 발생했습니다.");
+        }
+        return;
+      }
+
+      // 수정 시작
+      if (target.classList.contains("comment-edit-btn")) {
+        if (!currentUser) return;
+
+        // 이미 다른 댓글 수정 중이면 새로고침 후 다시 시작
+        if (editingCommentId && editingCommentId !== commentId) {
+          await loadComments();
+        }
+        editingCommentId = commentId;
+
+        const body = item.querySelector(".comment-body");
+        if (!body) return;
+        const textDiv = body.querySelector(".comment-text");
+        const original = textDiv ? textDiv.textContent : "";
+        body.innerHTML = "";
+
+        const textarea = document.createElement("textarea");
+        textarea.className = "comment-edit-input";
+        textarea.value = original;
+        textarea.style.width = "100%";
+        textarea.style.minHeight = "60px";
+        textarea.maxLength = 1000;
+
+        const actions = document.createElement("div");
+        actions.className = "comment-actions";
+
+        const saveBtn = document.createElement("button");
+        saveBtn.type = "button";
+        saveBtn.className = "comment-action comment-save-btn";
+        saveBtn.textContent = "저장";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.className = "comment-action comment-cancel-btn";
+        cancelBtn.textContent = "취소";
+
+        actions.appendChild(saveBtn);
+        actions.appendChild(cancelBtn);
+
+        body.appendChild(textarea);
+        body.appendChild(actions);
+        textarea.focus();
+        return;
+      }
+
+      // 수정 저장 / 취소
+      if (target.classList.contains("comment-save-btn") || target.classList.contains("comment-cancel-btn")) {
+        if (!editingCommentId) return;
+        if (target.classList.contains("comment-cancel-btn")) {
+          editingCommentId = null;
+          loadComments();
+          return;
+        }
+        // 저장
+        const body = item.querySelector(".comment-body");
+        const textarea = body ? body.querySelector(".comment-edit-input") : null;
+        if (!textarea) return;
+        const newText = (textarea.value || "").trim();
+        if (!newText) {
+          alert("댓글 내용을 입력하세요.");
+          return;
+        }
+        if (newText.length > 1000) {
+          alert("댓글은 최대 1000자까지 작성할 수 있습니다.");
+          return;
+        }
+        try {
+          await updateDoc(doc(db, "posts", postId, "comments", commentId), {
+            text: newText,
+            updatedAt: serverTimestamp()
+          });
+          editingCommentId = null;
+          loadComments();
+        } catch (err) {
+          console.error(err);
+          alert("댓글 수정 중 오류가 발생했습니다.");
+        }
+      }
+    });
+
 
     loadPost();
     loadComments();
