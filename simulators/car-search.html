@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Car Search — 자동차 검색</title>
+  <meta name="color-scheme" content="light dark" />
+
+  <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/themes.css">
+
+  <!-- 허브 테마 선택 (SIM_ID: car-search) -->
+  <script>
+    (function () {
+      var SIM_ID = "car-search";
+      var GKEY = "simhub_theme_global";
+      var OKEY = "simhub_theme_overrides";
+
+      function resolveSystem(theme) {
+        if (theme !== "system") return theme;
+        var isDark = window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        return isDark ? "dark" : "light";
+      }
+
+      function applyTheme() {
+        var globalTheme = localStorage.getItem(GKEY) || "asphalt";
+        var overrides;
+        try {
+          overrides = JSON.parse(localStorage.getItem(OKEY) || "{}");
+        } catch (e) {
+          overrides = {};
+        }
+        var theme = overrides[SIM_ID] || globalTheme;
+        document.documentElement.dataset.theme = resolveSystem(theme);
+      }
+
+      try { applyTheme(); } catch (e) { console.warn(e); }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+  <script src="../assets/lang.js"></script>
+  <script src="../assets/i18n.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Roboto, Noto Sans KR, Arial;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    .page-wrap {
+      max-width: 1180px;
+      margin: 32px auto 40px;
+      padding: 0 24px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .page-sub {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+
+    .panel {
+      border-radius: 18px;
+      padding: 18px 20px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-raised, 0 18px 45px rgba(0, 0, 0, .55));
+    }
+
+    .panel-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-small {
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      background: var(--surface-soft);
+      white-space: nowrap;
+    }
+
+    .sort-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .sort-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .sort-chip {
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border: 1px solid var(--border-soft);
+      background: var(--surface-soft);
+      color: var(--ink-soft);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .sort-chip.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 600;
+    }
+
+    .list-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .search-wrap {
+      flex: 1 1 200px;
+      min-width: 0;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--surface-soft);
+      color: var(--ink);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-input::placeholder {
+      color: var(--ink-faint);
+    }
+
+    .class-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .class-chip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      border: 1px solid var(--border-soft);
+      background: var(--surface-soft);
+      color: var(--ink-soft);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .class-chip.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .car-list-wrap {
+      border-radius: 14px;
+      border: 1px solid var(--border-soft);
+      background: var(--surface-subtle);
+      overflow: hidden;
+    }
+
+    .car-list {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .car-list thead {
+      background: var(--surface-soft);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .car-list th,
+    .car-list td {
+      padding: 6px 8px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    .car-list th {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+
+    .car-list tbody tr {
+      cursor: pointer;
+    }
+
+    .car-list tbody tr:nth-child(2n) {
+      background: var(--surface-weak);
+    }
+
+    .car-list tbody tr:hover {
+      background: var(--surface-hover);
+    }
+
+    .col-class {
+      width: 38px;
+    }
+
+    .col-id {
+      width: 52px;
+    }
+
+    .col-max-rank {
+      width: 80px;
+    }
+
+    .col-fuel {
+      width: 50px;
+    }
+
+    .col-max-star {
+      width: 55px;
+    }
+
+    .class-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 26px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: var(--surface-soft);
+      color: var(--ink-strong);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-wrap">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title" data-i18n="cs.title">차량 목록</h1>
+        <p class="page-sub" data-i18n="cs.desc">차량을 클릭하면 상세 페이지로 이동합니다.</p>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="panel-title-row">
+          <h2 class="panel-title" data-i18n="cs.all_cars">전체 차량</h2>
+          <div class="sort-row">
+            <ul class="sort-chips" id="sortChips">
+              <li class="sort-chip is-active" data-sort="default" data-i18n="cs.sort_default">기본</li>
+              <li class="sort-chip" data-sort="rank-desc" data-i18n="cs.sort_rank_desc">랭크↓</li>
+              <li class="sort-chip" data-sort="rank-asc" data-i18n="cs.sort_rank_asc">랭크↑</li>
+              <li class="sort-chip" data-sort="id-asc" data-i18n="cs.sort_id_asc">ID↑</li>
+              <li class="sort-chip" data-sort="id-desc" data-i18n="cs.sort_id_desc">ID↓</li>
+            </ul>
+            <span class="badge-small" id="countBadge">총 0대</span>
+          </div>
+        </div>
+
+        <div class="list-controls">
+          <div class="search-wrap">
+            <input id="searchInput" class="search-input" type="search" data-placeholder="cs.search_ph"
+              placeholder="차 이름 또는 ID 검색..." onfocus="this.placeholder=''"
+              onblur="this.placeholder=I18N.t('cs.search_ph')" autocomplete="off">
+          </div>
+          <ul class="class-chips" id="classFilter">
+            <li class="class-chip is-active" data-class="ALL">ALL</li>
+            <li class="class-chip" data-class="D">D</li>
+            <li class="class-chip" data-class="C">C</li>
+            <li class="class-chip" data-class="B">B</li>
+            <li class="class-chip" data-class="A">A</li>
+            <li class="class-chip" data-class="S">S</li>
+          </ul>
+        </div>
+
+        <div class="car-list-wrap">
+          <table class="car-list">
+            <thead>
+              <tr>
+                <th class="col-class" data-i18n="cs.table.class">Class</th>
+                <th class="col-id" data-i18n="cs.table.id">ID</th>
+                <th data-i18n="cs.table.name">이름</th>
+                <th class="col-max-rank" data-i18n="cs.table.max_rank">Max Rank</th>
+                <th class="col-max-star" data-i18n="cs.table.max_star">★ Max</th>
+                <th class="col-fuel" data-i18n="cs.table.fuel">연료</th>
+              </tr>
+            </thead>
+            <tbody id="carListBody">
+              <!-- JS로 렌더링 -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    async function loadCarData() {
+      if (Array.isArray(window.CAR_DATA)) return window.CAR_DATA;
+
+      try {
+        var res = await fetch("../assets/cars.json");
+        if (res.ok) {
+          var data = await res.json();
+          if (Array.isArray(data)) return data;
+          return Object.values(data);
+        }
+      } catch (e) {
+        console.warn(I18N.t('cs.err_load'), e);
+      }
+      return [];
+    }
+
+    function getMaxRank(car) {
+      if (!car || !Array.isArray(car.stat) || car.stat.length === 0) return null;
+      var goldEntry = null;
+      var maxRankEntry = null;
+      for (var i = 0; i < car.stat.length; i++) {
+        var s = car.stat[i];
+        if (!maxRankEntry || (typeof s.rank === "number" && s.rank > maxRankEntry.rank)) {
+          maxRankEntry = s;
+        }
+        if (s.type === "gold") goldEntry = s;
+      }
+      return (goldEntry && typeof goldEntry.rank === "number")
+        ? goldEntry.rank
+        : (maxRankEntry && typeof maxRankEntry.rank === "number")
+          ? maxRankEntry.rank
+          : null;
+    }
+
+    function formatNumber(n) {
+      if (typeof n !== "number" || !isFinite(n)) return "-";
+      return n.toLocaleString("ko-KR");
+    }
+
+    function initCarList(cars) {
+      var carListBody = document.getElementById("carListBody");
+      var searchInput = document.getElementById("searchInput");
+      var classFilter = document.getElementById("classFilter");
+      var sortChips = document.getElementById("sortChips");
+      var countBadge = document.getElementById("countBadge");
+
+      var allCars = Array.isArray(cars) ? cars.slice() : [];
+      var filteredCars = allCars.slice();
+      var currentClassFilter = "ALL";
+      var currentSearch = "";
+      var currentSort = "default"; // 기본
+
+      countBadge.textContent = I18N.t('cs.total_count').replace('{n}', allCars.length);
+
+      function sortCars() {
+        var classOrder = { "D": 0, "C": 1, "B": 2, "A": 3, "S": 4 };
+
+        filteredCars.sort(function (a, b) {
+          var idA = Number(a.id);
+          var idB = Number(b.id);
+          if (!isFinite(idA)) idA = 0;
+          if (!isFinite(idB)) idB = 0;
+
+          var ra = getMaxRank(a);
+          var rb = getMaxRank(b);
+          var aHasRank = (typeof ra === "number" && isFinite(ra));
+          var bHasRank = (typeof rb === "number" && isFinite(rb));
+
+          // 기본: 클래스 D→C→B→A→S, 같은 클래스는 "최대 랭크 오름차순"
+          if (currentSort === "default") {
+            var ca = classOrder[a.class] != null ? classOrder[a.class] : 99;
+            var cb = classOrder[b.class] != null ? classOrder[b.class] : 99;
+            if (ca !== cb) return ca - cb;
+
+            if (!aHasRank && !bHasRank) {
+              return idA - idB;
+            }
+            if (!aHasRank) return 1;
+            if (!bHasRank) return -1;
+
+            if (ra !== rb) return ra - rb;
+            return idA - idB;
+          }
+
+          // ID 정렬
+          if (currentSort === "id-asc") {
+            if (idA !== idB) return idA - idB;
+            return 0;
+          }
+          if (currentSort === "id-desc") {
+            if (idA !== idB) return idB - idA;
+            return 0;
+          }
+
+          // 랭크 정렬
+          if (!aHasRank && !bHasRank) {
+            var ca2 = classOrder[a.class] != null ? classOrder[a.class] : 99;
+            var cb2 = classOrder[b.class] != null ? classOrder[b.class] : 99;
+            if (ca2 !== cb2) return ca2 - cb2;
+            return idA - idB;
+          }
+          if (!aHasRank) return 1;
+          if (!bHasRank) return -1;
+
+          if (currentSort === "rank-asc") {
+            if (ra !== rb) return ra - rb;
+            return idA - idB;
+          }
+          // 나머지는 rank-desc (랭크 높은 순)
+          if (ra !== rb) return rb - ra;
+          return idA - idB;
+        });
+      }
+
+      function applyFilter() {
+        var q = currentSearch.trim().toLowerCase();
+        filteredCars = allCars.filter(function (car) {
+          if (currentClassFilter !== "ALL" && car.class !== currentClassFilter) return false;
+          if (q) {
+            var name = (car.name || "").toLowerCase();
+            var idStr = String(car.id || "");
+            return name.indexOf(q) !== -1 || idStr.indexOf(q) !== -1;
+          }
+          return true;
+        });
+        sortCars();
+        renderList();
+      }
+
+      function renderList() {
+        carListBody.innerHTML = "";
+        if (filteredCars.length === 0) {
+          var tr = document.createElement("tr");
+          var td = document.createElement("td");
+          td.colSpan = 6;
+          td.textContent = I18N.t('cs.msg_no_result');
+          td.style.fontSize = "12px";
+          td.style.color = "var(--ink-soft)";
+          td.style.padding = "10px 8px";
+          tr.appendChild(td);
+          carListBody.appendChild(tr);
+          return;
+        }
+
+        for (var i = 0; i < filteredCars.length; i++) {
+          var car = filteredCars[i];
+          var tr = document.createElement("tr");
+          tr.dataset.carId = car.id;
+
+          var tdClass = document.createElement("td");
+          tdClass.className = "col-class";
+          var spanClass = document.createElement("span");
+          spanClass.className = "class-badge";
+          spanClass.textContent = car.class || "-";
+          tdClass.appendChild(spanClass);
+
+          var tdId = document.createElement("td");
+          tdId.className = "col-id";
+          tdId.textContent = car.id != null ? car.id : "-";
+
+          var tdName = document.createElement("td");
+          tdName.textContent = car.name || "-";
+
+          var tdMaxRank = document.createElement("td");
+          tdMaxRank.className = "col-max-rank";
+          var maxRank = getMaxRank(car);
+          tdMaxRank.textContent = maxRank == null ? "-" : formatNumber(maxRank);
+
+          var tdMaxStar = document.createElement("td");
+          tdMaxStar.className = "col-max-star";
+          tdMaxStar.textContent = car.max_star != null ? car.max_star : "-";
+
+          var tdFuel = document.createElement("td");
+          tdFuel.className = "col-fuel";
+          tdFuel.textContent = car.fuel != null ? car.fuel : "-";
+
+          tr.appendChild(tdClass);
+          tr.appendChild(tdId);
+          tr.appendChild(tdName);
+          tr.appendChild(tdMaxRank);
+          tr.appendChild(tdMaxStar);
+          tr.appendChild(tdFuel);
+
+          carListBody.appendChild(tr);
+        }
+      }
+
+      // 검색
+      searchInput.addEventListener("input", function () {
+        currentSearch = searchInput.value;
+        applyFilter();
+      });
+
+      // 클래스 칩
+      classFilter.addEventListener("click", function (e) {
+        var chip = e.target.closest(".class-chip");
+        if (!chip) return;
+        var cls = chip.dataset.class;
+        if (!cls) return;
+
+        currentClassFilter = cls;
+        var chips = classFilter.querySelectorAll(".class-chip");
+        for (var i = 0; i < chips.length; i++) {
+          chips[i].classList.toggle("is-active", chips[i] === chip);
+        }
+        applyFilter();
+      });
+
+      // 정렬 칩
+      sortChips.addEventListener("click", function (e) {
+        var chip = e.target.closest(".sort-chip");
+        if (!chip) return;
+        var sortKey = chip.dataset.sort;
+        if (!sortKey) return;
+
+        currentSort = sortKey;
+        var chips = sortChips.querySelectorAll(".sort-chip");
+        for (var i = 0; i < chips.length; i++) {
+          chips[i].classList.toggle("is-active", chips[i] === chip);
+        }
+        applyFilter();
+      });
+
+      // 행 클릭 → 상세 페이지 이동
+      carListBody.addEventListener("click", function (e) {
+        var tr = e.target.closest("tr");
+        if (!tr || !tr.dataset.carId) return;
+        var carId = tr.dataset.carId;
+        window.location.href = "car-detail.html?id=" + encodeURIComponent(carId);
+      });
+
+      // 초기 렌더
+      applyFilter();
+    }
+
+    (async function () {
+      var cars = await loadCarData();
+      initCarList(cars);
+    })();
+  </script>
+  <!-- Hub Back Button Inject -->
+  <style>
+    #hubBackWrap {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 2147483647;
+      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
+    }
+
+    #hubBackBtn {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--chip-bg);
+      color: var(--ink);
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+      opacity: .9
+    }
+
+    #hubBackBtn:hover {
+      opacity: 1
+    }
+
+    @media (prefers-color-scheme: light) {
+      #hubBackBtn {
+        background: var(--chip-bg);
+        color: var(--ink)
+      }
+    }
+  </style>
+  <div id="hubBackWrap">
+    <button id="hubBackBtn" title="메인 메뉴로" data-i18n="common.back">
+      ← 메인으로
+    </button>
+  </div>
+  <script>
+    (function () {
+      var btn = document.getElementById('hubBackBtn');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        // If navigated from hub, try back; otherwise go to hub index.html
+        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+          history.back();
+        } else {
+          // assume hub is one level up
+          location.href = '../index.html';
+        }
+      });
+    })();
+  </script>
+</body>
+
+</html>

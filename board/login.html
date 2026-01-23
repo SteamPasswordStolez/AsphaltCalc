@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>로그인 — AsphaltCalc 게시판</title>
+  <meta name="color-scheme" content="light dark" />
+
+  <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/themes.css">
+
+  <!-- 테마 선택 (SIM_ID: board-login) -->
+  <script>
+  (function(){
+    var SIM_ID = "board-login";
+    var GKEY = "simhub_theme_global";
+    var OKEY = "simhub_theme_overrides";
+    function resolveSystem(theme){
+      if(theme !== "system") return theme;
+      var isDark = window.matchMedia &&
+                   window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return isDark ? "dark" : "light";
+    }
+    function applyTheme(){
+      var globalTheme = localStorage.getItem(GKEY) || "asphalt";
+      var overrides;
+      try{ overrides = JSON.parse(localStorage.getItem(OKEY) || "{}"); }
+      catch(e){ overrides = {}; }
+      var theme = overrides[SIM_ID] || globalTheme;
+      document.documentElement.dataset.theme = resolveSystem(theme);
+    }
+    try{ applyTheme(); }catch(e){ console.warn(e); }
+  })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+  <style>
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Apple SD Gothic Neo,Roboto,Noto Sans KR,Arial;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    .wrap{
+      max-width:420px;
+      margin:40px auto;
+      padding:0 16px;
+    }
+    h1{margin:0 0 6px;font-size:22px;font-weight:800;}
+    .sub{font-size:13px;color:var(--muted);margin:0 0 16px;}
+    
+    .card{
+      border-radius:12px;
+      padding:14px 16px 16px;
+      box-shadow:0 18px 40px rgba(0,0,0,.6);
+      background:var(--card);
+    }
+    label{display:block;font-size:13px;margin-bottom:4px;}
+    input{
+      width:100%;
+      padding:8px 10px;
+      margin-bottom:10px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:var(--field);
+      color:var(--ink);
+    }
+    .btn{
+      width:100%;
+      padding:8px 12px;
+      margin-top:4px;
+      border-radius:999px !important;
+      font-size:14px;
+      border:none;
+      cursor:pointer;
+      background:var(--chip-bg);
+      color:var(--ink);
+    }
+    .btn.primary{
+      background:var(--accent);
+      color:#fff;
+    }
+    .btn:disabled{opacity:.6;cursor:default;}
+    .msg{font-size:13px;margin-top:6px;min-height:18px;}
+    a{color:var(--accent);text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    .link-row{
+      display:flex;
+      justify-content:space-between;
+      font-size:12px;
+      margin-top:10px;
+    }
+
+    /* 로그인 유지 체크박스 */
+    .remember-row{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      color:var(--muted);
+      margin:-4px 0 6px;
+    }
+    .remember-row input[type="checkbox"]{
+      width:auto;
+      margin:0;
+      accent-color:var(--accent);
+    }
+
+    /* 소셜 로그인 구역 */
+    .provider-wrap{
+      margin:10px 0 4px;
+    }
+    .provider-title{
+      font-size:11px;
+      color:var(--muted);
+      text-align:center;
+      margin:4px 0 8px;
+    }
+    .provider-btn{
+      width:100%;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--chip-bg);
+      color:var(--ink);
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      cursor:pointer;
+      margin-bottom:6px;
+      box-shadow:0 10px 28px rgba(15,23,42,.7);
+    }
+    .provider-btn:hover{
+      border-color:var(--accent);
+    }
+    .provider-btn:disabled{
+      opacity:.6;
+      cursor:default;
+      box-shadow:none;
+    }
+    .provider-icon{
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:13px;
+      flex-shrink:0;
+      background:#fff;
+      color:#111827;
+    }
+    .provider-icon.apple{
+      background:#000;
+      color:#fff;
+      font-size:14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>로그인</h1>
+    <p class="sub">이메일/비밀번호 또는 소셜 계정으로 로그인합니다. 이메일 인증이 완료된 계정만 글 작성/댓글/수정/삭제가 가능합니다.</p>
+
+    <div class="card">
+      <!-- 이메일 / 비밀번호 로그인 -->
+      <label for="email">이메일</label>
+      <input id="email" type="email" autocomplete="email" />
+
+      <label for="password">비밀번호</label>
+      <input id="password" type="password" autocomplete="current-password" />
+
+      <div class="remember-row">
+        <input id="rememberMe" type="checkbox" checked />
+        <label for="rememberMe" style="margin:0;">로그인 상태 유지</label>
+      </div>
+
+      <button id="loginBtn" class="btn primary" type="button">이메일로 로그인</button>
+      <div id="loginMsg" class="msg"></div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:10px 0 6px;">
+
+      <!-- 소셜 로그인 -->
+      <div class="provider-wrap">
+        <div class="provider-title">다른 계정으로 로그인</div>
+
+        <button id="googleBtn" class="provider-btn" type="button">
+          <span class="provider-icon">G</span>
+          <span>Google로 로그인</span>
+        </button>
+
+        <button id="appleBtn" class="provider-btn" type="button">
+          <span class="provider-icon apple"></span>
+          <span>Apple로 로그인</span>
+        </button>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0 10px;">
+
+      <!-- 비밀번호 재설정 -->
+      <label for="resetEmail">비밀번호 재설정 이메일</label>
+      <input id="resetEmail" type="email" placeholder="가입한 이메일 입력" />
+
+      <button id="resetBtn" class="btn" type="button">재설정 메일 보내기</button>
+      <div id="resetMsg" class="msg" style="color:var(--success);"></div>
+
+      <div class="link-row">
+        <a href="./index.html">← 게시판으로 돌아가기</a>
+        <a href="./signup.html">회원가입</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      sendPasswordResetEmail,
+      sendEmailVerification,
+      onAuthStateChanged,
+      signOut,
+      setPersistence,
+      browserLocalPersistence,
+      browserSessionPersistence,
+      GoogleAuthProvider,
+      OAuthProvider,
+      signInWithPopup
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKIndVVlblrQfZGjaGpLBSxlWicLZiqPc",
+      authDomain: "asphaltcalc-5d7f3.firebaseapp.com",
+      projectId: "asphaltcalc-5d7f3",
+      storageBucket: "asphaltcalc-5d7f3.firebasestorage.app",
+      messagingSenderId: "388017703504",
+      appId: "1:388017163e1ec45a1d5f55"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const emailEl      = document.getElementById("email");
+    const pwEl         = document.getElementById("password");
+    const rememberEl   = document.getElementById("rememberMe");
+    const loginBtn     = document.getElementById("loginBtn");
+    const loginMsg     = document.getElementById("loginMsg");
+
+    const resetEmailEl = document.getElementById("resetEmail");
+    const resetBtn     = document.getElementById("resetBtn");
+    const resetMsg     = document.getElementById("resetMsg");
+
+    const googleBtn    = document.getElementById("googleBtn");
+    const appleBtn     = document.getElementById("appleBtn");
+
+    onAuthStateChanged(auth, function(user){
+      if (user && user.emailVerified) {
+        // 이미 로그인 되어 있으면 자동 이동하려면 아래 줄 주석을 해제하세요.
+        // location.href = "./index.html";
+      }
+    });
+
+    function getPersistenceFromRemember(){
+      return rememberEl && rememberEl.checked
+        ? browserLocalPersistence
+        : browserSessionPersistence;
+    }
+
+    // 이메일/비밀번호 로그인
+    loginBtn.addEventListener("click", async function () {
+      loginMsg.textContent = "";
+      try {
+        loginBtn.disabled  = true;
+        googleBtn.disabled = true;
+        appleBtn.disabled  = true;
+
+        const email = (emailEl.value || "").trim();
+        const pw    = (pwEl.value || "").trim();
+        if (!email || !pw) {
+          loginMsg.textContent = "이메일과 비밀번호를 입력하세요.";
+          return;
+        }
+
+        const persistence = getPersistenceFromRemember();
+        await setPersistence(auth, persistence);
+
+        const cred = await signInWithEmailAndPassword(auth, email, pw);
+        const user = cred.user;
+
+        if (!user.emailVerified) {
+          loginMsg.textContent = "이메일 인증이 완료되지 않았습니다. 메일함에서 인증 링크를 클릭한 뒤 다시 로그인해주세요.";
+          try { await sendEmailVerification(user); } catch(e){ console.error(e); }
+          await signOut(auth);
+          return;
+        }
+
+        location.href = "./index.html";
+      } catch (e) {
+        console.error(e);
+        if (e && e.code === "auth/invalid-credential") {
+          loginMsg.textContent = "이메일 또는 비밀번호가 올바르지 않습니다.";
+        } else {
+          loginMsg.textContent = "로그인 중 오류가 발생했습니다.";
+        }
+      } finally {
+        loginBtn.disabled  = false;
+        googleBtn.disabled = false;
+        appleBtn.disabled  = false;
+      }
+    });
+
+    // 비밀번호 재설정
+    resetBtn.addEventListener("click", async function () {
+      resetMsg.textContent = "";
+      try {
+        resetBtn.disabled = true;
+        const email = (resetEmailEl.value || "").trim();
+        if (!email) {
+          resetMsg.textContent = "이메일을 입력하세요.";
+          return;
+        }
+        await sendPasswordResetEmail(auth, email);
+        resetMsg.textContent = "비밀번호 재설정 메일을 보냈습니다.";
+      } catch (e) {
+        console.error(e);
+        resetMsg.textContent = "메일 전송 중 오류가 발생했습니다.";
+      } finally {
+        resetBtn.disabled = false;
+      }
+    });
+
+    // Google 로그인
+    googleBtn.addEventListener("click", async function () {
+      loginMsg.textContent = "";
+      try {
+        googleBtn.disabled = true;
+        appleBtn.disabled  = true;
+        loginBtn.disabled  = true;
+
+        const persistence = getPersistenceFromRemember();
+        await setPersistence(auth, persistence);
+
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+
+        location.href = "./index.html";
+      } catch (e) {
+        console.error(e);
+        loginMsg.textContent = "Google 로그인 중 오류가 발생했습니다.";
+      } finally {
+        googleBtn.disabled = false;
+        appleBtn.disabled  = false;
+        loginBtn.disabled  = false;
+      }
+    });
+
+    // Apple 로그인
+    appleBtn.addEventListener("click", async function () {
+      loginMsg.textContent = "";
+      try {
+        appleBtn.disabled  = true;
+        googleBtn.disabled = true;
+        loginBtn.disabled  = true;
+
+        const persistence = getPersistenceFromRemember();
+        await setPersistence(auth, persistence);
+
+        const provider = new OAuthProvider("apple.com");
+        await signInWithPopup(auth, provider);
+
+        location.href = "./index.html";
+      } catch (e) {
+        console.error(e);
+        loginMsg.textContent = "Apple 로그인 중 오류가 발생했습니다. 관리자에게 문의해주세요.";
+      } finally {
+        appleBtn.disabled  = false;
+        googleBtn.disabled = false;
+        loginBtn.disabled  = false;
+      }
+    });
+  </script>
+</body>
+</html>

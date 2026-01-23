@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="../assets/favicon.png">
+  <title>Car Upgrade — 업그레이드 비용 계산기</title>
+  <meta name="color-scheme" content="light dark" />
+
+  <style>
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, Segoe UI, Apple SD Gothic Neo, Apple Color Emoji, Roboto, Noto Sans KR, Arial;
+      background: linear-gradient(180deg, var(--bg), #0e131a 40%, var(--bg));
+      color: var(--ink);
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 32px auto 40px;
+      padding: 0 16px;
+    }
+
+    h1 {
+      font-size: 26px;
+      margin: 0 0 8px;
+    }
+
+    .subtitle {
+      margin: 0 0 16px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: var(--gap, 16px);
+    }
+
+    .card .body {
+      padding: 16px;
+    }
+
+    h2 {
+      font-size: 18px;
+      margin: 0 0 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin: 8px 0 4px;
+    }
+
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--control-border);
+      background: var(--control-bg);
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 14px 0;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 12px;
+    }
+
+    @media (max-width:900px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    @media (max-width:900px) {
+      .stat-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px 12px;
+    }
+
+    .stat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .stat-name {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .stat-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--chip-bg);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .stat-stages {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .stat-stages label {
+      margin: 0 0 2px;
+      font-size: 11px;
+    }
+
+    .stat-stages input {
+      font-size: 13px;
+      padding: 6px 8px;
+    }
+
+    .stat-inputs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .stat-inputs label {
+      margin: 0 0 2px;
+      font-size: 11px;
+    }
+
+    .stat-inputs input {
+      font-size: 13px;
+      padding: 6px 8px;
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--chip-bg);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    button.primary {
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .error {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--danger);
+      min-height: 1em;
+    }
+
+    .result-main {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      margin-bottom: 10px;
+    }
+
+    .result-main-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .result-main-value {
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    @media (max-width:780px) {
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .result-box {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .result-box h3 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .result-row span:last-child {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+
+  <!-- 글로벌 테마 토큰 -->
+  <link rel="stylesheet" href="../assets/themes.css">
+
+  <!-- 테마 선택 (다른 시뮬과 동일 패턴) -->
+  <script>
+    (function () {
+      var SIM_ID = "upgrade-cost";
+      var GKEY = "simhub_theme_global";
+      var OKEY = "simhub_theme_overrides";
+      function resolveSystem(theme) {
+        if (theme !== "system") return theme;
+        var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return isDark ? "dark" : "light";
+      }
+      function apply() {
+        var g = localStorage.getItem(GKEY) || "asphalt";
+        var map;
+        try { map = JSON.parse(localStorage.getItem(OKEY) || "{}"); }
+        catch (_) { map = {}; }
+        var t = map[SIM_ID] || g;
+        document.documentElement.dataset.theme = resolveSystem(t);
+      }
+      try { apply(); } catch (e) { console.warn(e); }
+    })();
+  </script>
+
+  <!-- theme-adapter -->
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+  <script src="../assets/lang.js"></script>
+  <script src="../assets/i18n.js"></script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo"></div>
+      <h1 data-i18n="cu.title">업그레이드 비용 계산기</h1>
+    </div>
+    <div class="toolbar">
+      <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
+    </div>
+    <p class="subtitle" data-i18n="cu.subtitle">cars.json과 upgrades.json을 기반으로 각 부위별 스테이지 / 부품에 드는 크레딧을 계산합니다.</p>
+
+    <!-- 입력 카드 -->
+    <section class="card" id="inputPanel">
+      <div class="body">
+        <h2 data-i18n="cu.input_title">입력값</h2>
+
+        <div class="grid-2">
+          <div>
+            <label for="carSelect" data-i18n="cu.car_select_label">업그레이드할 차량</label>
+            <select id="carSelect">
+              <option value="" data-i18n="cu.car_select_placeholder">차량을 선택하세요</option>
+            </select>
+            <div class="hint" id="carMetaHint" data-i18n="cu.car_meta_hint">JSON 데이터를 불러오는 중...</div>
+          </div>
+          <div>
+            <label for="currentStar" data-i18n="cu.current_star_label">현재 성(★)</label>
+            <input id="currentStar" type="number" class="input" min="1" max="6" value="1">
+            <div class="hint" id="maxStarHint"></div>
+          </div>
+        </div>
+
+        <label for="carSearch" data-i18n="cu.car_search_label">차 이름 검색</label>
+        <input id="carSearch" type="text" class="input" data-i18n-ph="cu.car_search_ph"
+          placeholder="차 이름 일부를 입력하고 Enter를 누르세요. (예: TUATARA)">
+        <div class="hint" data-i18n="cu.car_search_hint">이름 일부로 검색해서 가장 먼저 일치하는 차량을 자동으로 선택합니다.</div>
+
+        <div class="hint" id="stageLimitHint" style="margin-top:8px;" data-i18n="cu.stage_limit_hint">
+          차량을 선택하면 이 차량의 전체 최대 스테이지가 표시됩니다.
+        </div>
+
+        <hr>
+
+        <div class="hint" style="margin-bottom:6px;" data-i18n="cu.parts_input_hint">
+          각 부위별로 <b>현재 스테이지 / 목표 스테이지</b>와 <b>일반·레어·에픽 부품</b> 개수를 입력하세요.<br>
+          부품 총합은 JSON에 기록된 최대 개수를 넘을 수 없습니다.
+        </div>
+
+        <div class="stat-grid">
+          <!-- 최고속도 -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-name" data-i18n="stat.top_speed">최고속도</div>
+              <div class="stat-tag">TOP SPEED</div>
+            </div>
+            <div class="stat-stages">
+              <div>
+                <label data-i18n="cu.current_stage_label">현재 스테이지</label>
+                <input class="stage-input" type="number" min="0" value="0" data-stat="top_speed"
+                  data-role="current-stage">
+              </div>
+              <div>
+                <label>목표 스테이지</label>
+                <input class="stage-input" type="number" min="0" value="0" data-stat="top_speed"
+                  data-role="target-stage">
+              </div>
+            </div>
+            <div class="stat-inputs">
+              <div>
+                <label data-i18n="cu.part_uncommon">일반부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="top_speed" data-part="uncommon">
+              </div>
+              <div>
+                <label data-i18n="cu.part_rare">레어부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="top_speed" data-part="rare">
+              </div>
+              <div>
+                <label data-i18n="cu.part_epic">에픽부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="top_speed" data-part="epic">
+              </div>
+            </div>
+          </div>
+
+          <!-- 가속 -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-name" data-i18n="stat.accel">가속</div>
+              <div class="stat-tag">ACCELERATION</div>
+            </div>
+            <div class="stat-stages">
+              <div>
+                <label data-i18n="cu.current_stage_label">현재 스테이지</label>
+                <input class="stage-input" type="number" min="0" value="0" data-stat="accel" data-role="current-stage">
+              </div>
+              <div>
+                <label data-i18n="cu.target_stage_label">목표 스테이지</label>
+                <input class="stage-input" type="number" min="0" value="0" data-stat="accel" data-role="target-stage">
+              </div>
+            </div>
+            <div class="stat-inputs">
+              <div>
+                <label data-i18n="cu.part_uncommon">일반부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="accel" data-part="uncommon">
+              </div>
+              <div>
+                <label data-i18n="cu.part_rare">레어부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="accel" data-part="rare">
+              </div>
+              <div>
+                <label data-i18n="cu.part_epic">에픽부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="accel" data-part="epic">
+              </div>
+            </div>
+          </div>
+
+          <!-- 핸들링 -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-name" data-i18n="stat.handling">핸들링</div>
+              <div class="stat-tag">HANDLING</div>
+            </div>
+            <div class="stat-stages">
+              <div>
+                <label data-i18n="cu.current_stage_label">현재 스테이지</label>
+                <input class="stage-input" type="number" min="0" value="0" data-stat="handling"
+                  data-role="current-stage">
+              </div>
+              <div>
+                <label data-i18n="cu.target_stage_label">목표 스테이지</label>
+                <input class="stage-input" type="number" min="0" value="0" data-stat="handling"
+                  data-role="target-stage">
+              </div>
+            </div>
+            <div class="stat-inputs">
+              <div>
+                <label data-i18n="cu.part_uncommon">일반부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="handling" data-part="uncommon">
+              </div>
+              <div>
+                <label data-i18n="cu.part_rare">레어부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="handling" data-part="rare">
+              </div>
+              <div>
+                <label data-i18n="cu.part_epic">에픽부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="handling" data-part="epic">
+              </div>
+            </div>
+          </div>
+
+          <!-- 니트로 -->
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-name" data-i18n="stat.nitro">니트로</div>
+              <div class="stat-tag">NITRO</div>
+            </div>
+            <div class="stat-stages">
+              <div>
+                <label data-i18n="cu.current_stage_label">현재 스테이지</label>
+                <input class="stage-input" type="number" min="0" value="0" data-stat="nitro" data-role="current-stage">
+              </div>
+              <div>
+                <label data-i18n="cu.target_stage_label">목표 스테이지</label>
+                <input class="stage-input" type="number" min="0" value="0" data-stat="nitro" data-role="target-stage">
+              </div>
+            </div>
+            <div class="stat-inputs">
+              <div>
+                <label data-i18n="cu.part_uncommon">일반부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="nitro" data-part="uncommon">
+              </div>
+              <div>
+                <label data-i18n="cu.part_rare">레어부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="nitro" data-part="rare">
+              </div>
+              <div>
+                <label data-i18n="cu.part_epic">에픽부품</label>
+                <input class="part-input" type="number" min="0" value="0" data-stat="nitro" data-part="epic">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" id="resetBtn" data-i18n="cu.btn_reset">초기화</button>
+          <button type="button" id="calcBtn" class="primary" data-i18n="cu.btn_calc">계산하기</button>
+        </div>
+
+        <div class="error" id="errorBox"></div>
+      </div>
+    </section>
+
+    <!-- 결과 카드 -->
+    <section class="card" id="resultPanel">
+      <div class="body">
+        <h2 data-i18n="cu.h2_result">결과</h2>
+
+        <div class="result-main">
+          <div class="result-main-label" data-i18n="cu.total_credits">최종 크레딧 총합</div>
+          <div id="totalCredits" class="result-main-value">0 크레딧</div>
+        </div>
+
+        <div class="result-grid">
+          <div class="result-box">
+            <h3 data-i18n="cu.credits_usage">크레딧 사용량</h3>
+            <div class="result-row">
+              <span data-i18n="cu.cred_stage">스테이지 크레딧</span>
+              <span id="stageCredits">0</span>
+            </div>
+            <div class="result-row">
+              <span data-i18n="cu.cred_uncommon">일반부품 크레딧</span>
+              <span id="uncommonCredits">0</span>
+            </div>
+            <div class="result-row">
+              <span data-i18n="cu.cred_rare">레어부품 크레딧</span>
+              <span id="rareCredits">0</span>
+            </div>
+            <div class="result-row">
+              <span data-i18n="cu.cred_epic">에픽부품 크레딧</span>
+              <span id="epicCredits">0</span>
+            </div>
+          </div>
+
+          <div class="result-box">
+            <h3 data-i18n="cu.parts_count">적용한 부품 개수</h3>
+            <div class="result-row">
+              <span data-i18n="cu.part_uncommon">일반부품</span>
+              <span id="uncommonPartsCount">0</span>
+            </div>
+            <div class="result-row">
+              <span data-i18n="cu.part_rare">레어부품</span>
+              <span id="rarePartsCount">0</span>
+            </div>
+            <div class="result-row">
+              <span data-i18n="cu.part_epic">에픽부품</span>
+              <span id="epicPartsCount">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const CARS_JSON_URL = "../assets/cars.json";
+    const UPGRADES_JSON_URL = "../assets/upgrades.json";
+
+    let cars = [];
+    let upgrades = [];
+    let carSearchIndex = [];
+
+    async function loadData() {
+      try {
+        const [carsRes, upgRes] = await Promise.all([
+          fetch(CARS_JSON_URL),
+          fetch(UPGRADES_JSON_URL)
+        ]);
+
+        if (!carsRes.ok || !upgRes.ok) {
+          throw new Error("JSON 파일 로드 실패");
+        }
+
+        cars = await carsRes.json();
+        upgrades = await upgRes.json();
+
+        populateCarDropdown();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("carMetaHint").textContent =
+          I18N.t('cu.err_json_load');
+      }
+    }
+
+    function findUpgradeByCarId(carId) {
+      const numId = Number(carId);
+      return upgrades.find(u => Number(u.id) === numId) || null;
+    }
+
+    function getCarById(carId) {
+      const numId = Number(carId);
+      return cars.find(c => Number(c.id) === numId) || null;
+    }
+
+    function populateCarDropdown() {
+      const select = document.getElementById("carSelect");
+      select.innerHTML = `<option value="">${I18N.t('cu.car_select_placeholder')}</option>`;
+      carSearchIndex = [];
+
+      const order = { D: 0, C: 1, B: 2, A: 3, S: 4 };
+
+      const validCars = cars
+        .filter(c => !!findUpgradeByCarId(c.id))
+        .sort((a, b) => {
+          // 클래스 우선순위 비교
+          const ca = order[a.class] ?? 999;
+          const cb = order[b.class] ?? 999;
+          if (ca !== cb) return ca - cb;
+
+          // 같은 클래스면 rank 비교 (gold rank 기준)
+          const rankA = getGoldRank(a);
+          const rankB = getGoldRank(b);
+
+          return rankA - rankB; // 낮은 랭크가 위
+        });
+
+      function getGoldRank(car) {
+        const gold = car.stat?.find(s => s.type === "gold");
+        if (!gold) return Infinity;
+        return gold.rank ?? Infinity;
+      }
+
+      for (const car of validCars) {
+        const opt = document.createElement("option");
+        const label = `[${car.class}] ${car.name} (#${car.id})`;
+        opt.value = car.id;
+        opt.textContent = label;
+        select.appendChild(opt);
+
+        carSearchIndex.push({
+          id: car.id,
+          labelLower: label.toLowerCase()
+        });
+      }
+
+      document.getElementById("carMetaHint").textContent =
+        I18N.t('cu.hint_select_car');
+    }
+
+    function formatNumber(n) {
+      return n.toLocaleString("ko-KR");
+    }
+
+    function getMaxStarForCar(carId) {
+      const car = getCarById(carId);
+      return car && car.max_star ? car.max_star : 6;
+    }
+
+    function getMaxStageForCar(carId) {
+      const upg = findUpgradeByCarId(carId);
+      if (!upg || !upg.stage_costs) return 0;
+      const keys = Object.keys(upg.stage_costs)
+        .map(k => Number(k))
+        .filter(n => !Number.isNaN(n));
+      if (!keys.length) return 0;
+      return Math.max(...keys);
+    }
+
+    function getStageCreditSumSingleLine(carId, currentStage, targetStage) {
+      const upg = findUpgradeByCarId(carId);
+      if (!upg || !upg.stage_costs) return 0;
+
+      let sum = 0;
+      for (let s = currentStage + 1; s <= targetStage; s++) {
+        const cost = upg.stage_costs[String(s)];
+        if (typeof cost === "number") sum += cost;
+      }
+      return sum;
+    }
+
+    function getPartMeta(carId) {
+      const upg = findUpgradeByCarId(carId);
+      const base = {
+        uncommon: { count: 0, cost_each: 0 },
+        rare: { count: 0, cost_each: 0 },
+        epic: { count: 0, cost_each: 0 }
+      };
+      if (!upg || !upg.parts) return base;
+
+      const res = { ...base };
+      for (const key of ["uncommon", "rare", "epic"]) {
+        if (upg.parts[key]) {
+          res[key] = {
+            count: upg.parts[key].count ?? 0,
+            cost_each: upg.parts[key].cost_each ?? 0
+          };
+        }
+      }
+      return res;
+    }
+
+    function statLabel(statKey) {
+      return I18N.t('stat.' + statKey) || statKey;
+    }
+
+    function partLabel(partType) {
+      return I18N.t('cu.part_' + partType) || partType;
+    }
+
+    function clampCurrentStar() {
+      const starInput = document.getElementById("currentStar");
+      const carId = document.getElementById("carSelect").value;
+      const maxStar = carId ? getMaxStarForCar(carId) : Number(starInput.max || 6);
+
+      let v = Number(starInput.value || 1);
+      if (v < 1) v = 1;
+      if (v > maxStar) v = maxStar;
+      starInput.value = v;
+    }
+
+    function onCarChange() {
+      const carId = document.getElementById("carSelect").value;
+      const starInput = document.getElementById("currentStar");
+      const maxStarHint = document.getElementById("maxStarHint");
+
+      if (!carId) {
+        starInput.max = 6;
+        maxStarHint.textContent = "";
+        document.getElementById("stageLimitHint").textContent =
+          "차량을 선택하면 이 차량의 전체 최대 스테이지가 표시됩니다.";
+        return;
+      }
+
+      const maxStar = getMaxStarForCar(carId);
+      starInput.max = maxStar;
+      clampCurrentStar();
+      maxStarHint.textContent = I18N.t('cu.hint_max_star').replace('{max}', maxStar);
+
+      updateStageLimitsForAllStats();
+    }
+
+    function updateStageLimitsForAllStats() {
+      const carId = document.getElementById("carSelect").value;
+      if (!carId) return;
+
+      const maxStage = getMaxStageForCar(carId);
+      const hint = document.getElementById("stageLimitHint");
+      hint.textContent = I18N.t('cu.hint_max_stage').replace('{max}', maxStage);
+
+      const stageInputs = document.querySelectorAll(".stage-input");
+      for (const inp of stageInputs) {
+        inp.min = 0;
+        inp.max = maxStage;
+        const v = Number(inp.value || 0);
+        if (v < 0) inp.value = 0;
+        if (v > maxStage) inp.value = maxStage;
+      }
+    }
+
+    function resetForm() {
+      document.getElementById("carSelect").value = "";
+      document.getElementById("carSearch").value = "";
+      document.getElementById("currentStar").value = 1;
+      document.getElementById("currentStar").max = 6;
+      document.getElementById("maxStarHint").textContent = "";
+      document.getElementById("stageLimitHint").textContent = I18N.t('cu.stage_limit_hint');
+      document.getElementById("errorBox").textContent = "";
+
+      document.querySelectorAll(".stage-input").forEach(inp => {
+        inp.value = 0;
+        inp.removeAttribute("max");
+      });
+
+      document.querySelectorAll(".part-input").forEach(inp => {
+        inp.value = 0;
+      });
+
+      updateResults(0, 0, 0, 0, { uncommon: 0, rare: 0, epic: 0 });
+    }
+
+    function searchCarByQuery(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) return null;
+
+      let found = carSearchIndex.find(item => item.labelLower.includes(q));
+      if (found) return found.id;
+
+      const byName = cars.find(c =>
+        c.name && c.name.toLowerCase().includes(q)
+      );
+      if (byName && findUpgradeByCarId(byName.id)) {
+        return byName.id;
+      }
+
+      return null;
+    }
+
+    function handleCarSearchEnter() {
+      const input = document.getElementById("carSearch");
+      const query = input.value;
+      const id = searchCarByQuery(query);
+
+      const errorBox = document.getElementById("errorBox");
+      errorBox.textContent = "";
+
+      if (!id) {
+        errorBox.textContent = I18N.t('cu.err_search_not_found');
+        return;
+      }
+
+      const select = document.getElementById("carSelect");
+      select.value = id;
+      onCarChange();
+    }
+
+    function calculate() {
+      const errorBox = document.getElementById("errorBox");
+      errorBox.textContent = "";
+
+      const carId = document.getElementById("carSelect").value;
+      if (!carId) {
+        errorBox.textContent = I18N.t('cu.err_no_car');
+        return;
+      }
+
+      clampCurrentStar();
+      const currentStar = Number(document.getElementById("currentStar").value || 1);
+      const maxStar = getMaxStarForCar(carId);
+      if (currentStar < 1 || currentStar > maxStar) {
+        errorBox.textContent = I18N.t('cu.err_star_range').replace('{max}', maxStar);
+        return;
+      }
+
+      const maxStage = getMaxStageForCar(carId);
+
+      const partMeta = getPartMeta(carId);
+
+      const statKeys = ["top_speed", "accel", "handling", "nitro"];
+      let stageCredits = 0;
+
+      for (const stat of statKeys) {
+        const curInput = document.querySelector(
+          `.stage-input[data-stat="${stat}"][data-role="current-stage"]`
+        );
+        const tgtInput = document.querySelector(
+          `.stage-input[data-stat="${stat}"][data-role="target-stage"]`
+        );
+
+        let cur = Number(curInput.value || 0);
+        let tgt = Number(tgtInput.value || 0);
+
+        if (cur < 0 || tgt < 0) {
+          errorBox.textContent = I18N.t('cu.err_stage_min').replace('{stat}', statLabel(stat));
+          return;
+        }
+        if (cur > maxStage || tgt > maxStage) {
+          errorBox.textContent = I18N.t('cu.err_stage_range').replace('{stat}', statLabel(stat)).replace('{max}', maxStage);
+          return;
+        }
+        if (tgt < cur) {
+          errorBox.textContent = I18N.t('cu.err_stage_order').replace('{stat}', statLabel(stat));
+          return;
+        }
+
+        stageCredits += getStageCreditSumSingleLine(carId, cur, tgt);
+      }
+
+      const partInputs = document.querySelectorAll(".part-input");
+      const partCountsByType = { uncommon: 0, rare: 0, epic: 0 };
+
+      for (const input of partInputs) {
+        const partType = input.dataset.part;
+        let val = Number(input.value || 0);
+        if (val < 0) val = 0;
+        partCountsByType[partType] += val;
+      }
+
+      for (const type of ["uncommon", "rare", "epic"]) {
+        const maxCount = partMeta[type].count;
+        const used = partCountsByType[type];
+        if (used > maxCount * 4) {
+          const label = partLabel(type);
+          document.getElementById("errorBox").textContent =
+            I18N.t('cu.err_part_limit').replace('{label}', label).replace('{used}', used).replace('{max}', maxCount * 4);
+          return;
+        }
+      }
+
+      const uncommonCredits = partCountsByType.uncommon * partMeta.uncommon.cost_each;
+      const rareCredits = partCountsByType.rare * partMeta.rare.cost_each;
+      const epicCredits = partCountsByType.epic * partMeta.epic.cost_each;
+
+      const totalCredits = stageCredits + uncommonCredits + rareCredits + epicCredits;
+
+      updateResults(
+        stageCredits,
+        uncommonCredits,
+        rareCredits,
+        epicCredits,
+        partCountsByType,
+        totalCredits
+      );
+    }
+
+    function updateResults(stageCr, uncommonCr, rareCr, epicCr, partCounts, totalCr) {
+      document.getElementById("stageCredits").textContent = formatNumber(stageCr);
+      document.getElementById("uncommonCredits").textContent = formatNumber(uncommonCr);
+      document.getElementById("rareCredits").textContent = formatNumber(rareCr);
+      document.getElementById("epicCredits").textContent = formatNumber(epicCr);
+
+      document.getElementById("uncommonPartsCount").textContent = formatNumber(partCounts.uncommon || 0);
+      document.getElementById("rarePartsCount").textContent = formatNumber(partCounts.rare || 0);
+      document.getElementById("epicPartsCount").textContent = formatNumber(partCounts.epic || 0);
+
+      const total = totalCr != null ? totalCr : (stageCr + uncommonCr + rareCr + epicCr);
+      document.getElementById("totalCredits").textContent = `${formatNumber(total)}${I18N.t('cu.total_unit')}`;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadData();
+
+      document.getElementById("carSelect")
+        .addEventListener("change", onCarChange);
+
+      document.getElementById("currentStar")
+        .addEventListener("input", () => {
+          clampCurrentStar();
+        });
+
+      document.getElementById("resetBtn")
+        .addEventListener("click", resetForm);
+
+      document.getElementById("calcBtn")
+        .addEventListener("click", calculate);
+
+      document.getElementById("carSearch")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            handleCarSearchEnter();
+          }
+        });
+    });
+  </script>
+  <!-- Hub Back Button Inject -->
+  <style>
+    #hubBackWrap {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 2147483647;
+      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
+    }
+
+    #hubBackBtn {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--chip-bg);
+      color: var(--ink);
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+      opacity: .9
+    }
+
+    #hubBackBtn:hover {
+      opacity: 1
+    }
+
+    @media (prefers-color-scheme: light) {
+      #hubBackBtn {
+        background: var(--chip-bg);
+        color: var(--ink)
+      }
+    }
+  </style>
+  <div id="hubBackWrap">
+    <button id="hubBackBtn" title="메인 메뉴로">
+      ← 메인으로
+    </button>
+  </div>
+  <script>
+    (function () {
+      var btn = document.getElementById('hubBackBtn');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        // If navigated from hub, try back; otherwise go to hub index.html
+        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+          history.back();
+        } else {
+          // assume hub is one level up
+          location.href = '../index.html';
+        }
+      });
+    })();
+  </script>
+</body>
+
+</html>

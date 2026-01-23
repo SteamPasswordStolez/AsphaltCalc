@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>아스팔트 레전드 게시판</title>
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/themes.css">
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Roboto, Noto Sans KR, Arial;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .wrap {
+      max-width: 960px;
+      margin: 24px auto 40px;
+      padding: 0 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .sub {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .user-area {
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .btn-row {
+      margin-top: 4px;
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--chip-bg);
+      color: var(--ink);
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+    }
+
+    .btn:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+
+    .card {
+      border-radius: 18px;
+      padding: 18px 20px;
+      background: var(--panel);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, .7);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .top-row-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--control-border);
+      background: var(--control-bg);
+      color: var(--ink);
+      font-size: 13px;
+      min-width: 160px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .post-list {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 480px;
+      overflow: auto;
+    }
+
+    .post {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panelSoft);
+      cursor: pointer;
+    }
+
+    .post:hover {
+      border-color: var(--accent);
+    }
+
+    .post-title {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .post-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .post-body-preview {
+      font-size: 12px;
+      margin-top: 3px;
+      color: var(--ink);
+      max-height: 32px;
+      overflow: hidden;
+    }
+
+    .info {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .msg {
+      font-size: 13px;
+      margin-top: 8px;
+      color: var(--danger);
+      min-height: 18px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1 data-i18n="bd.title">아스팔트 레전드 질문/공략기록용 게시판</h1>
+        <p class="sub" data-i18n="bd.subtitle">글 읽기는 모두 가능하며, 글쓰기/수정/삭제는 인증된 계정만 가능합니다.</p>
+      </div>
+      <div class="user-area">
+        <div id="userStatus" data-i18n="bd.status_logout">로그아웃 상태 (읽기만 가능)</div>
+        <div class="btn-row">
+          <button id="loginBtn" class="btn" data-i18n="bd.login">로그인</button>
+          <button id="signupBtn" class="btn" data-i18n="bd.signup">회원가입</button>
+          <button id="logoutBtn" class="btn" style="display:none;" data-i18n="bd.logout">로그아웃</button>
+          <button id="profileBtn" class="btn secondary" type="button" data-i18n="bd.profile">프로필</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="card">
+      <div class="row">
+        <div>
+          <strong data-i18n="bd.list_header">게시글 목록</strong>
+          <div id="accessInfo" class="info" data-i18n="bd.list_info">누구나 읽을 수 있고, 검색도 가능합니다.</div>
+        </div>
+        <div class="top-row-right">
+          <input id="searchInput" class="search-input" type="search" placeholder="제목/내용 검색"
+            data-i18n-ph="bd.search_ph" />
+          <button id="writeBtn" class="btn primary" data-i18n="bd.write">✍️ 글 쓰기</button>
+        </div>
+      </div>
+
+      <div id="postList" class="post-list">
+        <div id="postList" class="post-list">
+          <div class="info" data-i18n="bd.loading">게시글을 불러오는 중…</div>
+        </div>
+      </div>
+
+      <div id="mainMsg" class="msg"></div>
+    </main>
+  </div>
+
+  <script src="../assets/lang.js"></script>
+  <script src="../assets/i18n.js"></script>
+  <script>
+    (function () {
+      var SIM_ID = "board";
+      var GKEY = "simhub_theme_global";
+      var OKEY = "simhub_theme_overrides";
+      function resolveSystem(theme) {
+        if (theme !== "system") return theme;
+        var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return isDark ? "dark" : "light";
+      }
+      function apply() {
+        var g = localStorage.getItem(GKEY) || "asphalt";
+        var map;
+        try { map = JSON.parse(localStorage.getItem(OKEY) || "{}"); }
+        catch (_) { map = {}; }
+        var t = map[SIM_ID] || g;
+        document.documentElement.dataset.theme = resolveSystem(t);
+      }
+      try { apply(); } catch (e) { console.warn(e); }
+    })();
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      query,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKIndVVlblrQfZGjaGpLBSxlWicLZiqPc",
+      authDomain: "asphaltcalc-5d7f3.firebaseapp.com",
+      projectId: "asphaltcalc-5d7f3",
+      storageBucket: "asphaltcalc-5d7f3.firebasestorage.app",
+      messagingSenderId: "388017703504",
+      appId: "1:388017703504:web:117317163e1ec45a1d5f55"
+    };
+
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const userStatus = document.getElementById("userStatus");
+    const accessInfo = document.getElementById("accessInfo");
+    const postListEl = document.getElementById("postList");
+    const mainMsg = document.getElementById("mainMsg");
+    const loginBtn = document.getElementById("loginBtn");
+    const signupBtn = document.getElementById("signupBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const writeBtn = document.getElementById("writeBtn");
+    const searchInput = document.getElementById("searchInput");
+
+    let currentUser = null;
+    let allPosts = [];
+
+    function renderPosts(filterText) {
+      const q = (filterText || "").trim().toLowerCase();
+      postListEl.innerHTML = "";
+
+      let list = allPosts;
+      if (q) {
+        list = allPosts.filter(function (p) {
+          return (p.title + " " + p.content).toLowerCase().indexOf(q) !== -1;
+        });
+      }
+
+      if (list.length === 0) {
+        const div = document.createElement("div");
+        div.className = "info";
+        div.textContent = q ? I18N.t('bd.no_result') : I18N.t('bd.empty');
+        postListEl.appendChild(div);
+        return;
+      }
+
+      list.forEach(function (p) {
+        const div = document.createElement("div");
+        div.className = "post";
+
+        const titleHtml = '<div class="post-title">' + p.title + '</div>';
+        const metaHtml = '<div class="post-meta">' + p.authorText +
+          (p.dateText ? " · " + p.dateText : "") + '</div>';
+        const bodyHtml = '<div class="post-body-preview">' +
+          p.content.slice(0, 120) + '</div>';
+
+        div.innerHTML = titleHtml + metaHtml + bodyHtml;
+
+        div.addEventListener("click", function () {
+          location.href = "./read.html?id=" + encodeURIComponent(p.id);
+        });
+
+        postListEl.appendChild(div);
+      });
+    }
+
+    async function loadPosts() {
+      postListEl.innerHTML = '<div class="info">' + I18N.t('bd.loading') + '</div>';
+      mainMsg.textContent = "";
+
+      try {
+        const qRef = query(
+          collection(db, "posts"),
+          orderBy("createdAt", "desc")
+        );
+        const snap = await getDocs(qRef);
+
+        allPosts = [];
+        snap.forEach(function (docSnap) {
+          const d = docSnap.data();
+          const id = docSnap.id;
+
+          const title = d.title || "(제목 없음)";
+          const content = d.content || "";
+          let author = d.authorName ||
+            (d.authorEmail ? d.authorEmail.split("@")[0] : "알 수 없음");
+          if (currentUser && currentUser.email && d.authorEmail && d.authorEmail === currentUser.email) {
+            const nick = currentUser.displayName || currentUser.email.split("@")[0];
+            author = nick;
+          }
+
+          let createdAt = null;
+          if (d.createdAt && typeof d.createdAt.toDate === "function") {
+            createdAt = d.createdAt.toDate();
+          }
+
+          let dateStr = "";
+          if (createdAt) {
+            dateStr = createdAt.toLocaleString("ko-KR", {
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit"
+            });
+          }
+
+          allPosts.push({
+            id: id,
+            title: title,
+            content: content,
+            authorText: author,
+            dateText: dateStr
+          });
+        });
+
+        renderPosts(searchInput.value);
+      } catch (e) {
+        console.error(e);
+        postListEl.innerHTML = '<div class="info">' + I18N.t('bd.err_load') + '</div>';
+        mainMsg.textContent = "Firestore Error";
+      }
+    }
+
+    onAuthStateChanged(auth, function (user) {
+      currentUser = user;
+
+      if (!user) {
+        userStatus.textContent = I18N.t("bd.status_logout");
+        loginBtn.style.display = "";
+        signupBtn.style.display = "";
+        logoutBtn.style.display = "none";
+        return;
+      }
+
+      const name = user.displayName ||
+        (user.email ? user.email.split("@")[0] : "User");
+      const emailText = user.email || "";
+      const verifyTag = user.emailVerified ? "[Verified]" : "[Unverified]";
+
+      userStatus.textContent =
+        I18N.t("bd.status_login") + name + " (" + emailText + ") " + verifyTag;
+
+      loginBtn.style.display = "none";
+      signupBtn.style.display = "none";
+      logoutBtn.style.display = "";
+      loadPosts();
+    });
+
+    profileBtn.addEventListener("click", function () {
+      location.href = "./profile.html";
+    });
+
+    logoutBtn.addEventListener("click", async function () {
+      try {
+        await signOut(auth);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    writeBtn.addEventListener("click", function () {
+      if (!currentUser) {
+        alert(I18N.t("bd.alert_login"));
+        location.href = "./login.html";
+        return;
+      }
+      if (!currentUser.emailVerified) {
+        alert(I18N.t("bd.alert_verify"));
+        return;
+      }
+      location.href = "./write.html";
+    });
+
+    loginBtn.addEventListener("click", function () {
+      location.href = "./login.html";
+    });
+    signupBtn.addEventListener("click", function () {
+      location.href = "./signup.html";
+    });
+
+    searchInput.addEventListener("input", function () {
+      renderPosts(searchInput.value);
+    });
+
+    loadPosts();
+  </script>
+  <!-- Hub Back Button Inject -->
+  <style>
+    #hubBackWrap {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 2147483647;
+      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
+    }
+
+    #hubBackBtn {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--chip-bg);
+      color: var(--ink);
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
+      opacity: .9
+    }
+
+    #hubBackBtn:hover {
+      opacity: 1
+    }
+
+    @media (prefers-color-scheme: light) {
+      #hubBackBtn {
+        background: var(--chip-bg);
+        color: var(--ink)
+      }
+    }
+  </style>
+  <div id="hubBackWrap">
+    <button id="hubBackBtn" title="메인 메뉴로">
+      ← 메인으로
+    </button>
+  </div>
+  <script>
+    (function () {
+      var btn = document.getElementById('hubBackBtn');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        // If navigated from hub, try back; otherwise go to hub index.html
+        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
+          history.back();
+        } else {
+          // assume hub is one level up
+          location.href = '../index.html';
+        }
+      });
+    })();
+  </script>
+</body>
+
+</html>
