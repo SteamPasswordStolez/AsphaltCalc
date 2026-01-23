@@ -8,85 +8,17 @@
   <meta name="color-scheme" content="light dark" />
 
   <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/style.css">
   <link rel="stylesheet" href="../assets/themes.css">
 
-  <!-- 허브 테마 선택 (SIM_ID: car-search) -->
-  <script>
-    (function () {
-      var SIM_ID = "car-search";
-      var GKEY = "simhub_theme_global";
-      var OKEY = "simhub_theme_overrides";
-
-      function resolveSystem(theme) {
-        if (theme !== "system") return theme;
-        var isDark = window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches;
-        return isDark ? "dark" : "light";
-      }
-
-      function applyTheme() {
-        var globalTheme = localStorage.getItem(GKEY) || "asphalt";
-        var overrides;
-        try {
-          overrides = JSON.parse(localStorage.getItem(OKEY) || "{}");
-        } catch (e) {
-          overrides = {};
-        }
-        var theme = overrides[SIM_ID] || globalTheme;
-        document.documentElement.dataset.theme = resolveSystem(theme);
-      }
-
-      try { applyTheme(); } catch (e) { console.warn(e); }
-    })();
-  </script>
-
+  <!-- Theme Init -->
+  <script>window.SIM_ID = "car-search";</script>
+  <script src="../assets/theme-init.js"></script>
   <link rel="stylesheet" href="../assets/theme-adapter.css">
-  <script src="../assets/lang.js"></script>
-  <script src="../assets/i18n.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box
-    }
-
-    html,
-    body {
-      height: 100%
-    }
-
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Roboto, Noto Sans KR, Arial;
-      background: var(--bg);
-      color: var(--ink);
-    }
-
-    .page-wrap {
-      max-width: 1180px;
-      margin: 32px auto 40px;
-      padding: 0 24px;
-    }
-
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .page-title {
-      margin: 0;
-      font-size: 26px;
-      font-weight: 900;
-      letter-spacing: .02em;
-    }
-
-    .page-sub {
-      margin: 4px 0 0;
-      font-size: 13px;
-      color: var(--ink-soft);
-    }
+    /* Page Specific Styles */
+    /* Note: .container replaces .page-wrap. Max-width logic is handled by shared .container */
 
     .panel {
       border-radius: 18px;
@@ -298,74 +230,135 @@
       border: 1px solid var(--border-soft);
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      background: var(--surface-soft);
-      color: var(--ink-strong);
+      color: var(--ink);
+    }
+
+    .class-d {
+      background: #2a3b55;
+      border-color: #3e5372;
+      color: #a4c2f4;
+    }
+
+    .class-c {
+      background: #2f2a55;
+      border-color: #463e75;
+      color: #c0a4f4;
+    }
+
+    .class-b {
+      background: #552a2a;
+      border-color: #753e3e;
+      color: #f4a4a4;
+    }
+
+    .class-a {
+      background: #55482a;
+      border-color: #75633e;
+      color: #f4dca4;
+    }
+
+    .class-s {
+      background: #2a5548;
+      border-color: #3e7563;
+      color: #a4f4d2;
+    }
+
+    .car-name-cell {
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .car-name-cell small {
+      font-weight: 400;
+      color: var(--ink-muted);
+      margin-left: 6px;
+    }
+
+    .star-wrap {
+      display: flex;
+      gap: 1px;
+      color: var(--accent-gold);
+    }
+
+    .star-wrap.max {
+      color: var(--accent);
+    }
+
+    /* Loading / Empty states */
+    .state-msg {
+      padding: 40px;
+      text-align: center;
+      color: var(--ink-muted);
+      font-size: 13px;
     }
   </style>
+
+  <script src="../assets/lang.js"></script>
+  <script src="../assets/i18n.js"></script>
 </head>
 
 <body>
-  <div class="page-wrap">
-    <header class="page-header">
-      <div>
-        <h1 class="page-title" data-i18n="cs.title">차량 목록</h1>
-        <p class="page-sub" data-i18n="cs.desc">차량을 클릭하면 상세 페이지로 이동합니다.</p>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>🔍 <span data-i18n="cs.title">자동차 검색</span></h1>
       </div>
-    </header>
+      <div class="toolbar">
+        <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
+      </div>
+    </div>
 
-    <main>
-      <section class="panel">
-        <div class="panel-title-row">
-          <h2 class="panel-title" data-i18n="cs.all_cars">전체 차량</h2>
-          <div class="sort-row">
-            <ul class="sort-chips" id="sortChips">
-              <li class="sort-chip is-active" data-sort="default" data-i18n="cs.sort_default">기본</li>
-              <li class="sort-chip" data-sort="rank-desc" data-i18n="cs.sort_rank_desc">랭크↓</li>
-              <li class="sort-chip" data-sort="rank-asc" data-i18n="cs.sort_rank_asc">랭크↑</li>
-              <li class="sort-chip" data-sort="id-asc" data-i18n="cs.sort_id_asc">ID↑</li>
-              <li class="sort-chip" data-sort="id-desc" data-i18n="cs.sort_id_desc">ID↓</li>
-            </ul>
-            <span class="badge-small" id="countBadge">총 0대</span>
-          </div>
-        </div>
 
-        <div class="list-controls">
-          <div class="search-wrap">
-            <input id="searchInput" class="search-input" type="search" data-placeholder="cs.search_ph"
-              placeholder="차 이름 또는 ID 검색..." onfocus="this.placeholder=''"
-              onblur="this.placeholder=I18N.t('cs.search_ph')" autocomplete="off">
-          </div>
-          <ul class="class-chips" id="classFilter">
-            <li class="class-chip is-active" data-class="ALL">ALL</li>
-            <li class="class-chip" data-class="D">D</li>
-            <li class="class-chip" data-class="C">C</li>
-            <li class="class-chip" data-class="B">B</li>
-            <li class="class-chip" data-class="A">A</li>
-            <li class="class-chip" data-class="S">S</li>
+    <section class="panel">
+      <div class="panel-title-row">
+        <h2 class="panel-title" data-i18n="cs.all_cars">전체 차량</h2>
+        <div class="sort-row">
+          <ul class="sort-chips" id="sortChips">
+            <li class="sort-chip is-active" data-sort="default" data-i18n="cs.sort_default">기본</li>
+            <li class="sort-chip" data-sort="rank-desc" data-i18n="cs.sort_rank_desc">랭크↓</li>
+            <li class="sort-chip" data-sort="rank-asc" data-i18n="cs.sort_rank_asc">랭크↑</li>
+            <li class="sort-chip" data-sort="id-asc" data-i18n="cs.sort_id_asc">ID↑</li>
+            <li class="sort-chip" data-sort="id-desc" data-i18n="cs.sort_id_desc">ID↓</li>
           </ul>
+          <span class="badge-small" id="countBadge">총 0대</span>
         </div>
+      </div>
 
-        <div class="car-list-wrap">
-          <table class="car-list">
-            <thead>
-              <tr>
-                <th class="col-class" data-i18n="cs.table.class">Class</th>
-                <th class="col-id" data-i18n="cs.table.id">ID</th>
-                <th data-i18n="cs.table.name">이름</th>
-                <th class="col-max-rank" data-i18n="cs.table.max_rank">Max Rank</th>
-                <th class="col-max-star" data-i18n="cs.table.max_star">★ Max</th>
-                <th class="col-fuel" data-i18n="cs.table.fuel">연료</th>
-              </tr>
-            </thead>
-            <tbody id="carListBody">
-              <!-- JS로 렌더링 -->
-            </tbody>
-          </table>
+      <div class="list-controls">
+        <div class="search-wrap">
+          <input id="searchInput" class="search-input" type="search" data-placeholder="cs.search_ph"
+            placeholder="차 이름 또는 ID 검색..." onfocus="this.placeholder=''"
+            onblur="this.placeholder=I18N.t('cs.search_ph')" autocomplete="off">
         </div>
-      </section>
-    </main>
+        <ul class="class-chips" id="classFilter">
+          <li class="class-chip is-active" data-class="ALL">ALL</li>
+          <li class="class-chip" data-class="D">D</li>
+          <li class="class-chip" data-class="C">C</li>
+          <li class="class-chip" data-class="B">B</li>
+          <li class="class-chip" data-class="A">A</li>
+          <li class="class-chip" data-class="S">S</li>
+        </ul>
+      </div>
+
+      <div class="car-list-wrap">
+        <table class="car-list">
+          <thead>
+            <tr>
+              <th class="col-class" data-i18n="cs.table.class">Class</th>
+              <th class="col-id" data-i18n="cs.table.id">ID</th>
+              <th data-i18n="cs.table.name">이름</th>
+              <th class="col-max-rank" data-i18n="cs.table.max_rank">Max Rank</th>
+              <th class="col-max-star" data-i18n="cs.table.max_star">★ Max</th>
+              <th class="col-fuel" data-i18n="cs.table.fuel">연료</th>
+            </tr>
+          </thead>
+          <tbody id="carListBody">
+            <!-- JS로 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
   <script>

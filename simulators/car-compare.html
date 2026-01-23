@@ -8,7 +8,59 @@
   <title>Car Stat Compare — 차 스탯 비교</title>
   <meta name="color-scheme" content="light dark" />
 
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/themes.css">
+
+  <!-- Theme Init -->
+  <script>window.SIM_ID = "car-compare";</script>
+  <script src="../assets/theme-init.js"></script>
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+  <script src="../assets/lang.js"></script>
+  <script src="../assets/i18n.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
+    /* Variable Mapping: Legacy -> Shared */
+    :root {
+      --bg: var(--bg);
+      --fg: var(--ink);
+      --muted: var(--ink-soft);
+      --card: var(--panel);
+      --border: var(--border);
+      --brand: var(--accent);
+      --accent: var(--accent);
+      --radius: 16px;
+      --shadow: 0 10px 24px rgba(0, 0, 0, .35), 0 2px 10px rgba(0, 0, 0, .35);
+      --tab: var(--surface-soft);
+      --tabActive: var(--surface-hover);
+    }
+
+    /* Override specific styles to match shared look */
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, sans-serif;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 16px 18px;
+    }
+
+    input,
+    select {
+      border: 1px solid var(--border);
+    }
+
+    input:focus,
+    select:focus {
+      outline: 2px solid var(--accent);
+      border-color: var(--accent);
+    }
+
     :root {
       --bg: #0b1220;
       --fg: #e5e7eb;
@@ -390,150 +442,115 @@
     }
   </style>
 
-  <link rel="stylesheet" href="../assets/themes.css">
-
-  <!-- 테마 어댑터 (fullstar 방식) -->
-  <script>
-    (function () {
-      var SIM_ID = "car_compare";
-      var GKEY = "simhub_theme_global";
-      var OKEY = "simhub_theme_overrides";
-
-      function resolveSystem(theme) {
-        if (theme !== "system") return theme;
-        var isDark = window.matchMedia &&
-          window.matchMedia('(prefers-color-scheme: dark)').matches;
-        return isDark ? "dark" : "light";
-      }
-
-      function apply() {
-        var g = localStorage.getItem(GKEY) || "asphalt";
-        var map;
-        try { map = JSON.parse(localStorage.getItem(OKEY) || "{}"); }
-        catch (_) { map = {}; }
-        var t = map[SIM_ID] || g;
-        document.documentElement.dataset.theme = resolveSystem(t);
-      }
-
-      try { apply(); } catch (e) { console.warn(e); }
-    })();
-  </script>
-
-  <link rel="stylesheet" href="../assets/theme-adapter.css">
-  <script src="../assets/lang.js"></script>
-  <script src="../assets/i18n.js"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-  <header>
-    <div class="inner">
+  <div class="container">
+    <div class="header">
       <div class="brand">
-        <div class="logo"></div>
-        <h1 data-i18n="cc.title">자동차 스탯 비교</h1>
+        <h1>📊 <span data-i18n="cc.title">자동차 스탯 비교</span></h1>
       </div>
       <div class="toolbar">
         <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
       </div>
     </div>
-  </header>
 
-  <main>
-    <section>
-      <h1 data-i18n="cc.h1_compare">두 차량 스탯 비교</h1>
-      <p class="subtitle" data-i18n="cc.subtitle">
-        각 차량에 대해 스톡, 1성, 2성, 3성, 4성, 5성, 특부 제외 풀업, 금딱 중 하나를 선택해서 랭크/최고속도/가속/핸들/니트로를 비교합니다.
-        <small>데이터는 <code>cars.json</code>의 <code>stat</code> 배열을 사용합니다.</small>
-      </p>
-      <div class="chip-row">
-        <div class="chip" data-i18n="cc.chip_source">📁 데이터 소스: <code>cars.json</code></div>
-        <div class="chip" data-i18n="cc.chip_sort">⚙ 정렬: 클래스 D → C → B → A → S, 클래스 내에서는 id 오름차순</div>
-      </div>
-    </section>
+    <div class="content-stack" style="display:flex; flex-direction:column; gap:14px; padding-top:18px;">
+      <section>
+        <h1 data-i18n="cc.h1_compare">두 차량 스탯 비교</h1>
+        <p class="subtitle" data-i18n="cc.subtitle">
+          각 차량에 대해 스톡, 1성, 2성, 3성, 4성, 5성, 특부 제외 풀업, 금딱 중 하나를 선택해서 랭크/최고속도/가속/핸들/니트로를 비교합니다.
+          <small>데이터는 <code>cars.json</code>의 <code>stat</code> 배열을 사용합니다.</small>
+        </p>
+        <div class="chip-row">
+          <div class="chip" data-i18n="cc.chip_source">📁 데이터 소스: <code>cars.json</code></div>
+          <div class="chip" data-i18n="cc.chip_sort">⚙ 정렬: 클래스 D → C → B → A → S, 클래스 내에서는 id 오름차순</div>
+        </div>
+      </section>
 
-    <!-- 전체 필터 -->
-    <section class="panel">
-      <label data-i18n="cc.filter_label">전체 차량 필터</label>
-      <div class="filter-bar">
-        <div class="class-filter" id="classFilter">
-          <div class="class-pill active" data-class="ALL">ALL</div>
-          <div class="class-pill" data-class="D">D</div>
-          <div class="class-pill" data-class="C">C</div>
-          <div class="class-pill" data-class="B">B</div>
-          <div class="class-pill" data-class="A">A</div>
-          <div class="class-pill" data-class="S">S</div>
+      <!-- 전체 필터 -->
+      <section class="panel">
+        <label data-i18n="cc.filter_label">전체 차량 필터</label>
+        <div class="filter-bar">
+          <div class="class-filter" id="classFilter">
+            <div class="class-pill active" data-class="ALL">ALL</div>
+            <div class="class-pill" data-class="D">D</div>
+            <div class="class-pill" data-class="C">C</div>
+            <div class="class-pill" data-class="B">B</div>
+            <div class="class-pill" data-class="A">A</div>
+            <div class="class-pill" data-class="S">S</div>
+          </div>
+          <input id="searchInput" type="text" data-placeholder="cc.search_ph" placeholder="차량 이름 검색..." />
         </div>
-        <input id="searchInput" type="text" data-placeholder="cc.search_ph" placeholder="차량 이름 검색..." />
-      </div>
-    </section>
+      </section>
 
-    <!-- 좌/우 선택 -->
-    <section class="grid cols-2">
-      <div class="panel">
-        <div class="side-header">
-          <div class="side-title" data-i18n="cc.side_left">좌측 차량</div>
-          <div class="side-tag" data-i18n="cc.player_a">PLAYER A</div>
-        </div>
-        <label data-i18n="cc.label_car">차량 선택</label>
-        <div class="field-row">
-          <select id="carSelectLeft">
-            <option value="" data-i18n="cc.opt_select_car">차량을 선택하세요</option>
-          </select>
-        </div>
+      <!-- 좌/우 선택 -->
+      <section class="grid cols-2">
+        <div class="panel">
+          <div class="side-header">
+            <div class="side-title" data-i18n="cc.side_left">좌측 차량</div>
+            <div class="side-tag" data-i18n="cc.player_a">PLAYER A</div>
+          </div>
+          <label data-i18n="cc.label_car">차량 선택</label>
+          <div class="field-row">
+            <select id="carSelectLeft">
+              <option value="" data-i18n="cc.opt_select_car">차량을 선택하세요</option>
+            </select>
+          </div>
 
-        <label style="margin-top:8px;" data-i18n="cc.label_stage">좌측 단계</label>
-        <div class="field-row">
-          <select id="stageSelectLeft"></select>
-        </div>
+          <label style="margin-top:8px;" data-i18n="cc.label_stage">좌측 단계</label>
+          <div class="field-row">
+            <select id="stageSelectLeft"></select>
+          </div>
 
-        <div id="summaryLeft" class="summary-box" data-i18n="cc.select_hint">
-          차량과 단계를 선택하면 요약 정보가 이곳에 표시됩니다.
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="side-header">
-          <div class="side-title" data-i18n="cc.side_right">우측 차량</div>
-          <div class="side-tag" data-i18n="cc.player_b">PLAYER B</div>
-        </div>
-        <label data-i18n="cc.label_car">차량 선택</label>
-        <div class="field-row">
-          <select id="carSelectRight">
-            <option value="" data-i18n="cc.opt_select_car">차량을 선택하세요</option>
-          </select>
+          <div id="summaryLeft" class="summary-box" data-i18n="cc.select_hint">
+            차량과 단계를 선택하면 요약 정보가 이곳에 표시됩니다.
+          </div>
         </div>
 
-        <label style="margin-top:8px;" data-i18n="cc.label_stage">우측 단계</label>
-        <div class="field-row">
-          <select id="stageSelectRight"></select>
-        </div>
+        <div class="panel">
+          <div class="side-header">
+            <div class="side-title" data-i18n="cc.side_right">우측 차량</div>
+            <div class="side-tag" data-i18n="cc.player_b">PLAYER B</div>
+          </div>
+          <label data-i18n="cc.label_car">차량 선택</label>
+          <div class="field-row">
+            <select id="carSelectRight">
+              <option value="" data-i18n="cc.opt_select_car">차량을 선택하세요</option>
+            </select>
+          </div>
 
-        <div id="summaryRight" class="summary-box" data-i18n="cc.select_hint">
-          차량과 단계를 선택하면 요약 정보가 이곳에 표시됩니다.
-        </div>
-      </div>
-    </section>
+          <label style="margin-top:8px;" data-i18n="cc.label_stage">우측 단계</label>
+          <div class="field-row">
+            <select id="stageSelectRight"></select>
+          </div>
 
-    <!-- 결과 -->
-    <section class="panel">
-      <div class="result-header">
-        <div class="result-title" data-i18n="cc.result_title">STAT COMPARISON</div>
-        <div id="headlineBadge" class="badge" data-i18n="cc.msg_start">
-          두 차량과 단계를 모두 선택하면 비교가 시작됩니다.
+          <div id="summaryRight" class="summary-box" data-i18n="cc.select_hint">
+            차량과 단계를 선택하면 요약 정보가 이곳에 표시됩니다.
+          </div>
         </div>
-      </div>
-      <div id="tableContainer">
-        <div class="empty-state" data-i18n="cc.msg_empty_table">
-          좌/우 차량과 각자의 단계를 모두 선택하면, 여기에서 해당 단계의 스펙을 비교할 수 있습니다.
+      </section>
+
+      <!-- 결과 -->
+      <section class="panel">
+        <div class="result-header">
+          <div class="result-title" data-i18n="cc.result_title">STAT COMPARISON</div>
+          <div id="headlineBadge" class="badge" data-i18n="cc.msg_start">
+            두 차량과 단계를 모두 선택하면 비교가 시작됩니다.
+          </div>
         </div>
-      </div>
-      <!-- Chart -->
-      <div style="max-width:500px; margin:20px auto; display:none;" id="chartContainer">
-        <canvas id="radarChart"></canvas>
-      </div>
-    </section>
-  </main>
+        <div id="tableContainer">
+          <div class="empty-state" data-i18n="cc.msg_empty_table">
+            좌/우 차량과 각자의 단계를 모두 선택하면, 여기에서 해당 단계의 스펙을 비교할 수 있습니다.
+          </div>
+        </div>
+        <!-- Chart -->
+        <div style="max-width:500px; margin:20px auto; display:none;" id="chartContainer">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </section>
+    </div>
+  </div>
 
   <!-- 비교 로직 -->
   <script>
@@ -1067,100 +1084,7 @@
   </script>
 
 
-  <!-- Hub Back Button -->
-  <style>
-    #hubBackWrap {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 2147483647;
-      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
-    }
 
-    #hubBackBtn {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--tabActive);
-      color: var(--fg);
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
-      opacity: .9;
-    }
-
-    #hubBackBtn:hover {
-      opacity: 1;
-    }
-
-    .diff-cell {
-      font-size: 12px;
-      color: var(--muted);
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
-    /* diff 칩도 테마 카드색 기반으로 */
-    .diff-chip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 64px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid color-mix(in srgb, var(--border) 70%, var(--fg));
-      background: color-mix(in srgb, var(--card) 85%, var(--bg));
-    }
-
-
-    .diff-chip span.dir {
-      font-size: 10px;
-      margin-right: 4px;
-    }
-
-    .diff-chip.positive {
-      border-color: rgba(52, 211, 153, .8);
-    }
-
-    .diff-chip.negative {
-      border-color: rgba(248, 113, 113, .85);
-    }
-
-    .diff-chip.zero {
-      opacity: .7;
-    }
-
-    #hubBackBtn {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      /* ★ 테마 카드색 기반으로 */
-      background: color-mix(in srgb, var(--card) 92%, var(--bg));
-      color: var(--fg);
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
-      opacity: .9;
-    }
-
-    #hubBackBtn:hover {
-      opacity: 1;
-    }
-  </style>
-  <div id="hubBackWrap">
-    <button id="hubBackBtn" title="메인 메뉴로">← 메인으로</button>
-  </div>
-  <script>
-    (function () {
-      var btn = document.getElementById('hubBackBtn');
-      if (!btn) return;
-      btn.addEventListener('click', function () {
-        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
-          history.back();
-        } else {
-          location.href = '../index.html';
-        }
-      });
-    })();
-  </script>
 
 </body>
 

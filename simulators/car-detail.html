@@ -8,94 +8,16 @@
   <meta name="color-scheme" content="light dark" />
 
   <link rel="icon" href="../assets/favicon.png">
+  <link rel="stylesheet" href="../assets/style.css">
   <link rel="stylesheet" href="../assets/themes.css">
 
-  <script>
-    (function () {
-      var SIM_ID = "car-detail";
-      var GKEY = "simhub_theme_global";
-      var OKEY = "simhub_theme_overrides";
-
-      function resolveSystem(theme) {
-        if (theme !== "system") return theme;
-        var isDark = window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches;
-        return isDark ? "dark" : "light";
-      }
-
-      function applyTheme() {
-        var globalTheme = localStorage.getItem(GKEY) || "asphalt";
-        var overrides;
-        try {
-          overrides = JSON.parse(localStorage.getItem(OKEY) || "{}");
-        } catch (e) {
-          overrides = {};
-        }
-        var theme = overrides[SIM_ID] || globalTheme;
-        document.documentElement.dataset.theme = resolveSystem(theme);
-      }
-
-      try { applyTheme(); } catch (e) { console.warn(e); }
-    })();
-  </script>
-
+  <!-- Theme Init -->
+  <script>window.SIM_ID = "car-detail";</script>
+  <script src="../assets/theme-init.js"></script>
   <link rel="stylesheet" href="../assets/theme-adapter.css">
-  <script src="../assets/lang.js"></script>
-  <script src="../assets/i18n.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box
-    }
-
-    html,
-    body {
-      height: 100%
-    }
-
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Roboto, Noto Sans KR, Arial;
-      background: var(--bg);
-      color: var(--ink);
-    }
-
-    .page-wrap {
-      max-width: 1180px;
-      margin: 32px auto 40px;
-      padding: 0 24px;
-    }
-
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .page-title {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 900;
-      letter-spacing: .02em;
-    }
-
-    .page-sub {
-      margin: 4px 0 0;
-      font-size: 13px;
-      color: var(--ink-soft);
-    }
-
-    .back-btn {
-      padding: 6px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border-soft);
-      background: var(--surface-soft);
-      color: var(--ink-soft);
-      font-size: 12px;
-      cursor: pointer;
-    }
+    /* Page Specific Styles */
 
     .panel {
       border-radius: 18px;
@@ -266,19 +188,25 @@
       padding: 12px 4px;
     }
   </style>
+
+  <script src="../assets/lang.js"></script>
+  <script src="../assets/i18n.js"></script>
 </head>
 
 <body>
-  <div class="page-wrap">
-    <header class="page-header">
-      <div>
-        <h1 class="page-title" id="pageTitle" data-i18n="cd.title">차량 상세</h1>
-        <p class="page-sub" id="pageSub" data-i18n="cd.loading">ID로 차량 정보를 불러오는 중…</p>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>
+          <span id="pageTitle" data-i18n="cd.title">차량 상세</span>
+          <small id="pageSub" style="font-size: 14px; font-weight: 400; opacity: 0.7; margin-left: 8px;"
+            data-i18n="cd.loading">...</small>
+        </h1>
       </div>
-      <button class="back-btn" onclick="window.location.href='car-search.html'" data-i18n="cd.back">
-        ← 차량 목록으로
-      </button>
-    </header>
+      <div class="toolbar">
+        <a class="btn" href="car-search.html" data-i18n="cd.back">← 목록</a>
+      </div>
+    </div>
 
     <main>
       <section class="panel" id="detailPanel">

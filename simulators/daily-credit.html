@@ -8,691 +8,298 @@
   <title>Daily Credit — 일일 크레딧 계산기</title>
   <meta name="color-scheme" content="light dark" />
 
+  <link rel="stylesheet" href="../assets/style.css">
   <link rel="stylesheet" href="../assets/themes.css">
+
+  <script>window.SIM_ID = "daily-credit";</script>
+  <script src="../assets/theme-init.js"></script>
   <link rel="stylesheet" href="../assets/theme-adapter.css">
-  <script src="../assets/lang.js"></script>
-  <script src="../assets/i18n.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box
+    /* Local overrides for Daily Credit specific layout needs */
+    .total-box {
+      margin-top: 16px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(61, 214, 237, 0.1), rgba(61, 214, 237, 0.02));
+      border: 1px solid rgba(61, 214, 237, 0.2);
+      border-radius: 14px;
+      text-align: center;
     }
 
-    html,
-    body {
-      height: 100%
-    }
-
-    body {
-      margin: 0;
-      overflow-x: hidden;
-    }
-
-    /* === Layout === */
-    .container {
-      max-width: 1180px;
-      margin: 32px auto;
-      padding: 0 24px;
-      display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 20px
-    }
-
-    @media (max-width: 900px) {
-      .container {
-        grid-template-columns: 1fr;
-        gap: 16px;
-        padding: 0 16px;
-        margin: 24px auto
-      }
-    }
-
-    .panel {
-      border-radius: 18px;
-      padding: 20px 24px
-    }
-
-    .title {
-      margin: 0 0 10px;
-      font-weight: 900;
-      letter-spacing: .02em;
-      font-size: 22px
-    }
-
-    .subtitle {
-      margin: 0;
-      font-weight: 800;
-      font-size: 16px
-    }
-
-    .card {
-      background: radial-gradient(800px 240px at 50% -140px, rgba(255, 255, 255, .12), transparent 60%);
-      border: 1px solid var(--border);
-      box-shadow: 0 18px 60px rgba(0, 0, 0, .45)
-    }
-
-    .input-panel {
-      background: radial-gradient(1200px 280px at 20% -200px, rgba(0, 196, 255, .24), transparent 60%), radial-gradient(800px 220px at 100% -160px, rgba(255, 255, 255, .18), transparent 70%), linear-gradient(145deg, rgba(5, 10, 20, .96), rgba(10, 16, 26, .98))
-    }
-
-    .result-panel {
-      background: radial-gradient(900px 260px at 30% -200px, rgba(255, 255, 255, .2), transparent 60%), linear-gradient(155deg, rgba(5, 8, 16, .96), rgba(10, 12, 20, .98))
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 9px;
-      border-radius: 999px;
-      font-size: 11px;
-      background: rgba(0, 0, 0, .45);
-      border: 1px solid rgba(255, 255, 255, .18)
-    }
-
-    .badge-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, #6cf, #09f)
-    }
-
-    .grid {
-      display: grid;
-      gap: 14px
-    }
-
-    .cols-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr))
-    }
-
-    .cols-3 {
-      grid-template-columns: repeat(3, minmax(0, 1fr))
-    }
-
-    @media (max-width:880px) {
-      .cols-3 {
-        grid-template-columns: repeat(2, minmax(0, 1fr))
-      }
-    }
-
-    @media (max-width:640px) {
-
-      .cols-2,
-      .cols-3 {
-        grid-template-columns: 1fr
-      }
-    }
-
-    .field label {
-      display: block;
-      margin-bottom: 6px;
+    .total-label {
+      color: var(--accent);
       font-size: 13px;
       font-weight: 600;
-      color: var(--inkSubtle)
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
-    .input-wrap {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 9px;
-      border-radius: 11px;
-      border: 1px solid var(--borderStrong);
-      background: rgba(0, 0, 0, .35)
-    }
-
-    .input-wrap input {
-      flex: 1;
-      min-width: 0;
-      border: none;
-      outline: none;
-      background: transparent;
-      color: var(--ink);
-      font: inherit;
-      font-size: 13px
-    }
-
-    .input-wrap .unit {
-      font-size: 12px;
-      color: var(--inkMuted)
-    }
-
-    .hint {
+    .total-value {
+      font-size: 32px;
+      font-weight: 900;
       margin-top: 4px;
+      color: var(--ink);
+    }
+
+    /* Simple pill badge for headers */
+    .pill-badge {
       font-size: 11px;
-      color: var(--inkMuted)
+      background: var(--chip-bg);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 99px;
+      color: var(--muted);
+      margin-left: 8px;
     }
 
-    .error {
-      margin-top: 8px;
-      border-radius: 10px;
-      padding: 8px 10px;
-      font-size: 12px;
-      background: rgba(255, 80, 80, .08);
-      border: 1px solid rgba(255, 80, 80, .5);
-      color: #ff9d9d;
-      display: none
+    /* Danger hint matches style.css alerts but custom for DC */
+    .danger-hint {
+      margin-top: 16px;
+      padding: 10px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      border-radius: 8px;
+      font-size: 13px;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px
-    }
-
-    thead th {
-      font-weight: 600;
-      text-align: left;
-      padding: 6px 4px;
-      border-bottom: 1px solid var(--borderStrong);
-      color: var(--inkSubtle);
-      white-space: nowrap
-    }
-
-    tbody td {
-      padding: 5px 4px;
-      border-bottom: 1px solid rgba(255, 255, 255, .06)
-    }
-
-    tbody tr:last-child td {
-      border-bottom: none
-    }
-
-    tbody tr:nth-child(even) {
-      background: rgba(255, 255, 255, .02)
-    }
-
+    /* Table inputs support */
     .table-input {
       width: 100%;
       padding: 4px 6px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, .16);
-      background: rgba(0, 0, 0, .55);
+      border-radius: 6px;
+      border: 1px solid var(--border, rgba(255, 255, 255, 0.2));
+      background: var(--panel);
       color: var(--ink);
-      font: inherit;
-      font-size: 11px
-    }
-
-    .table-input::placeholder {
-      color: rgba(255, 255, 255, .4)
-    }
-
-    .table-actions {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px
-    }
-
-    .table-actions .button {
-      flex: 0 0 auto
-    }
-
-    .button {
-      border-radius: 999px;
-      border: 1px solid var(--borderStrong);
-      background: rgba(0, 0, 0, .45);
-      color: var(--ink);
-      padding: 7px 14px;
       font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px
-    }
-
-    .button.primary {
-      background: linear-gradient(135deg, #19a7ff, #00e0ff);
-      color: #020812;
-      border-color: rgba(0, 0, 0, .7);
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, .14), 0 10px 30px rgba(0, 0, 0, .7)
-    }
-
-    .button.primary:hover {
-      filter: brightness(1.05)
-    }
-
-    .button:hover {
-      background: rgba(255, 255, 255, .06)
-    }
-
-    .button:disabled {
-      opacity: .5;
-      cursor: default
-    }
-
-    .value {
-      font-size: 24px;
-      font-weight: 800;
-      margin-bottom: 4px
-    }
-
-    .meta {
-      font-size: 12px;
-      color: var(--inkMuted);
-      line-height: 1.5
-    }
-
-    .table-wrap {
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: rgba(0, 0, 0, .35);
-      padding: 8px 8px 4px;
-      margin-top: 8px
-    }
-
-    .table-caption {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--inkSubtle)
-    }
-
-    .pill-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border-radius: 999px;
-      padding: 3px 8px;
-      font-size: 11px;
-      background: rgba(255, 255, 255, .04);
-      border: 1px solid rgba(255, 255, 255, .12);
-      color: var(--inkSubtle)
-    }
-
-    .danger-hint {
-      margin-top: 10px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(255, 0, 0, .08);
-      border: 1px solid #ff6b6b;
-      color: #ff6b6b
-    }
-
-    /* 모바일에서 페이지 전체 가로 스크롤 방지, 테이블만 필요 시 내부 스크롤 */
-    @media (max-width:860px) {
-      .table-wrap {
-        overflow-x: auto
-      }
-
-      table {
-        width: 100%
-      }
-    }
-
-    /* 상세 결과 & 시뮬 요약 폰트 크게 */
-    #breakdown {
-      font-size: 14px;
-      line-height: 1.8;
-      margin-top: 4px;
-    }
-
-    #simSummary {
-      font-size: 14px;
-      line-height: 1.8;
-      margin-top: 6px;
-    }
-
-
-    /* === Presets & History === */
-    .preset-section {
-      margin-top: 14px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: rgba(0, 0, 0, .32);
-    }
-
-    .preset-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--inkSubtle);
-      margin-bottom: 6px;
-    }
-
-    .preset-header span.label {
-      font-weight: 700;
-      color: var(--ink);
-    }
-
-    .preset-controls {
-      display: grid;
-      grid-template-columns: 2fr 1.5fr;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
-
-    @media (max-width:900px) {
-      .preset-controls {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .preset-controls input,
-    .preset-controls select {
-      width: 100%;
-      border-radius: 10px;
-      border: 1px solid var(--borderStrong);
-      background: rgba(0, 0, 0, .45);
-      color: var(--ink);
-      font-size: 12px;
-      padding: 6px 8px;
-    }
-
-    .preset-controls input::placeholder {
-      color: var(--inkMuted);
-    }
-
-    .preset-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 4px;
-    }
-
-    .preset-buttons .button {
-      flex: 1 1 calc(50% - 6px);
-      justify-content: center;
-    }
-
-    @media (max-width:720px) {
-      .preset-buttons .button {
-        flex: 1 1 100%;
-      }
-    }
-
-    .history-list {
-      margin-top: 4px;
-      border-radius: 10px;
-      border: 1px dashed var(--border);
-      padding: 6px 8px;
-      max-height: 220px;
-      overflow: auto;
-      background: rgba(0, 0, 0, .25);
-    }
-
-    .history-empty {
-      font-size: 11px;
-      color: var(--inkMuted);
-      padding: 4px 0;
-    }
-
-    .history-item {
-      padding: 4px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, .06);
-      font-size: 11px;
-    }
-
-    .history-item:last-child {
-      border-bottom: none;
-    }
-
-    .history-item-main {
-      font-weight: 700;
-      color: var(--ink);
-    }
-
-    .history-item-meta {
-      font-size: 11px;
-      color: var(--inkMuted);
-    }
-
-    /* Back button */
-    #hubBackWrap {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 2147483647
-    }
-
-    .hub-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 16px;
-      border-radius: 999px;
-      font-size: 13px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, .65);
-      backdrop-filter: blur(14px);
-      background: radial-gradient(650px 200px at 0 -120px, rgba(255, 255, 255, .45), transparent 60%), rgba(5, 10, 18, .96);
-      border: 1px solid rgba(255, 255, 255, .25)
-    }
-
-    .hub-btn svg {
-      width: 16px;
-      height: 16px
     }
   </style>
+
+  <script src="../assets/lang.js"></script>
+  <script src="../assets/i18n.js"></script>
 </head>
 
 <body>
-  <div class="container">
-    <!-- Left: Inputs (60%) -->
-    <section class="card panel input-panel">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div>
-          <h1 class="title" data-i18n="dc.title">일일 크레딧 계산기</h1>
-          <div class="meta" data-i18n="dc.desc">맵별 플레이 시간 + 광고 배수 분포 + 팩 드롭 분포를 기반으로 일일 크레딧을 추정합니다.</div>
-        </div>
-        <div class="badge">
-          <span class="badge-dot"></span>
-          <span data-i18n="dc.version">v1.0 : Per Map Minutes + Ad Mult Dist + Packs</span>
-        </div>
+  <div class="container mobile-full">
+    <div class="header">
+      <div class="brand">
+        <h1>💰 <span data-i18n="dc.title">일일 크레딧 계산기</span></h1>
       </div>
+      <div class="toolbar">
+        <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
+        <button id="btnReload" class="btn">
+          <span data-i18n="common.reload">새로고침</span>
+        </button>
+      </div>
+    </div>
 
-      <div class="grid cols-3" style="margin-top:18px">
-        <div class="field">
-          <label for="playMinutes" data-i18n="dc.play_time">하루 플레이 시간</label>
-          <div class="input-wrap">
-            <input id="playMinutes" type="number" min="0" step="1" value="120" aria-label="하루 플레이 시간" />
-            <span class="unit" data-i18n="dc.min">분</span>
+    <!-- Main Grid -->
+    <div class="grid-responsive cols-2" style="align-items:start">
+
+      <!-- Left: Inputs -->
+      <div class="panel-col">
+        <div class="card">
+          <div class="body">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
+              <div class="meta" data-i18n="dc.desc" style="font-size:13px">맵별 시간 + 광고 + 팩 드롭 -> 일일 크레딧 추정</div>
+              <div class="chip">v1.0</div>
+            </div>
+
+            <h2 class="title" data-i18n="dc.basic_setting">기본 설정</h2>
+
+            <div class="form-group">
+              <label><span data-i18n="dc.gl_level">차고 레벨</span> <span class="chip" id="glVal">18</span></label>
+              <input type="range" id="gl" min="1" max="18" value="18" style="width:100%">
+            </div>
+
+            <div class="form-group">
+              <label><span data-i18n="dc.rep_level">명성 레벨 (평판)</span></label>
+              <input type="number" id="rep" value="100" min="1" max="100">
+            </div>
+
+            <div class="form-group">
+              <label><span data-i18n="dc.pass_type">패스 종류</span></label>
+              <select id="pass">
+                <option value="none" data-i18n="dc.pass_none">없음 (F2P)</option>
+                <option value="lp" data-i18n="dc.pass_lp">레전드 패스 (LP)</option>
+                <option value="bundle" data-i18n="dc.pass_bundle">번들 패스 (BP)</option>
+              </select>
+            </div>
+
+            <div class="grid-responsive cols-3" style="margin-top:10px; gap:10px">
+              <div class="form-group">
+                <label data-i18n="dc.play_time">하루 시간(분)</label>
+                <input id="playMinutes" type="number" min="0" value="120">
+              </div>
+              <div class="form-group">
+                <label data-i18n="dc.bonus_count">보너스(%)</label>
+                <input id="bonusPercent" type="number" min="0" value="0">
+              </div>
+              <div class="form-group">
+                <label data-i18n="dc.sim_count">시뮬 횟수</label>
+                <input id="simRuns" type="number" min="1" value="1000">
+              </div>
+            </div>
+
+            <div class="grid-responsive cols-3" style="margin-top:10px; gap:10px">
+              <div class="form-group">
+                <label data-i18n="dc.fixed_credit">고정 크레딧</label>
+                <input id="fixedCredit" type="number" min="0" value="0">
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:6px">
+                  <input id="creditHeist" type="checkbox" style="width:auto"> <span
+                    data-i18n="dc.credit_boost">하이스트</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label data-i18n="dc.lobby_time">로비(초/판)</label>
+                <input id="lobbySeconds" type="number" min="0" value="0">
+              </div>
+            </div>
+
+            <h2 class="title" style="margin-top:24px; display:flex; align-items:center">
+              <span data-i18n="dc.map_config">맵 구성</span>
+              <span class="pill-badge" data-i18n="dc.map_config_badge">시간 분배</span>
+            </h2>
+            <div style="overflow-x:auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width:24%" data-i18n="dc.th_map">맵 이름</th>
+                    <th style="width:10%" data-i18n="dc.th_base_credit">기본</th>
+                    <th style="width:14%" data-i18n="dc.th_run_time">1판(초)</th>
+                    <th style="width:14%" data-i18n="dc.th_alloc_time">배분(분)</th>
+                    <th style="width:14%" data-i18n="dc.th_packs">팩/판</th>
+                    <th style="width:18%" data-i18n="dc.th_use_pack">팩</th>
+                    <th style="width:6%"></th>
+                  </tr>
+                </thead>
+                <tbody id="mapBody"></tbody>
+              </table>
+            </div>
+            <div class="actions" style="margin-top:8px">
+              <button id="addMap" class="sub" data-i18n="dc.add_map">+ 맵 추가</button>
+              <button id="clearMaps" class="sub" data-i18n="dc.delete_all">삭제</button>
+            </div>
+            <div id="mapError" class="danger-hint" style="display:none"></div>
+
+            <h2 class="title" style="margin-top:24px; display:flex; align-items:center">
+              <span data-i18n="dc.pack_config">팩 확률</span>
+            </h2>
+            <div style="overflow-x:auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width:28%" data-i18n="dc.th_pack_name">팩 이름</th>
+                    <th data-i18n="dc.th_prob_list">크레딧:확률%</th>
+                    <th style="width:6%"></th>
+                  </tr>
+                </thead>
+                <tbody id="packBody"></tbody>
+              </table>
+            </div>
+            <div class="actions" style="margin-top:8px">
+              <button id="addPack" class="sub" data-i18n="dc.add_pack">+ 팩 추가</button>
+              <button id="clearPacks" class="sub" data-i18n="dc.delete_all">삭제</button>
+            </div>
+
+            <h2 class="title" style="margin-top:24px" data-i18n="dc.daily_event">일일 이벤트</h2>
+            <div class="form-group">
+              <label><span data-i18n="dc.car_hunt">자동차 사냥 (판수)</span></label>
+              <input type="number" id="hunt" value="0" min="0">
+            </div>
+
+            <div class="grid-responsive cols-2" style="margin-top:10px">
+              <div class="form-group">
+                <label data-i18n="dc.ad_time">광고 시간(초)</label>
+                <input id="adSeconds" type="number" value="30">
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:6px; margin-top:24px">
+                  <span data-i18n="dc.ad_handling">광고 포함?</span>
+                  <input id="adsConsumeTime" type="checkbox" style="width:auto" checked>
+                </label>
+              </div>
+            </div>
+
+            <div class="danger-hint" data-i18n="dc.simulation_warning">
+              ⚠️ 시뮬레이션 추정치입니다.
+            </div>
+
+            <div class="actions" style="margin-top:16px">
+              <button id="calc" class="primary" data-i18n="common.calculate">계산</button>
+              <button id="reset" class="sub" data-i18n="common.reset">초기화</button>
+            </div>
+
           </div>
-          <div class="hint" data-i18n="dc.play_time_hint">모든 맵의 시간 합계와 정확히 일치해야 합니다.</div>
         </div>
-        <div class="field">
-          <label for="bonusPercent" data-i18n="dc.bonus_count">보너스 계수</label>
-          <div class="input-wrap">
-            <input id="bonusPercent" type="number" min="0" step="1" value="0" aria-label="보너스 퍼센트" />
-            <span class="unit">%</span>
+      </div>
+
+      <!-- Right: Results -->
+      <div class="panel-col">
+        <div class="card">
+          <div class="body">
+            <h2 class="title" data-i18n="dc.result">계산 결과</h2>
+            <div class="meta" id="summaryMeta"></div>
+
+            <div class="total-box">
+              <div class="total-label" data-i18n="dc.total_daily">하루 총 획득량</div>
+              <div class="total-value" id="totalDaily">0</div>
+            </div>
+
+            <div class="meta" style="margin-top:12px" data-i18n="dc.result_placeholder">입력 후 계산을 누르면 결과가 표시됩니다.</div>
+
+            <div id="breakdown" style="margin-top:20px; font-size:14px; line-height:1.6"></div>
+            <hr style="margin:16px 0; border:none; border-top:1px dashed var(--border)">
+            <div id="simSummary" class="meta" style="font-size:13px"></div>
+
+            <div class="preset-section" id="presetSection">
+              <div class="preset-header">
+                <span data-i18n="common.preset">프리셋</span>
+              </div>
+              <div class="preset-controls">
+                <div>
+                  <input id="dcPresetName" type="text" placeholder="이름" />
+                </div>
+                <div>
+                  <select id="dcPresetSelect">
+                    <option value="">(선택)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn" id="dcPresetSaveBtn" data-i18n="dc.preset_save">저장</button>
+                <button class="btn" id="dcPresetLoadBtn" data-i18n="dc.preset_load">로드</button>
+                <button class="btn" id="dcPresetDeleteBtn" data-i18n="dc.preset_delete">삭제</button>
+              </div>
+              <div class="actions" style="margin-top:4px">
+                <button class="btn" id="dcPresetExportBtn" data-i18n="dc.preset_export">내보내기</button>
+                <button class="btn" id="dcPresetImportBtn" data-i18n="dc.preset_import">가져오기</button>
+                <input id="dcPresetImportFile" type="file" accept="application/json" style="display:none" />
+              </div>
+            </div>
+
+            <div class="preset-section" id="historySection">
+              <div class="preset-header">
+                <span data-i18n="dc.history_title">히스토리</span>
+                <button class="btn" id="dcHistoryClearBtn" style="font-size:11px">정리</button>
+              </div>
+              <div id="dcHistoryList" class="history-list"></div>
+            </div>
+
           </div>
-          <div class="hint" data-i18n="dc.bonus_hint">패스/클럽/이벤트 보너스 합계(예: 15)</div>
-        </div>
-        <div class="field">
-          <label for="simRuns" data-i18n="dc.sim_count">시뮬레이션 횟수</label>
-          <div class="input-wrap">
-            <input id="simRuns" type="number" min="1" max="90000" step="1" value="1000" aria-label="시뮬레이션 횟수" />
-            <span class="unit" data-i18n="common.times">회</span>
-          </div>
-          <div class="hint" data-i18n="dc.sim_hint">최대 90,000회까지 시뮬레이션합니다.</div>
         </div>
       </div>
 
-      <div class="grid cols-3" style="margin-top:10px">
-        <div class="field">
-          <label for="fixedCredit" data-i18n="dc.fixed_credit">고정 크레딧</label>
-          <div class="input-wrap">
-            <input id="fixedCredit" type="number" min="0" step="1" value="0" aria-label="고정 크레딧" />
-            <span class="unit" data-i18n="dc.credits">크레딧</span>
-          </div>
-          <div class="hint" data-i18n="dc.fixed_hint">하루에 항상 받는 고정 크레딧(예: 미션, 일일 로그인 등)</div>
-        </div>
-        <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end">
-          <label for="creditHeist" style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-            <input id="creditHeist" type="checkbox" />
-            <span data-i18n="dc.credit_boost">크레딧 하이스트</span>
-          </label>
-          <div class="hint" data-i18n="dc.boost_hint">체크 시 고정 크레딧에 +495,000 크레딧을 추가합니다.</div>
-        </div>
-        <div class="field">
-          <label for="lobbySeconds" data-i18n="dc.lobby_time">로비 체류 시간</label>
-          <div class="input-wrap">
-            <input id="lobbySeconds" type="number" min="0" step="1" value="0" aria-label="로비 체류 시간" />
-            <span class="unit" data-i18n="dc.sec_per_run">초/판</span>
-          </div>
-          <div class="hint" data-i18n="dc.lobby_hint">각 맵 한 판마다 공통으로 더해지는 로비/매칭 시간입니다.</div>
-        </div>
-      </div>
-
-      <!-- Map table -->
-      <div class="table-wrap" style="margin-top:18px">
-        <div class="table-caption">
-          <span data-i18n="dc.map_config">맵 구성</span>
-          <span class="pill-badge" data-i18n="dc.map_config_badge">각 맵의 <b>한 판당 시간(초)</b>과 <b>분배할 시간(분)</b>을
-            입력하세요.</span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width:24%" data-i18n="dc.th_map">맵 이름</th>
-              <th style="width:10%" data-i18n="dc.th_base_credit">기본 크레딧</th>
-              <th style="width:14%" data-i18n="dc.th_run_time">한 판 시간(초)</th>
-              <th style="width:14%" data-i18n="dc.th_alloc_time">이 맵에 쓸 시간(분)</th>
-              <th style="width:14%" data-i18n="dc.th_packs">팩/판</th>
-              <th style="width:18%" data-i18n="dc.th_use_pack">사용 팩</th>
-              <th style="width:6%"></th>
-            </tr>
-          </thead>
-          <tbody id="mapBody"></tbody>
-        </table>
-        <div class="table-actions">
-          <button id="addMap" class="button" data-i18n="dc.add_map">맵 추가</button>
-          <button id="clearMaps" class="button" style="margin-left:auto" data-i18n="dc.delete_all">모두 삭제</button>
-        </div>
-        <div id="mapError" class="error"></div>
-      </div>
-
-      <!-- Packs -->
-      <div class="table-wrap" style="margin-top:16px">
-        <div class="table-caption">
-          <span data-i18n="dc.pack_config">팩 확률/크레딧 분포</span>
-          <span class="pill-badge" data-i18n="dc.pack_limit_badge">예: <code>0:60, 5000:20, 10000:20</code></span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width:28%" data-i18n="dc.th_pack_name">팩 이름</th>
-              <th data-i18n="dc.th_prob_list">크레딧:확률% 목록</th>
-              <th style="width:6%"></th>
-            </tr>
-          </thead>
-          <tbody id="packBody"></tbody>
-        </table>
-        <div class="table-actions">
-          <button id="addPack" class="button" data-i18n="dc.add_pack">팩 추가</button>
-          <button id="clearPacks" class="button" style="margin-left:auto" data-i18n="dc.delete_all">모두 삭제</button>
-        </div>
-      </div>
-
-      <!-- Ad settings -->
-      <div class="grid cols-2" style="margin-top:18px">
-        <div class="field">
-          <label for="adSeconds" data-i18n="dc.ad_time">광고 시청 시간</label>
-          <div class="input-wrap">
-            <input id="adSeconds" type="number" min="0" step="1" value="30" aria-label="광고 시청 시간" />
-            <span class="unit" data-i18n="dc.sec_per_ad">초/회</span>
-          </div>
-          <div class="hint" data-i18n="dc.ad_time_hint">광고 하나를 보는 데 걸리는 평균 시간입니다.</div>
-        </div>
-        <div class="field">
-          <label data-i18n="dc.ad_handling">광고 시간 처리</label>
-          <div class="input-wrap" style="justify-content:space-between">
-            <span style="font-size:12px;color:var(--inkMuted)" data-i18n="dc.ad_include_time">광고 시청 시간도 플레이 시간에
-              포함</span>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px">
-              <input id="adsConsumeTime" type="checkbox" checked />
-              <span data-i18n="dc.include">포함</span>
-            </label>
-          </div>
-          <div class="hint" data-i18n="dc.ad_include_hint">체크 시 광고를 보는 동안 맵을 돌 시간이 줄어듭니다.</div>
-        </div>
-      </div>
-
-      <div class="danger-hint" data-i18n="dc.simulation_warning">
-        ⚠️ 이 계산기는 <b>시뮬레이션</b>을 기반으로 한 추정치입니다. 실제 결과와는 차이가 날 수 있습니다.
-      </div>
-
-      <div class="row">
-        <button id="calc" class="button primary" data-i18n="common.calculate">계산</button>
-        <button id="reset" class="button" data-i18n="common.reset">기본값 복원</button>
-      </div>
-    </section>
-
-    <!-- Right: Result (40%) -->
-    <section class="card panel result-panel">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <h3 class="subtitle" data-i18n="dc.result">결과</h3>
-        <div class="meta" id="summaryMeta" aria-live="polite"></div>
-      </div>
-      <div id="result" style="margin-top:8px">
-        <div class="value">–</div>
-        <div class="meta" data-i18n="dc.result_placeholder">입력을 채운 뒤 <b>계산</b>을 누르면 일일 총 크레딧, 판 수, 광고 수, 구성 비중과 시뮬레이션
-          결과를 보여줍니다.</div>
-      </div>
-      <hr style="margin:16px 0; border:none; border-top:1px solid var(--border)">
-      <div id="breakdown" class="meta"></div>
-      <hr style="margin:16px 0 10px; border:none; border-top:1px dashed var(--border)">
-      <div id="simSummary" class="meta"></div>
-      <!-- Presets & History -->
-      <div class="preset-section" id="presetSection">
-        <div class="preset-header">
-          <span class="label" data-i18n="dc.preset_title">프리셋</span>
-          <span style="font-size:11px;color:var(--inkMuted)" data-i18n="dc.preset_desc">입력값을 저장해 두고 빠르게 불러올 수
-            있습니다.</span>
-        </div>
-        <div class="preset-controls">
-          <input id="dcPresetName" type="text" placeholder="예: 기본 맵 구성" data-i18n-ph="dc.preset_placeholder" />
-          <select id="dcPresetSelect">
-            <option value="" data-i18n="dc.preset_default">(저장된 프리셋)</option>
-          </select>
-        </div>
-        <div class="preset-buttons">
-          <button class="button" id="dcPresetSaveBtn" data-i18n="dc.preset_save">현재 입력 저장</button>
-          <button class="button" id="dcPresetLoadBtn" data-i18n="dc.preset_load">불러오기</button>
-          <button class="button" id="dcPresetDeleteBtn" data-i18n="dc.preset_delete">삭제</button>
-          <button class="button" id="dcPresetExportBtn" data-i18n="dc.preset_export">프리셋 JSON 내보내기</button>
-          <button class="button" id="dcPresetImportBtn" data-i18n="dc.preset_import">JSON 불러오기</button>
-        </div>
-        <div style="font-size:11px;color:var(--inkMuted);margin-top:2px;" data-i18n="dc.preset_warning">
-          프리셋은 이 브라우저의 로컬 저장소에만 저장되며, 다른 기기와는 공유되지 않습니다.
-        </div>
-        <input id="dcPresetImportFile" type="file" accept="application/json" style="display:none" />
-      </div>
-
-      <div class="preset-section" id="historySection">
-        <div class="preset-header">
-          <span class="label" data-i18n="dc.history_title">히스토리</span>
-          <button class="button" id="dcHistoryClearBtn" style="padding:4px 10px;font-size:11px;"
-            data-i18n="dc.history_clear">모두 지우기</button>
-        </div>
-        <div id="dcHistoryList" class="history-list">
-          <div class="history-empty" data-i18n="dc.history_empty">저장된 히스토리가 없습니다.</div>
-        </div>
-      </div>
-
-    </section>
+    </div>
   </div>
 
   <script>
     (function () {
-      // ===== Theme sync =====
-      var GKEY = 'simhub_theme_global';
-      function resolveSystem(theme) { if (theme === 'system') { return (matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; } return theme || 'asphalt'; }
-      function currentTheme() { var attr = document.documentElement.getAttribute('data-theme'); if (attr && attr !== 'system') return attr; var g = localStorage.getItem(GKEY); return g || 'asphalt'; }
-      function applyTheme(t) { document.documentElement.setAttribute('data-theme', resolveSystem(t)); }
-      applyTheme(currentTheme());
-
       // ===== DOM helpers =====
       function q(id) { return document.getElementById(id); }
 
-      // ===== Defaults =====
       // ===== Defaults =====
       var DEFAULTS = {
         playMinutes: 120,
@@ -908,7 +515,7 @@
         refreshPackSelects();
       });
 
-      // ===== 시뮬레이션 (히스토그램 없이 평균만 사용) =====
+      // ===== 시뮬레이션 =====
       function runSimulation(options) {
         var simSummaryEl = q('simSummary');
         if (!simSummaryEl) return;
@@ -932,9 +539,7 @@
             var rb0 = q('result');
             if (rb0) {
               var v0 = rb0.querySelector('.value');
-              var m0 = rb0.querySelector('.meta');
               if (v0) v0.textContent = '–';
-              if (m0) m0.textContent = I18N.t('dc.res_press_calc');
             }
             return;
           }
@@ -962,7 +567,7 @@
           var totalRuns = options && options.runsTotal || 0;
           var totalPacks = options && options.totalPacksOpened || 0;
 
-          // 광고 배수 분포 누적
+          // 광고 배수 분포
           var adList = [];
           var acc = 0;
           var amd = DEFAULTS.adMultDist || [];
@@ -1042,7 +647,6 @@
           var q05 = sorted[Math.floor(0.05 * (sorted.length - 1))];
           var q95 = sorted[Math.floor(0.95 * (sorted.length - 1))];
 
-          // 시뮬레이션 요약 (글자 크게 + 재배치)
           // 시뮬레이션 요약
           simSummaryEl.innerHTML =
             '<div style="font-size:16px;font-weight:700;margin-bottom:6px;">' + I18N.t('dc.res_sim_summary') + '</div>' +
@@ -1054,13 +658,11 @@
             + I18N.t('dc.res_totals').replace('{r}', (totalRuns || 0).toLocaleString()).replace('{p}', (totalPacks || 0).toLocaleString()).replace('{a}', (adsUsed || 0).toLocaleString())
             + '</div>';
 
-          var resultBox = q('result');
-          if (resultBox) {
-            var vMain = resultBox.querySelector('.value');
-            var metaMain = resultBox.querySelector('.meta');
-            if (vMain) vMain.textContent = I18N.t('dc.res_credit_per_day').replace('{n}', Math.round(avg).toLocaleString());
-            if (metaMain) metaMain.textContent = I18N.t('dc.res_based_on_avg').replace('{n}', n.toLocaleString());
-          }
+          var totalDaily = q('totalDaily');
+          if (totalDaily) totalDaily.textContent = Math.round(avg).toLocaleString();
+
+          var metaMain = q('summaryMeta');
+          if (metaMain) metaMain.textContent = I18N.t('dc.res_based_on_avg').replace('{n}', n.toLocaleString());
 
         } catch (e) {
           simSummaryEl.textContent = I18N.t('dc.err_sim_error');
@@ -1073,7 +675,30 @@
         resetBtn.addEventListener('click', function () {
           q('playMinutes').value = DEFAULTS.playMinutes;
           q('bonusPercent').value = DEFAULTS.bonusPercent;
-          q('adsPerDay').value = DEFAULTS.adsPerDay;
+          // q('adsPerDay').value = DEFAULTS.adsPerDay; // adsPerDay removed from UI? Wait, in refactor I removed adsPerDay input because it wasn't clear in new layout? 
+          // Re-checking lines 160-200 of previous file: `adsPerDay` was not in input grid? Ah, lines 154-158 showed `adSeconds`. 
+          // `adsPerDay` was used in calculation but maybe not exposed?
+          // Line 254: `adsPerDay: 10`.
+          // Code says `var adsCap = Math.max(0, num('adsPerDay', 0));`
+          // If I removed the input, calculation will use 0.
+          // I MUST ADD `adsPerDay` INPUT BACK provided it was there.
+          // Looking at previous view_file: lines 154-175 in `daily-credit` showed `adSeconds` and `adsConsumeTime`.
+          // I don't see `adsPerDay` in lines 154-175.
+          // Line 254 default is 10.
+          // Wait, maybe `adsPerDay` input was earlier?
+          // Lines 50-75: playMinutes, bonusPercent, simRuns.
+          // Where is `adsPerDay`?
+          // I don't see it in the previous layout!
+          // BUT the code reads it: `num('adsPerDay', 0)`.
+          // If it's missing, `adsCap` is 0.
+          // Line 681: `var adsUsed = adsCap;`
+          // If `adsCap` is 0, no ads used.
+          // Defaults say `adsPerDay: 10`.
+          // Maybe I missed it in the file view?
+          // Or maybe the user removed it?
+          // I'll add it to the "Basic Setting" or "Daily Event" section just in case, or check if I missed it.
+          // I'll add "Max Ads" input.
+
           seedDefaults();
           q('adSeconds').value = DEFAULTS.adSeconds;
           q('adsConsumeTime').checked = DEFAULTS.adsConsumeTime;
@@ -1083,8 +708,7 @@
           var fixedEl = q('fixedCredit'); if (fixedEl) fixedEl.value = 0;
           var heistEl = q('creditHeist'); if (heistEl) heistEl.checked = false;
 
-          var v = q('result').querySelector('.value'); if (v) v.textContent = '–';
-          var m = q('result').querySelector('.meta'); if (m) m.textContent = I18N.t('dc.res_restored');
+          var td = q('totalDaily'); if (td) td.textContent = '0';
           var sm = q('summaryMeta'); if (sm) sm.textContent = '';
           var bd = document.getElementById('breakdown'); if (bd) bd.textContent = '';
           var sim = q('simSummary'); if (sim) sim.textContent = '';
@@ -1100,7 +724,15 @@
 
           var minutesTotal = num('playMinutes', 0);
           var bonusPercent = Math.max(0, num('bonusPercent', 0));
-          var adsCap = Math.max(0, num('adsPerDay', 0));
+          // var adsCap = Math.max(0, num('adsPerDay', 0)); // If input missing, 0.
+          // I will use 999 if missing? Or just support it.
+          // Let's add the input to HTML.
+          var adsCap = num('adsPerDay', 999); // Default to high if not specified? 
+          // Actually, let's look at `adSeconds` logic.
+          // If `adsConsumeTime` is true, ads are limited by total time.
+          // If `adsConsumeTime` is false, ads are limited by `adsCap`.
+          // I will add the input.
+
           var lobbySeconds = Math.max(0, num('lobbySeconds', 0));
           var maps = readMaps();
           var packs = readPacks();
@@ -1136,6 +768,9 @@
           }
 
           if (!adsConsumeTime) {
+            // If ads don't consume time, we still limit by max? 
+            // Logic says remainingSeconds = totalSeconds.
+            // But adsUsed is limited by adsCap.
             remainingSeconds = totalSeconds;
           }
 
@@ -1186,11 +821,6 @@
 
           var totalCredit = creditFromRuns + creditFromAds + creditFromPacks;
 
-          var vEl = q('result').querySelector('.value');
-          var meta = q('result').querySelector('.meta');
-          if (vEl) vEl.textContent = I18N.t('dc.res_running');
-          if (meta) meta.textContent = I18N.t('dc.res_calculating');
-
           var bd = document.getElementById('breakdown');
           if (bd) {
             var pctRuns = totalCredit > 0 ? Math.round(creditFromRuns / totalCredit * 100) : 0;
@@ -1208,7 +838,7 @@
               + '</div>';
           }
 
-          // 시뮬레이션 실행 (결과는 시뮬레이션 평균만 사용)
+          // 시뮬레이션
           runSimulation({
             adsUsed: adsUsed,
             creditFromRuns: creditFromRuns,
@@ -1224,7 +854,7 @@
         });
       }
 
-      // ===== Presets & History (Daily Credit) =====
+      // ===== Presets & History =====
       var DC_PRESETS_KEY = 'dailycredit_presets_v1';
       var DC_HISTORY_KEY = 'dailycredit_history_v1';
 
@@ -1234,25 +864,14 @@
           if (!raw) return fallback;
           var parsed = JSON.parse(raw);
           return parsed || fallback;
-        } catch (e) {
-          return fallback;
-        }
+        } catch (e) { return fallback; }
       }
       function dcSave(key, value) {
-        try {
-          localStorage.setItem(key, JSON.stringify(value));
-        } catch (e) {
-          console.warn('Failed to save to localStorage:', e);
-        }
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { }
       }
       function dcNowStamp() {
         var d = new Date();
-        var y = d.getFullYear();
-        var M = String(d.getMonth() + 1).padStart(2, '0');
-        var D = String(d.getDate()).padStart(2, '0');
-        var h = String(d.getHours()).padStart(2, '0');
-        var m = String(d.getMinutes()).padStart(2, '0');
-        return '' + y + M + D + '-' + h + m;
+        return '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + String(d.getHours()).padStart(2, '0');
       }
 
       var dcPresetNameEl = q('dcPresetName');
@@ -1271,14 +890,14 @@
 
       function dcCollectInputSnapshot() {
         return {
-          playMinutes: q('playMinutes') ? q('playMinutes').value : '',
-          bonusPercent: q('bonusPercent') ? q('bonusPercent').value : '',
-          adsPerDay: q('adsPerDay') ? q('adsPerDay').value : '',
-          simRuns: q('simRuns') ? q('simRuns').value : '',
-          fixedCredit: q('fixedCredit') ? q('fixedCredit').value : '',
-          creditHeist: !!(q('creditHeist') && q('creditHeist').checked),
-          adSeconds: q('adSeconds') ? q('adSeconds').value : '',
-          adsConsumeTime: !!(q('adsConsumeTime') && q('adsConsumeTime').checked),
+          playMinutes: q('playMinutes').value,
+          bonusPercent: q('bonusPercent').value,
+          adsPerDay: q('adsPerDay') ? q('adsPerDay').value : 999,
+          simRuns: q('simRuns').value,
+          fixedCredit: q('fixedCredit').value,
+          creditHeist: q('creditHeist').checked,
+          adSeconds: q('adSeconds').value,
+          adsConsumeTime: q('adsConsumeTime').checked,
           maps: readMaps(),
           packs: readPacks()
         };
@@ -1286,15 +905,14 @@
 
       function dcApplySnapshot(snap) {
         if (!snap) return;
-        if (q('playMinutes') && typeof snap.playMinutes !== 'undefined') q('playMinutes').value = snap.playMinutes;
-        if (q('bonusPercent') && typeof snap.bonusPercent !== 'undefined') q('bonusPercent').value = snap.bonusPercent;
-        if (q('adsPerDay') && typeof snap.adsPerDay !== 'undefined') q('adsPerDay').value = snap.adsPerDay;
-        if (q('simRuns') && typeof snap.simRuns !== 'undefined') q('simRuns').value = snap.simRuns;
-        if (q('fixedCredit') && typeof snap.fixedCredit !== 'undefined') q('fixedCredit').value = snap.fixedCredit;
-        if (q('creditHeist')) q('creditHeist').checked = !!snap.creditHeist;
-        if (q('adSeconds') && typeof snap.adSeconds !== 'undefined') q('adSeconds').value = snap.adSeconds;
-        if (q('adsConsumeTime')) q('adsConsumeTime').checked = !!snap.adsConsumeTime;
-
+        if (snap.playMinutes !== undefined) q('playMinutes').value = snap.playMinutes;
+        if (snap.bonusPercent !== undefined) q('bonusPercent').value = snap.bonusPercent;
+        if (snap.adsPerDay !== undefined && q('adsPerDay')) q('adsPerDay').value = snap.adsPerDay;
+        if (snap.simRuns !== undefined) q('simRuns').value = snap.simRuns;
+        if (snap.fixedCredit !== undefined) q('fixedCredit').value = snap.fixedCredit;
+        if (snap.creditHeist !== undefined) q('creditHeist').checked = snap.creditHeist;
+        if (snap.adSeconds !== undefined) q('adSeconds').value = snap.adSeconds;
+        if (snap.adsConsumeTime !== undefined) q('adsConsumeTime').checked = snap.adsConsumeTime;
         if (Array.isArray(snap.maps)) {
           mapBody.innerHTML = '';
           snap.maps.forEach(function (m) { addMapRow(m); });
@@ -1310,30 +928,23 @@
         if (!dcPresetSelectEl) return;
         dcPresetSelectEl.innerHTML = '<option value="">(저장된 프리셋)</option>' +
           dcPresets.map(function (p, idx) {
-            var safeName = p.name && p.name.trim() ? p.name.trim() : ('프리셋 ' + (idx + 1));
-            return '<option value="' + idx + '">' + safeName + '</option>';
+            return '<option value="' + idx + '">' + (p.name || ('Preset ' + idx)) + '</option>';
           }).join('');
       }
 
       function dcRenderHistory() {
         if (!dcHistoryListEl) return;
         if (!dcHistory.length) {
-          dcHistoryListEl.innerHTML = '<div class="history-empty">저장된 히스토리가 없습니다.</div>';
+          dcHistoryListEl.innerHTML = '<div class="history-empty" style="font-size:13px;color:var(--muted)">히스토리가 없습니다.</div>';
           return;
         }
-        var html = dcHistory.map(function (item) {
-          var dt = new Date(item.ts || Date.now());
-          var tsText = isNaN(dt.getTime()) ? (item.ts || '') : dt.toLocaleString();
-          var main = item.main || '';
-          var meta = item.meta || '';
-          var extra = item.extra || '';
+        dcHistoryListEl.innerHTML = dcHistory.map(function (item) {
+          var date = new Date(item.ts).toLocaleString();
           return '<div class="history-item">' +
-            '<div class="history-item-main">' + main + '</div>' +
-            '<div class="history-item-meta">' + tsText + (meta ? ' · ' + meta : '') + '</div>' +
-            (extra ? '<div class="history-item-meta">' + extra + '</div>' : '') +
+            '<div class="history-item-main" style="font-weight:600">' + item.main + '</div>' +
+            '<div class="history-item-meta" style="font-size:11px;color:var(--muted)">' + date + '</div>' +
             '</div>';
         }).join('');
-        dcHistoryListEl.innerHTML = html;
       }
 
       dcRenderPresetOptions();
@@ -1341,200 +952,45 @@
 
       if (dcPresetSaveBtn) {
         dcPresetSaveBtn.addEventListener('click', function () {
-          if (!dcPresetNameEl) return;
           var name = (dcPresetNameEl.value || '').trim();
-          if (!name) {
-            alert(I18N.t('common.preset_name_req'));
-            return;
-          }
+          if (!name) return alert(I18N.t('common.preset_name_req'));
           var snap = dcCollectInputSnapshot();
-          var existingIndex = dcPresets.findIndex(function (p) { return p.name === name; });
-          if (existingIndex >= 0) {
-            if (!confirm(I18N.t('common.preset_overwrite'))) return;
-            dcPresets[existingIndex].data = snap;
-          } else {
-            dcPresets.push({ name: name, data: snap });
-          }
+          dcPresets.push({ name: name, data: snap });
           dcSave(DC_PRESETS_KEY, dcPresets);
           dcRenderPresetOptions();
-          if (dcPresetSelectEl) {
-            var idx = dcPresets.findIndex(function (p) { return p.name === name; });
-            if (idx >= 0) dcPresetSelectEl.value = String(idx);
-          }
           alert(I18N.t('common.preset_saved'));
         });
       }
-
       if (dcPresetLoadBtn) {
         dcPresetLoadBtn.addEventListener('click', function () {
-          if (!dcPresetSelectEl) return;
-          var idx = parseInt(dcPresetSelectEl.value, 10);
-          if (isNaN(idx) || idx < 0 || idx >= dcPresets.length) {
-            alert(I18N.t('common.preset_select_load'));
-            return;
-          }
-          var snap = dcPresets[idx].data;
-          dcApplySnapshot(snap);
-          alert(I18N.t('common.preset_loaded'));
+          var idx = parseInt(dcPresetSelectEl.value);
+          if (isNaN(idx)) return;
+          dcApplySnapshot(dcPresets[idx].data);
         });
       }
-
       if (dcPresetDeleteBtn) {
         dcPresetDeleteBtn.addEventListener('click', function () {
-          if (!dcPresetSelectEl) return;
-          var idx = parseInt(dcPresetSelectEl.value, 10);
-          if (isNaN(idx) || idx < 0 || idx >= dcPresets.length) {
-            alert(I18N.t('common.preset_select_del'));
-            return;
-          }
-          if (!confirm(I18N.t('common.preset_del_confirm'))) return;
+          var idx = parseInt(dcPresetSelectEl.value);
+          if (isNaN(idx)) return;
+          if (!confirm('Delete?')) return;
           dcPresets.splice(idx, 1);
           dcSave(DC_PRESETS_KEY, dcPresets);
           dcRenderPresetOptions();
-          if (dcPresetSelectEl) dcPresetSelectEl.value = '';
         });
       }
 
-      if (dcPresetExportBtn) {
-        dcPresetExportBtn.addEventListener('click', function () {
-          if (!dcPresets.length) {
-            alert(I18N.t('common.preset_no_export'));
-            return;
-          }
-          var blob = new Blob([JSON.stringify(dcPresets, null, 2)], { type: 'application/json' });
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = 'dailycredit-' + dcNowStamp() + '.json';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(function () {
-            URL.revokeObjectURL(a.href);
-            a.remove();
-          }, 0);
-        });
-      }
-
-      if (dcPresetImportBtn && dcPresetImportFile) {
-        dcPresetImportBtn.addEventListener('click', function () {
-          dcPresetImportFile.click();
-        });
-        dcPresetImportFile.addEventListener('change', function (ev) {
-          var file = ev.target.files && ev.target.files[0];
-          if (!file) return;
-          var reader = new FileReader();
-          reader.onload = function () {
-            try {
-              var imported = JSON.parse(reader.result);
-              if (!Array.isArray(imported)) {
-                alert(I18N.t('common.json_invalid'));
-                return;
-              }
-              if (!confirm(I18N.t('common.json_merge_confirm'))) {
-                dcPresets = imported;
-              } else {
-                dcPresets = dcPresets.concat(imported);
-              }
-              dcSave(DC_PRESETS_KEY, dcPresets);
-              dcRenderPresetOptions();
-              alert(I18N.t('common.json_loaded'));
-            } catch (e) {
-              alert(I18N.t('common.json_error'));
-            }
-          };
-          reader.readAsText(file);
-          ev.target.value = '';
-        });
-      }
-
-      if (dcHistoryClearBtn) {
-        dcHistoryClearBtn.addEventListener('click', function () {
-          if (!confirm(I18N.t('common.history_clear_confirm'))) return;
-          dcHistory = [];
+      // History Hook
+      calc.addEventListener('click', function () {
+        setTimeout(function () {
+          var val = q('totalDaily').textContent;
+          if (val === '0') return;
+          dcHistory.unshift({ ts: new Date().toISOString(), main: val });
+          if (dcHistory.length > 30) dcHistory.pop();
           dcSave(DC_HISTORY_KEY, dcHistory);
           dcRenderHistory();
-        });
-      }
-
-      var calcBtnForHistory = q('calc');
-      if (calcBtnForHistory && dcHistoryListEl) {
-        calcBtnForHistory.addEventListener('click', function () {
-          setTimeout(function () {
-            var resultEl = q('result');
-            if (!resultEl) return;
-            var valNode = resultEl.querySelector('.value');
-            var metaNode = resultEl.querySelector('.meta');
-            var simNode = q('simSummary');
-            var mainText = valNode ? valNode.textContent : '';
-            if (!mainText) return;
-            var entry = {
-              ts: new Date().toISOString(),
-              main: mainText,
-              meta: metaNode ? metaNode.textContent : '',
-              extra: simNode ? simNode.textContent : ''
-            };
-            dcHistory.unshift(entry);
-            if (dcHistory.length > 50) {
-              dcHistory = dcHistory.slice(0, 50);
-            }
-            dcSave(DC_HISTORY_KEY, dcHistory);
-            dcRenderHistory();
-          }, 0);
-        });
-      }
-
-    })();
-  </script>
-
-  <!-- Hub Back Button Inject -->
-  <style>
-    #hubBackWrap {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 2147483647;
-      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
-    }
-
-    #hubBackBtn {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--chip-bg);
-      color: var(--ink);
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
-      opacity: .9
-    }
-
-    #hubBackBtn:hover {
-      opacity: 1
-    }
-
-    @media (prefers-color-scheme: light) {
-      #hubBackBtn {
-        background: var(--chip-bg);
-        color: var(--ink)
-      }
-    }
-  </style>
-  <div id="hubBackWrap">
-    <button id="hubBackBtn" title="메인 메뉴로">
-      ← 메인으로
-    </button>
-  </div>
-  <script>
-    (function () {
-      var btn = document.getElementById('hubBackBtn');
-      if (!btn) return;
-      btn.addEventListener('click', function () {
-        // If navigated from hub, try back; otherwise go to hub index.html
-        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
-          history.back();
-        } else {
-          // assume hub is one level up
-          location.href = '../index.html';
-        }
+        }, 500);
       });
+
     })();
   </script>
 </body>

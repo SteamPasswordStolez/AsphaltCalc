@@ -8,15 +8,40 @@
   <title>Car Upgrade — 업그레이드 비용 계산기</title>
   <meta name="color-scheme" content="light dark" />
 
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="../assets/themes.css">
+
+  <script>window.SIM_ID = "upgrade-cost";</script>
+  <script src="../assets/theme-init.js"></script>
+  <link rel="stylesheet" href="../assets/theme-adapter.css">
+
   <style>
+    /* Variable Mapping */
+    :root {
+      --bg: var(--bg);
+      --ink: var(--ink);
+      --panel: var(--panel);
+      --border: var(--border);
+      --muted: var(--ink-soft);
+      --gap: 16px;
+      --radius: 16px;
+      --shadow: var(--shadow-raised);
+      --control-bg: var(--surface-soft);
+      --control-border: var(--border);
+      --accent: var(--accent);
+      --chip-bg: var(--surface-soft);
+      --accent2: var(--accent-strong);
+      --danger: #ef4444;
+    }
+
     * {
       box-sizing: border-box
     }
 
     body {
       margin: 0;
-      font-family: ui-sans-serif, system-ui, Segoe UI, Apple SD Gothic Neo, Apple Color Emoji, Roboto, Noto Sans KR, Arial;
-      background: linear-gradient(180deg, var(--bg), #0e131a 40%, var(--bg));
+      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
       color: var(--ink);
     }
 
@@ -280,47 +305,19 @@
     }
   </style>
 
-  <!-- 글로벌 테마 토큰 -->
-  <link rel="stylesheet" href="../assets/themes.css">
-
-  <!-- 테마 선택 (다른 시뮬과 동일 패턴) -->
-  <script>
-    (function () {
-      var SIM_ID = "upgrade-cost";
-      var GKEY = "simhub_theme_global";
-      var OKEY = "simhub_theme_overrides";
-      function resolveSystem(theme) {
-        if (theme !== "system") return theme;
-        var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        return isDark ? "dark" : "light";
-      }
-      function apply() {
-        var g = localStorage.getItem(GKEY) || "asphalt";
-        var map;
-        try { map = JSON.parse(localStorage.getItem(OKEY) || "{}"); }
-        catch (_) { map = {}; }
-        var t = map[SIM_ID] || g;
-        document.documentElement.dataset.theme = resolveSystem(t);
-      }
-      try { apply(); } catch (e) { console.warn(e); }
-    })();
-  </script>
-
-  <!-- theme-adapter -->
-  <link rel="stylesheet" href="../assets/theme-adapter.css">
-  <script src="../assets/lang.js"></script>
-  <script src="../assets/i18n.js"></script>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="brand">
-      <div class="logo"></div>
-      <h1 data-i18n="cu.title">업그레이드 비용 계산기</h1>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <h1>💰 <span data-i18n="cu.title">업그레이드 비용 계산기</span></h1>
+      </div>
+      <div class="toolbar">
+        <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
+      </div>
     </div>
-    <div class="toolbar">
-      <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
-    </div>
+
     <p class="subtitle" data-i18n="cu.subtitle">cars.json과 upgrades.json을 기반으로 각 부위별 스테이지 / 부품에 드는 크레딧을 계산합니다.</p>
 
     <!-- 입력 카드 -->
@@ -932,58 +929,7 @@
         });
     });
   </script>
-  <!-- Hub Back Button Inject -->
-  <style>
-    #hubBackWrap {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 2147483647;
-      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
-    }
 
-    #hubBackBtn {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--chip-bg);
-      color: var(--ink);
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
-      opacity: .9
-    }
-
-    #hubBackBtn:hover {
-      opacity: 1
-    }
-
-    @media (prefers-color-scheme: light) {
-      #hubBackBtn {
-        background: var(--chip-bg);
-        color: var(--ink)
-      }
-    }
-  </style>
-  <div id="hubBackWrap">
-    <button id="hubBackBtn" title="메인 메뉴로">
-      ← 메인으로
-    </button>
-  </div>
-  <script>
-    (function () {
-      var btn = document.getElementById('hubBackBtn');
-      if (!btn) return;
-      btn.addEventListener('click', function () {
-        // If navigated from hub, try back; otherwise go to hub index.html
-        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
-          history.back();
-        } else {
-          // assume hub is one level up
-          location.href = '../index.html';
-        }
-      });
-    })();
-  </script>
 </body>
 
 </html>

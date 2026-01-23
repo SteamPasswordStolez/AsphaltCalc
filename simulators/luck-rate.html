@@ -8,258 +8,15 @@
   <title>Luck Rate — 운빨수치 계산기</title>
   <meta name="color-scheme" content="light dark" />
 
-  <!-- Theme and i18n -->
+  <link rel="stylesheet" href="../assets/style.css">
   <link rel="stylesheet" href="../assets/themes.css">
-  <script>
-    (function () {
-      var SIM_ID = "luck-rate";
-      var GKEY = "simhub_theme_global";
-      var OKEY = "simhub_theme_overrides";
-      function resolveSystem(theme) {
-        if (theme !== "system") return theme;
-        var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        return isDark ? "dark" : "light";
-      }
-      function apply() {
-        var g = localStorage.getItem(GKEY) || "asphalt";
-        var map;
-        try { map = JSON.parse(localStorage.getItem(OKEY) || "{}"); }
-        catch (_) { map = {}; }
-        var t = map[SIM_ID] || g;
-        document.documentElement.dataset.theme = resolveSystem(t);
-      }
-      try { apply(); } catch (e) { console.warn(e); }
-    })();
-  </script>
+
+  <script>window.SIM_ID = "luck-rate";</script>
+  <script src="../assets/theme-init.js"></script>
   <link rel="stylesheet" href="../assets/theme-adapter.css">
-  <script src="../assets/lang.js"></script>
-  <script src="../assets/i18n.js"></script>
+
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      overflow: hidden;
-    }
-
-    .wrap {
-      width: 100%;
-      max-width: 880px;
-      border-radius: 20px;
-      padding: 22px 24px 24px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(16px);
-      transition: filter .2s ease, opacity .2s ease;
-    }
-
-    .wrap.blurred {
-      filter: blur(6px);
-      opacity: 0.8;
-      pointer-events: none;
-      user-select: none;
-    }
-
-    .title-row {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 22px;
-      letter-spacing: .03em;
-      font-weight: 900;
-    }
-
-    .subtitle {
-      font-size: 12px;
-      opacity: 0.75;
-    }
-
-    .mode-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 10px 0 12px;
-      flex-wrap: wrap;
-    }
-
-    label {
-      font-size: 13px;
-    }
-
-    select {
-      border-radius: 999px;
-      border: 1px solid var(--control-border);
-      background: var(--control-bg);
-      color: inherit;
-      padding: 7px 12px;
-      font-size: 13px;
-      outline: none;
-    }
-
-    select:focus {
-      border-color: rgba(120, 200, 255, 0.9);
-      box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.4);
-    }
-
-    .mode-hint {
-      font-size: 11px;
-      opacity: 0.7;
-    }
-
-    .section-title {
-      margin: 14px 0 6px;
-      font-size: 14px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      opacity: 0.95;
-    }
-
-    .section-title span.tag {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      opacity: 0.8;
-    }
-
-    .input-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    @media (max-width: 800px) {
-      .input-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .wrap {
-        padding: 18px 16px 20px;
-      }
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 13px;
-    }
-
-    .field-label {
-      display: flex;
-      justify-content: space-between;
-      gap: 6px;
-      opacity: 0.9;
-    }
-
-    .field small {
-      opacity: 0.7;
-      font-size: 11px;
-    }
-
-    input[type="number"] {
-      width: 100%;
-      border-radius: 10px;
-      border: 1px solid var(--control-border);
-      background: var(--control-bg);
-      color: inherit;
-      padding: 8px 10px;
-      font-size: 14px;
-      outline: none;
-      transition: border-color .15s, box-shadow .15s, background .15s, opacity .15s;
-    }
-
-    input[type="number"]:focus {
-      border-color: rgba(120, 200, 255, 0.9);
-      box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.4);
-      background: rgba(7, 12, 28, 0.95);
-    }
-
-    input[disabled] {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .actions {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 10px;
-      margin-bottom: 4px;
-      flex-wrap: wrap;
-    }
-
-    .hint {
-      font-size: 11px;
-      opacity: 0.7;
-    }
-
-    button {
-      border-radius: 999px;
-      border: none;
-      padding: 8px 20px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      background: linear-gradient(120deg, #31c6ff, #6c6bff, #ff4ecd);
-      color: #fdfdfd;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
-      white-space: nowrap;
-    }
-
-    button:hover:not(:disabled) {
-      filter: brightness(1.07);
-      transform: translateY(-1px);
-    }
-
-    button:active:not(:disabled) {
-      filter: brightness(0.96);
-      transform: translateY(0);
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
-    }
-
-    button:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    .error {
-      font-size: 12px;
-      color: #ff8585;
-      margin-top: 6px;
-      min-height: 16px;
-    }
-
-    /* === 결과 모달 === */
+    /* Local styles reserved for Luck Rate Modal */
     .result-overlay {
       position: fixed;
       inset: 0;
@@ -275,6 +32,7 @@
       width: min(360px, 80vw);
       max-height: 90vh;
       border-radius: 24px;
+      /* Background handled by global theme vars in .panel/card but we force it here */
       background: var(--panel);
       border: 1px solid var(--border);
       box-shadow: 0 22px 60px rgba(0, 0, 0, 0.9);
@@ -346,7 +104,7 @@
       justify-content: center;
       margin-top: 6px;
       padding-top: 4px;
-      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 1px solid var(--border);
     }
 
     .close-btn {
@@ -361,118 +119,124 @@
       border: 1px solid rgba(255, 255, 255, 0.25);
     }
 
-    .close-btn:hover {
-      background: rgba(255, 255, 255, 0.06);
+    .container.blurred {
+      filter: blur(6px);
+      opacity: 0.8;
+      pointer-events: none;
+      user-select: none;
     }
   </style>
+
+  <script src="../assets/lang.js"></script>
+  <script src="../assets/i18n.js"></script>
 </head>
 
 <body>
-  <div class="wrap" id="mainWrap">
-    <div class="title-row">
-      <h1 data-i18n="lr.title">운빨수치 계산기</h1>
-      <div class="subtitle" data-i18n="lr.subtitle">청사진 / 특수부품 / 둘 다 · Binomial Luck Meter</div>
+  <div class="container mobile-full" id="mainWrap">
+    <div class="header">
+      <div class="brand">
+        <h1>🍀 <span data-i18n="lr.title">운빨수치 계산기</span></h1>
+      </div>
+      <div class="toolbar">
+        <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
+        <button id="btnReload" class="btn">
+          <span data-i18n="common.reload">새로고침</span>
+        </button>
+      </div>
     </div>
 
-    <div class="mode-row">
-      <label for="mode"><b data-i18n="lr.label_mode">무엇을 기준으로 운빨을 볼까?</b></label>
-      <select id="mode">
-        <option value="" data-i18n="lr.opt_select">-- 선택하세요 --</option>
-        <option value="bp" data-i18n="lr.opt_bp">청사진만</option>
-        <option value="sp" data-i18n="lr.opt_sp">특수부품만</option>
-        <option value="both" data-i18n="lr.opt_both">청사진 + 특수부품 둘 다</option>
-      </select>
-    </div>
-    <div class="mode-hint" data-i18n="lr.hint_mode">
-      먼저 측정 대상을 고르면 아래 입력창들이 활성화됩니다. 둘 다를 선택하면 청사진/특수부품의 시도 횟수를 각각 따로 넣을 수 있어요.
+    <!-- Description -->
+    <div class="subtitle meta" style="margin-bottom: 20px;" data-i18n="lr.subtitle">청사진 / 특수부품 / 둘 다 · Binomial Luck
+      Meter</div>
+
+    <!-- Mode Select -->
+    <div class="card" style="margin-bottom:20px; padding:16px;">
+      <div class="form-group">
+        <label style="font-size:15px; font-weight:700;"><span data-i18n="lr.label_mode">무엇을 기준으로 운빨을 볼까?</span></label>
+        <select id="mode">
+          <option value="" data-i18n="lr.opt_select">-- 선택하세요 --</option>
+          <option value="bp" data-i18n="lr.opt_bp">청사진만</option>
+          <option value="sp" data-i18n="lr.opt_sp">특수부품만</option>
+          <option value="both" data-i18n="lr.opt_both">청사진 + 특수부품 둘 다</option>
+        </select>
+        <div class="meta" style="margin-top:8px" data-i18n="lr.hint_mode">
+          먼저 측정 대상을 고르면 아래 입력창들이 활성화됩니다.
+        </div>
+      </div>
     </div>
 
-    <!-- 청사진 섹션 -->
+    <!-- BP Section -->
     <div id="bpSection">
-      <div class="section-title">
-        <span data-i18n="lr.sec_bp">청사진 (설계도)</span>
-        <span class="tag">Blueprint</span>
-      </div>
-      <div class="input-grid">
-        <div class="field">
-          <div class="field-label">
-            <span data-i18n="lr.label_prob">청사진 단일 성공 확률</span><small data-i18n="lr.suffix_prob">(%)</small>
+      <h2 class="title" style="display:flex;align-items:center;gap:8px">
+        <span data-i18n="lr.sec_bp">청사진</span>
+        <span class="chip">Blueprint</span>
+      </h2>
+      <div class="card" style="margin-top:10px; padding:16px;">
+        <div class="grid-responsive cols-3" style="gap:16px">
+          <div class="form-group">
+            <label><span data-i18n="lr.label_prob">확률(%)</span></label>
+            <input id="bpProb" type="number" min="0" max="100" step="0.0001" value="30" disabled />
+            <div class="meta" style="font-size:11px" data-i18n="lr.hint_bp_prob">예: 30% -> 30</div>
           </div>
-          <input id="bpProb" type="number" min="0" max="100" step="0.0001" value="30" disabled />
-          <small data-i18n="lr.hint_bp_prob">예: 한 판에 설계도 뜰 확률 30% → 30</small>
-        </div>
-        <div class="field">
-          <div class="field-label">
-            <span data-i18n="lr.label_trials">청사진 시도 횟수</span><small data-i18n="lr.suffix_trials">(판 수)</small>
+          <div class="form-group">
+            <label><span data-i18n="lr.label_trials">시도 횟수</span></label>
+            <input id="bpTrials" type="number" min="1" step="1" value="90" disabled />
+            <div class="meta" style="font-size:11px" data-i18n="lr.hint_bp_trials">예: 90판</div>
           </div>
-          <input id="bpTrials" type="number" min="1" step="1" value="90" disabled />
-          <small data-i18n="lr.hint_bp_trials">예: 90판 진행</small>
-        </div>
-        <div class="field">
-          <div class="field-label">
-            <span data-i18n="lr.label_success">실제 청사진 횟수</span><small data-i18n="lr.suffix_success">(개수)</small>
+          <div class="form-group">
+            <label><span data-i18n="lr.label_success">성공 횟수</span></label>
+            <input id="bpSuccesses" type="number" min="0" step="1" value="27" disabled />
+            <div class="meta" style="font-size:11px" data-i18n="lr.hint_bp_success">예: 27장</div>
           </div>
-          <input id="bpSuccesses" type="number" min="0" step="1" value="27" disabled />
-          <small data-i18n="lr.hint_bp_success">예: 27번 먹음 → 27</small>
         </div>
       </div>
     </div>
 
-    <!-- 특수부품 섹션 -->
-    <div id="spSection">
-      <div class="section-title">
+    <!-- SP Section -->
+    <div id="spSection" style="margin-top:24px">
+      <h2 class="title" style="display:flex;align-items:center;gap:8px">
         <span data-i18n="lr.sec_sp">특수부품</span>
-        <span class="tag">Special Part</span>
-      </div>
-      <div class="input-grid">
-        <div class="field">
-          <div class="field-label">
-            <span data-i18n="lr.label_prob">특수부품 단일 성공 확률</span><small data-i18n="lr.suffix_prob">(%)</small>
+        <span class="chip">Special Part</span>
+      </h2>
+      <div class="card" style="margin-top:10px; padding:16px;">
+        <div class="grid-responsive cols-3" style="gap:16px">
+          <div class="form-group">
+            <label><span data-i18n="lr.label_prob">확률(%)</span></label>
+            <input id="spProb" type="number" min="0" max="100" step="0.0001" value="4" disabled />
+            <div class="meta" style="font-size:11px" data-i18n="lr.hint_sp_prob">예: 4% -> 4</div>
           </div>
-          <input id="spProb" type="number" min="0" max="100" step="0.0001" value="4" disabled />
-          <small data-i18n="lr.hint_sp_prob">예: 한 판에 특수부품 뜰 확률 4% → 4</small>
-        </div>
-        <div class="field">
-          <div class="field-label">
-            <span data-i18n="lr.label_trials">특수부품 시도 횟수</span><small data-i18n="lr.suffix_trials">(판 수)</small>
+          <div class="form-group">
+            <label><span data-i18n="lr.label_trials">시도 횟수</span></label>
+            <input id="spTrials" type="number" min="1" step="1" value="90" disabled />
+            <div class="meta" style="font-size:11px" data-i18n="lr.hint_sp_trials">90판</div>
           </div>
-          <input id="spTrials" type="number" min="1" step="1" value="90" disabled />
-          <small data-i18n="lr.hint_sp_trials">예: 90판 진행 (청사진과 달라도 됨)</small>
-        </div>
-        <div class="field">
-          <div class="field-label">
-            <span data-i18n="lr.label_success">실제 특수부품 횟수</span><small data-i18n="lr.suffix_success">(개수)</small>
+          <div class="form-group">
+            <label><span data-i18n="lr.label_success">성공 횟수</span></label>
+            <input id="spSuccesses" type="number" min="0" step="1" value="1" disabled />
+            <div class="meta" style="font-size:11px" data-i18n="lr.hint_sp_success">1개</div>
           </div>
-          <input id="spSuccesses" type="number" min="0" step="1" value="1" disabled />
-          <small data-i18n="lr.hint_sp_success">예: 1번 먹음 → 1</small>
         </div>
       </div>
     </div>
 
-    <div class="actions">
-      <div class="hint" data-i18n="lr.calc_hint">
-        단일 확률, 시도 수, 실제 횟수를 넣고<br>
-        <b>“운빨수치 계산”</b> 버튼을 눌러보세요.
-      </div>
-      <button id="calcBtn" disabled data-i18n="lr.calculate">운빨수치 계산</button>
+    <div class="actions" style="margin-top:24px">
+      <button id="calcBtn" class="primary" disabled data-i18n="lr.calculate">운빨수치 계산</button>
     </div>
 
-    <div id="error" class="error"></div>
+    <div id="error" class="danger-hint" style="margin-top:10px; text-align:center;"></div>
+
   </div>
 
   <!-- 결과 모달 -->
   <div class="result-overlay" id="resultOverlay">
     <div class="result-modal">
       <div class="result-image-slot" id="resultImageSlot">
-        <!-- 이미지는 여기 src만 바꾸면 됨 -->
-        <img id="resultImage" src="images/luck-neutral.png" alt="" loading="lazy">
+        <img id="resultImage" src="../images/luck-neutral.png" alt="" loading="lazy">
       </div>
       <div class="result-content">
         <div>
           <div class="result-title" data-i18n="lr.res_title">UNBBAL-LUCK METER</div>
-          <div class="luck-lines" id="resultLines">
-            <!-- JS에서 운빨수치 텍스트 채워짐 -->
-          </div>
+          <div class="luck-lines" id="resultLines"></div>
         </div>
         <div class="result-footer">
           <button class="close-btn" id="closeResultBtn" data-i18n="common.close">닫기</button>
@@ -516,156 +280,66 @@
         if (i <= k) lower += pmf;
         if (i >= k) upper += pmf;
       }
-
-      if (lower > 1) lower = 1;
-      if (upper > 1) upper = 1;
-      if (lower < 0) lower = 0;
-      if (upper < 0) upper = 0;
-
-      return { lower, upper, mean, std };
+      return { lower: Math.min(1, Math.max(0, lower)), upper: Math.min(1, Math.max(0, upper)), mean, std };
     }
 
-    // 상위 퍼센타일(pct)에 따른 등급 + 이모지 매핑
+    // 상위 퍼센타일 -> 등급/이모지
     function getLuckGrade(pct) {
-      // 이스터에그: 69.74%
-      if (Math.abs(pct - 69.74) < 0.005) {
-        return {
-          key: "lr.grade_egg",
-          emoji: "🥵"
-        };
-      }
-
-      // 0.00% ~ 1.00%
-      if (pct <= 1.0) {
-        return { key: "lr.grade_god", emoji: "" };
-      }
-      // 1.01% ~ 5.00%
-      if (pct <= 5.0) {
-        return { key: "lr.grade_legend", emoji: "⭐" };
-      }
-      // 5.01% ~ 10.00%
-      if (pct <= 10.0) {
-        return { key: "lr.grade_rare", emoji: "💧" };
-      }
-      // 10.01% ~ 20.00%
-      if (pct <= 20.0) {
-        return { key: "lr.grade_good", emoji: "💵" };
-      }
-      // 20.01% ~ 40.00%
-      if (pct <= 40.0) {
-        return { key: "lr.grade_normal", emoji: "🍀" };
-      }
-      // 40.01% ~ 60.00%
-      if (pct <= 60.0) {
-        return { key: "lr.grade_meh", emoji: "😐" };
-      }
-      // 60.01% ~ 80.00%
-      if (pct <= 80.0) {
-        return { key: "lr.grade_bad", emoji: "💩" };
-      }
-      // 80.01% ~ 90.00%
-      if (pct <= 90.0) {
-        return { key: "lr.grade_worst", emoji: "💀" };
-      }
-      // 90.01% ~ 95.00%
-      if (pct <= 95.0) {
-        return { key: "lr.grade_oil", emoji: "🛢️" };
-      }
-      // 95.01% ~ 99.00%
-      if (pct <= 99.0) {
-        return { key: "lr.grade_sick", emoji: "🤮" };
-      }
-      // 99.01% ~ 99.99%
-      if (pct <= 99.99) {
-        return { key: "lr.grade_not_human", emoji: "☠️" };
-      }
-
+      if (Math.abs(pct - 69.74) < 0.005) return { key: "lr.grade_egg", emoji: "🥵" };
+      if (pct <= 1.0) return { key: "lr.grade_god", emoji: "" };
+      if (pct <= 5.0) return { key: "lr.grade_legend", emoji: "⭐" };
+      if (pct <= 10.0) return { key: "lr.grade_rare", emoji: "💧" };
+      if (pct <= 20.0) return { key: "lr.grade_good", emoji: "💵" };
+      if (pct <= 40.0) return { key: "lr.grade_normal", emoji: "🍀" };
+      if (pct <= 60.0) return { key: "lr.grade_meh", emoji: "😐" };
+      if (pct <= 80.0) return { key: "lr.grade_bad", emoji: "💩" };
+      if (pct <= 90.0) return { key: "lr.grade_worst", emoji: "💀" };
+      if (pct <= 95.0) return { key: "lr.grade_oil", emoji: "🛢️" };
+      if (pct <= 99.0) return { key: "lr.grade_sick", emoji: "🤮" };
       return { key: "lr.grade_not_human", emoji: "☠️" };
     }
 
-    // 하나의 지표(청사진 / 특수부품)에 대한 운빨수치 계산
     function evaluateLuck(kindLabel, probPercent, n, k) {
-      // Validation moved to compute()
-
-
       const p = probPercent / 100;
       const tails = binomialTails(n, p, k);
       const mean = tails.mean;
       const std = tails.std;
-      const lower = tails.lower; // P(X ≤ k)  (불운 꼬리)
-      const upper = tails.upper; // P(X ≥ k)  (행운 꼬리)
+      const lower = tails.lower;
+      const upper = tails.upper;
 
       let pct;
+      if (std === 0) pct = 50;
+      else if (k > mean) pct = upper * 100;
+      else if (k < mean) pct = 100 - lower * 100;
+      else pct = 50;
 
-      if (std === 0) {
-        // p=0 또는 1 같은 특이 케이스는 그냥 중앙값 취급
-        pct = 50;
-      } else if (k > mean) {
-        // 평균보다 많이 성공 → 행운 쪽 희소도 그대로 (0% = 신급 행운)
-        pct = upper * 100;
-      } else if (k < mean) {
-        // 평균보다 적게 성공 → 불운 쪽 희소도는 뒤집어서 (100% = 신급 불운)
-        pct = 100 - lower * 100;
-      } else {
-        // 딱 평균
-        pct = 50;
-      }
-
-      // 안전 범위 클램프
-      if (pct < 0) pct = 0;
-      if (pct > 100) pct = 100;
-
+      if (pct < 0) pct = 0; if (pct > 100) pct = 100;
       const grade = getLuckGrade(pct);
 
-      return {
-        kind: kindLabel,     // local translation key
-        pct: pct,            // 상위 퍼센타일 숫자
-        labelKey: grade.key,  // 결과 텍스트 키
-        emoji: grade.emoji   // 이모지 (또는 빈 문자열)
-      };
+      return { kind: kindLabel, pct: pct, labelKey: grade.key, emoji: grade.emoji };
     }
 
-    // 가장 "극단적인" 운빨 기준으로 이미지 고르기
     function pickImageByLuck(lines) {
       if (!lines || !lines.length) return;
-
-      // 50%에서 얼마나 멀리 떨어졌는지 기준으로 극단성 판정
       let chosen = lines[0];
       for (const l of lines) {
-        if (Math.abs(l.pct - 50) > Math.abs(chosen.pct - 50)) {
-          chosen = l;
-        }
+        if (Math.abs(l.pct - 50) > Math.abs(chosen.pct - 50)) chosen = l;
       }
-
-      let src = "images/luck-neutral.png";
-
+      let src = "../images/luck-neutral.png";
       switch (chosen.labelKey) {
-        case "lr.grade_god":
-          src = "../images/luck-god.png"; break;
-        case "lr.grade_legend":
-          src = "../images/luck-legend.png"; break;
-        case "lr.grade_rare":
-          src = "../images/luck-rare.png"; break;
-        case "lr.grade_good":
-          src = "../images/luck-good.png"; break;
-        case "lr.grade_normal":
-          src = "../images/luck-normal.png"; break;
-        case "lr.grade_meh":
-          src = "../images/luck-meh.png"; break;
-        case "lr.grade_bad":
-          src = "../images/luck-bad.png"; break;
-        case "lr.grade_worst":
-          src = "../images/luck-worst.png"; break;
-        case "lr.grade_oil":
-          src = "../images/luck-oil.png"; break;
-        case "lr.grade_sick":
-          src = "../images/luck-sick.png"; break;
-        case "lr.grade_not_human":
-          src = "../images/luck-not-human.png"; break;
-        case "lr.grade_egg":
-          src = "../images/luck-egg-6974.png"; break;
+        case "lr.grade_god": src = "../images/luck-god.png"; break;
+        case "lr.grade_legend": src = "../images/luck-legend.png"; break;
+        case "lr.grade_rare": src = "../images/luck-rare.png"; break;
+        case "lr.grade_good": src = "../images/luck-good.png"; break;
+        case "lr.grade_normal": src = "../images/luck-normal.png"; break;
+        case "lr.grade_meh": src = "../images/luck-meh.png"; break;
+        case "lr.grade_bad": src = "../images/luck-bad.png"; break;
+        case "lr.grade_worst": src = "../images/luck-worst.png"; break;
+        case "lr.grade_oil": src = "../images/luck-oil.png"; break;
+        case "lr.grade_sick": src = "../images/luck-sick.png"; break;
+        case "lr.grade_not_human": src = "../images/luck-not-human.png"; break;
+        case "lr.grade_egg": src = "../images/luck-egg-6974.png"; break;
       }
-
       const img = document.getElementById("resultImage");
       if (img) img.src = src;
     }
@@ -695,9 +369,7 @@
         `;
       }).join("");
 
-      // 이미지 자동 선택
       pickImageByLuck(lines);
-
       mainWrap.classList.add("blurred");
       overlay.style.display = "flex";
     }
@@ -720,7 +392,6 @@
       }
 
       const results = [];
-
       try {
         if (mode === "bp" || mode === "both") {
           const prob = parseFloat(document.getElementById("bpProb").value);
@@ -728,23 +399,20 @@
           const k = parseInt(document.getElementById("bpSuccesses").value, 10);
           const label = "lr.sec_bp";
           if (isNaN(prob)) throw new Error(I18N.t('lr.err_input_req').replace('{kind}', I18N.t(label)));
-          if (prob <= 0 || prob >= 100) throw new Error(I18N.t('lr.err_prob_range').replace('{kind}', I18N.t(label)));
+          if (prob < 0 || prob > 100) throw new Error(I18N.t('lr.err_prob_range').replace('{kind}', I18N.t(label)));
           if (n <= 0 || !Number.isInteger(n)) throw new Error(I18N.t('lr.err_n_int').replace('{kind}', I18N.t(label)));
           if (k < 0 || k > n || !Number.isInteger(k)) throw new Error(I18N.t('lr.err_k_range').replace('{kind}', I18N.t(label)));
-          if (n > 1200) throw new Error(I18N.t('lr.err_n_large').replace('{kind}', I18N.t(label)));
           results.push(evaluateLuck(label, prob, n, k));
         }
-
         if (mode === "sp" || mode === "both") {
           const prob = parseFloat(document.getElementById("spProb").value);
           const n = parseInt(document.getElementById("spTrials").value, 10);
           const k = parseInt(document.getElementById("spSuccesses").value, 10);
           const label = "lr.sec_sp";
           if (isNaN(prob)) throw new Error(I18N.t('lr.err_input_req').replace('{kind}', I18N.t(label)));
-          if (prob <= 0 || prob >= 100) throw new Error(I18N.t('lr.err_prob_range').replace('{kind}', I18N.t(label)));
+          if (prob < 0 || prob > 100) throw new Error(I18N.t('lr.err_prob_range').replace('{kind}', I18N.t(label)));
           if (n <= 0 || !Number.isInteger(n)) throw new Error(I18N.t('lr.err_n_int').replace('{kind}', I18N.t(label)));
           if (k < 0 || k > n || !Number.isInteger(k)) throw new Error(I18N.t('lr.err_k_range').replace('{kind}', I18N.t(label)));
-          if (n > 1200) throw new Error(I18N.t('lr.err_n_large').replace('{kind}', I18N.t(label)));
           results.push(evaluateLuck(label, prob, n, k));
         }
 
@@ -752,7 +420,6 @@
           errorEl.textContent = I18N.t('lr.err_no_target');
           return;
         }
-
         showResultModal(results);
       } catch (e) {
         errorEl.textContent = e.message;
@@ -771,7 +438,6 @@
         btn.disabled = true;
         return;
       }
-
       if (mode === "bp") {
         setInputsEnabled("bpSection", true);
         setInputsEnabled("spSection", false);
@@ -791,68 +457,10 @@
       if (e.target.id === "resultOverlay") hideResultModal();
     });
 
-    // Enter로도 계산
-    ["bpProb", "bpTrials", "bpSuccesses", "spProb", "spTrials", "spSuccesses"].forEach(id => {
-      const el = document.getElementById(id);
-      el.addEventListener("keydown", e => {
-        if (e.key === "Enter" && !document.getElementById("calcBtn").disabled) {
-          compute();
-        }
-      });
-    });
-  </script>
+    // Reload btn
+    var btnReload = document.getElementById("btnReload");
+    if (btnReload) btnReload.addEventListener("click", function () { location.reload(); });
 
-  <!-- Hub Back Button Inject -->
-  <style>
-    #hubBackWrap {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 2147483647;
-      font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, "Noto Sans KR", Arial
-    }
-
-    #hubBackBtn {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--chip-bg);
-      color: var(--ink);
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .35);
-      opacity: .9
-    }
-
-    #hubBackBtn:hover {
-      opacity: 1
-    }
-
-    @media (prefers-color-scheme: light) {
-      #hubBackBtn {
-        background: var(--chip-bg);
-        color: var(--ink)
-      }
-    }
-  </style>
-  <div id="hubBackWrap">
-    <button id="hubBackBtn" title="메인 메뉴로">
-      ← 메인으로
-    </button>
-  </div>
-  <script>
-    (function () {
-      var btn = document.getElementById('hubBackBtn');
-      if (!btn) return;
-      btn.addEventListener('click', function () {
-        // If navigated from hub, try back; otherwise go to hub index.html
-        if (document.referrer && document.referrer.indexOf('index.html') !== -1) {
-          history.back();
-        } else {
-          // assume hub is one level up
-          location.href = '../index.html';
-        }
-      });
-    })();
   </script>
 </body>
 

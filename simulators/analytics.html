@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Class Analytics - 클래스 분석기</title>
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="../assets/themes.css">
+
+    <script>window.SIM_ID = "analytics";</script>
+    <script src="../assets/theme-init.js"></script>
+    <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+    <script src="../assets/lang.js"></script>
+    <script src="../assets/i18n.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: var(--bg);
+            color: var(--ink);
+            padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            font-size: 18px;
+            color: var(--muted);
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .btn-back:hover {
+            color: var(--ink);
+            border-color: var(--accent);
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select {
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: var(--control-bg);
+            /* Use theme variable */
+            color: var(--ink);
+            border: 1px solid var(--border);
+            font-size: 14px;
+            min-width: 180px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+        }
+
+        .chart-box {
+            background: var(--panel);
+            padding: 24px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            height: 600px;
+            position: relative;
+            margin-top: 24px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Loading overlay */
+        #loading {
+            position: absolute;
+            inset: 0;
+            background: color-mix(in srgb, var(--bg) 80%, transparent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--accent);
+            z-index: 10;
+            border-radius: 16px;
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Class Analytics</h1>
+            <a href="../index.html" class="btn-back">← Hub</a>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Class</label>
+                <select id="clsSel">
+                    <option value="D">Class D</option>
+                    <option value="C">Class C</option>
+                    <option value="B">Class B</option>
+                    <option value="A">Class A</option>
+                    <option value="S">Class S</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label data-i18n="an.metric_label">Y축 기준</label>
+                <select id="modeSel">
+                    <option value="vmax" data-i18n="cd.speed">최고속도</option>
+                    <option value="accel" data-i18n="cd.accel">가속</option>
+                    <option value="handling" data-i18n="cd.handling">핸들링</option>
+                    <option value="nitro" data-i18n="cd.nitro">니트로</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label data-i18n="an.search_label">차량 검색</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="searchInp" placeholder="Name..." data-i18n-ph="an.search_ph"
+                        style="width:120px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--control-bg); color:var(--ink);">
+                    <button id="btnTrend" data-i18n="an.trend_btn"
+                        style="padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--accent); cursor:pointer;">📈
+                        평균선</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-box">
+            <div id="loading">Loading Data...</div>
+            <canvas id="scatterChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let allCars = [];
+        let chart = null;
+        let showTrend = false;
+
+        // Helper to get CSS var
+        function getCssVar(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        async function init() {
+            try {
+                const res = await fetch('../assets/cars.json');
+                allCars = await res.json();
+                document.getElementById('loading').style.display = 'none';
+                updateChart();
+            } catch (e) {
+                document.getElementById('loading').textContent = "Failed to load data.";
+            }
+        }
+
+        const clsSel = document.getElementById('clsSel');
+        const modeSel = document.getElementById('modeSel');
+        const searchInp = document.getElementById('searchInp');
+        const btnTrend = document.getElementById('btnTrend');
+
+        clsSel.addEventListener('change', updateChart);
+        modeSel.addEventListener('change', updateChart);
+
+        // Live search highlight
+        searchInp.addEventListener('input', () => {
+            if (!chart) return;
+            const q = searchInp.value.toLowerCase().trim();
+            const ds = chart.data.datasets[0];
+            const bgColors = [];
+            const radii = [];
+
+            const colorAccent = getCssVar('--accent') || '#3b82f6';
+            const colorInk = getCssVar('--ink') || '#f8fafc';
+
+            ds.data.forEach(p => {
+                if (q && p.name.toLowerCase().includes(q)) {
+                    bgColors.push('#ff0055'); // Highlight Color
+                    radii.push(10);
+                } else {
+                    bgColors.push(colorAccent);
+                    radii.push(6);
+                }
+            });
+            ds.backgroundColor = bgColors;
+            ds.pointRadius = radii;
+            chart.update();
+        });
+
+        // Toggle Trend
+        btnTrend.addEventListener('click', () => {
+            showTrend = !showTrend;
+            btnTrend.style.background = showTrend ? 'var(--accent)' : 'var(--panel)';
+            btnTrend.style.color = showTrend ? '#fff' : 'var(--accent)';
+            updateChart();
+        });
+
+        // Linear Regression (Least Squares)
+        function calculateTrendLine(points) {
+            const n = points.length;
+            if (n < 2) return null;
+
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            let minX = Infinity, maxX = -Infinity;
+
+            points.forEach(p => {
+                sumX += p.x;
+                sumY += p.y;
+                sumXY += p.x * p.y;
+                sumXX += p.x * p.x;
+                if (p.x < minX) minX = p.x;
+                if (p.x > maxX) maxX = p.x;
+            });
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            return [
+                { x: minX, y: slope * minX + intercept },
+                { x: maxX, y: slope * maxX + intercept }
+            ];
+        }
+
+        function updateChart() {
+            const cls = clsSel.value;
+            const mode = modeSel.value;
+            const q = searchInp.value.toLowerCase().trim();
+
+            // Theme colors
+            const colorAccent = getCssVar('--accent') || '#3b82f6';
+            const colorMuted = getCssVar('--muted') || '#cbd5e1';
+            const colorBorder = getCssVar('--border') || '#334155';
+            const colorInk = getCssVar('--ink') || '#f8fafc';
+
+            // Filter cars by class
+            const cars = allCars.filter(c => c.class === cls);
+
+            const points = cars.map(c => {
+                if (!c.stat || c.stat.length === 0) return null;
+                const maxStat = c.stat[c.stat.length - 1];
+                let yVal = 0;
+                if (mode === 'vmax') yVal = maxStat.top_speed;
+                if (mode === 'accel') yVal = maxStat.accel;
+                if (mode === 'handling') yVal = maxStat.handling;
+                if (mode === 'nitro') yVal = maxStat.nitro;
+
+                return {
+                    x: maxStat.rank,
+                    y: yVal,
+                    name: c.name,
+                    id: c.id
+                };
+            }).filter(p => p !== null && p.y > 0);
+
+            const datasets = [{
+                type: 'scatter',
+                label: `Class ${cls}`,
+                data: points,
+                backgroundColor: points.map(p => (q && p.name.toLowerCase().includes(q)) ? '#ff0055' : colorAccent),
+                pointRadius: points.map(p => (q && p.name.toLowerCase().includes(q)) ? 10 : 6),
+                pointHoverRadius: 9,
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: colorAccent
+            }];
+
+            if (showTrend) {
+                const trendPoints = calculateTrendLine(points);
+                if (trendPoints) {
+                    datasets.push({
+                        type: 'line',
+                        label: 'Avg Trend',
+                        data: trendPoints,
+                        borderColor: '#ffcc00',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0
+                    });
+                }
+            }
+
+            const ctx = document.getElementById('scatterChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                data: { datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: showTrend,
+                            labels: { color: colorMuted }
+                        },
+                        tooltip: {
+                            backgroundColor: getCssVar('--panel'),
+                            titleColor: getCssVar('--ink'),
+                            bodyColor: getCssVar('--muted'),
+                            borderColor: getCssVar('--border'),
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                label: function (ctx) {
+                                    if (ctx.dataset.type === 'line') return null;
+                                    const p = ctx.raw;
+                                    return `${p.name}`;
+                                },
+                                afterLabel: function (ctx) {
+                                    if (ctx.dataset.type === 'line') return null;
+                                    const p = ctx.raw;
+                                    return `Rank: ${p.x} | ${mode.toUpperCase()}: ${p.y}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: { display: true, text: 'Rank', color: colorMuted },
+                            grid: { color: colorBorder },
+                            ticks: { color: colorMuted }
+                        },
+                        y: {
+                            title: { display: true, text: modeSel.options[modeSel.selectedIndex].text, color: colorMuted },
+                            grid: { color: colorBorder },
+                            ticks: { color: colorMuted }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        init();
+    </script>
+</body>
+
+</html>
