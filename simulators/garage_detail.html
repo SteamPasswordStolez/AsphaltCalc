@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Garage Editor — 차고 편집</title>
+    <meta name="color-scheme" content="light dark" />
+
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="../assets/themes.css">
+
+    <script>window.SIM_ID = "garage-detail";</script>
+    <script src="../assets/theme-init.js"></script>
+    <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+    <script src="../assets/lang.js?v=2"></script>
+    <script src="../assets/i18n.js"></script>
+    <script src="../assets/garage.js"></script>
+
+    <style>
+        .panel {
+            border-radius: 18px;
+            padding: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-raised);
+            margin-bottom: 20px;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .car-title {
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .car-subtitle {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* Ownership Toggle */
+        .ownership-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--panel);
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ownership-wrap.active {
+            border-color: var(--accent);
+            background: var(--surface-hover);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--chip-bg);
+            border: 1px solid var(--border);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--muted);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+            background-color: #fff;
+        }
+
+        .ownership-label {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        /* Star Selector */
+        .star-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .star-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--chip-bg);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .star-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .star-btn:hover:not(.active) {
+            background: var(--surface-hover);
+        }
+
+        /* Rank Input */
+        .rank-input {
+            font-size: 24px;
+            font-weight: 800;
+            padding: 12px;
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--ink);
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--muted);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+            opacity: 0.5;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .control-group.enabled {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .save-bar {
+            position: sticky;
+            bottom: 20px;
+            margin-top: 30px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-lg {
+            padding: 14px 28px;
+            font-size: 16px;
+            border-radius: 99px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <h1>🛠️ <span data-i18n="gd.title">차고 편집</span></h1>
+            </div>
+            <div class="toolbar">
+                <a class="btn" href="my_garage.html" data-i18n="common.back">← 내 차고</a>
+            </div>
+        </div>
+
+        <!-- Car Info & Ownership -->
+        <div class="panel">
+            <div class="editor-header">
+                <div>
+                    <h2 class="car-title" id="carName">Loading...</h2>
+                    <div class="car-subtitle" id="carClass">-</div>
+                </div>
+                <div id="carClassBadge" class="class-badge">-</div>
+            </div>
+
+            <label class="ownership-wrap" id="ownershipWrap">
+                <label class="switch">
+                    <input type="checkbox" id="ownedCheck">
+                    <span class="slider"></span>
+                </label>
+                <span class="ownership-label" id="ownedLabel">미보유 (Not Owned)</span>
+            </label>
+        </div>
+
+        <!-- Editor Controls -->
+        <div id="editorControls" class="control-group">
+            <!-- Star -->
+            <div class="panel">
+                <div class="section-title">Star Level</div>
+                <div class="star-selector" id="starSelector">
+                    <!-- JS generated -->
+                </div>
+            </div>
+
+            <!-- Rank -->
+            <div class="panel">
+                <div class="section-title">Current Rank</div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="number" id="rankInput" class="rank-input" placeholder="Rank">
+                    <div style="font-size:12px; color:var(--muted); flex-shrink:0;">
+                        Max Possible: <span id="maxRankDisplay">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shortcuts -->
+            <div class="panel">
+                <div class="section-title">Calculators & Simulators</div>
+
+                <div style="margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+                    <div style="font-size:13px; font-weight:700; color:var(--ink);">Target Star:</div>
+                    <select id="targetStarSelect"
+                        style="padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:var(--chip-bg); font-weight:bold;">
+                        <!-- JS Generated -->
+                    </select>
+                </div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn" onclick="goToUpgrade()">💰 비용 계산기</button>
+                    <button class="btn secondary" onclick="goToSim('car-hunt')">🎯 카 헌트 시뮬</button>
+                    <button class="btn secondary" onclick="goToSim('fullstar')">⭐ 풀성 시뮬</button>
+                </div>
+                <p style="font-size:12px; color:var(--muted); margin-top:8px;">
+                    현재 성(Star)에서 <strong>목표 성(Target)</strong>까지 필요한 청사진을 계산하여 이동합니다.
+                </p>
+            </div>
+        </div>
+
+        <div class="save-bar">
+            <button class="btn primary btn-lg" id="saveBtn" data-i18n="common.save">저장하기</button>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const carId = params.get('id');
+
+        let carMeta = null;
+        let maxStars = 6;
+
+        async function init() {
+            // Load Metadata
+            try {
+                const res = await fetch('../assets/cars.json');
+                const list = await res.json();
+                // Ensure ID comparison handles string/number mismatch
+                carMeta = list.find(c => String(c.id) === String(carId));
+            } catch (e) {
+                console.error(e);
+            }
+
+            if (!carMeta) {
+                document.querySelector('.container').innerHTML = "<div style='padding:40px'>Car not found.</div>";
+                return;
+            }
+
+            renderUI();
+            loadState();
+        }
+
+        function renderUI() {
+            document.getElementById('carName').textContent = carMeta.name;
+            document.getElementById('carClass').textContent = `Class ${carMeta.class} / ID ${carMeta.id}`;
+
+            // Generate Stars
+            maxStars = carMeta.max_star || 6;
+            const starContainer = document.getElementById('starSelector');
+            starContainer.innerHTML = '';
+            for (let i = 1; i <= maxStars; i++) {
+                const b = document.createElement('div');
+                b.className = 'star-btn';
+                b.textContent = i + '★';
+                b.onclick = () => setStar(i);
+                b.dataset.star = i;
+                starContainer.appendChild(b);
+            }
+
+            // Populate Target Star Select
+            const targetSel = document.getElementById('targetStarSelect');
+            if (targetSel) {
+                targetSel.innerHTML = '';
+                for (let i = 1; i <= maxStars; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = i + '★';
+                    if (i === maxStars) opt.selected = true;
+                    targetSel.appendChild(opt);
+                }
+            }
+
+            // Ownership Listener
+            const check = document.getElementById('ownedCheck');
+            check.addEventListener('change', () => {
+                updateOwnedState(check.checked);
+            });
+
+            document.getElementById('ownershipWrap').addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT' && e.target.className !== 'slider') {
+                    check.checked = !check.checked;
+                    updateOwnedState(check.checked);
+                }
+            });
+
+            // Save Listener
+            document.getElementById('saveBtn').addEventListener('click', saveState);
+
+            // Input Listener
+            document.getElementById('rankInput').addEventListener('input', validateRankInput);
+        }
+
+        function updateOwnedState(isOwned) {
+            const label = document.getElementById('ownedLabel');
+            const controls = document.getElementById('editorControls');
+            const wrap = document.getElementById('ownershipWrap');
+
+            if (isOwned) {
+                label.textContent = "보유중 (Owned)";
+                label.style.color = "var(--accent)";
+                controls.classList.add('enabled');
+                wrap.classList.add('active');
+
+                // If star is not set, default to 1
+                const currentStar = document.querySelector('.star-btn.active');
+                if (!currentStar) setStar(1);
+
+            } else {
+                label.textContent = "미보유 (Not Owned)";
+                label.style.color = "var(--muted)";
+                controls.classList.remove('enabled');
+                wrap.classList.remove('active');
+            }
+        }
+
+        function getMaxRankForStar(car, star) {
+            if (!car || !Array.isArray(car.stat)) return 0;
+            const targetStar = Number(star);
+
+            // Filter stats that match the current star level
+            const relevant = car.stat.filter(s => Number(s.star) === targetStar);
+            if (relevant.length === 0) return 0;
+
+            // Return maximum rank found for this star (e.g. max of stock/full/gold entries for this star)
+            return Math.max(...relevant.map(s => Number(s.rank) || 0));
+        }
+
+        function setStar(s) {
+            document.querySelectorAll('.star-btn').forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.star) === s);
+            });
+            validateRankInput();
+        }
+
+        function validateRankInput() {
+            const activeStarBtn = document.querySelector('.star-btn.active');
+            const star = activeStarBtn ? parseInt(activeStarBtn.dataset.star) : 1;
+            const rankInput = document.getElementById('rankInput');
+            const maxDisp = document.getElementById('maxRankDisplay');
+
+            if (!carMeta) return;
+
+            const maxRank = getMaxRankForStar(carMeta, star);
+            maxDisp.textContent = maxRank > 0 ? maxRank.toLocaleString() : "-";
+
+            const currentVal = parseInt(rankInput.value);
+            if (currentVal && maxRank > 0 && currentVal > maxRank) {
+                rankInput.style.borderColor = "var(--danger)";
+                rankInput.style.color = "var(--danger)";
+                maxDisp.style.color = "var(--danger)";
+                maxDisp.style.fontWeight = "bold";
+            } else {
+                rankInput.style.borderColor = "";
+                rankInput.style.color = "";
+                maxDisp.style.color = "";
+                maxDisp.style.fontWeight = "";
+            }
+        }
+
+        function loadState() {
+            const data = GarageManager.getCar(carId); // from garage.js
+            const check = document.getElementById('ownedCheck');
+
+            if (data) {
+                check.checked = true;
+                updateOwnedState(true);
+                if (data.rank) document.getElementById('rankInput').value = data.rank;
+                if (data.star) setStar(data.star); else setStar(1);
+            } else {
+                check.checked = false;
+                updateOwnedState(false);
+                setStar(1); // Default to 1 star logic even if disabled, for clean UI
+            }
+            validateRankInput();
+        }
+
+        function saveState() {
+            const isOwned = document.getElementById('ownedCheck').checked;
+
+            if (!isOwned) {
+                GarageManager.deleteCar(carId);
+                alert("차고에서 삭제되었습니다.");
+                window.location.href = "my_garage.html";
+                return;
+            }
+
+            const activeStarBtn = document.querySelector('.star-btn.active');
+            const star = activeStarBtn ? parseInt(activeStarBtn.dataset.star) : 1;
+            const rankInput = document.getElementById('rankInput');
+            const rank = rankInput.value ? parseInt(rankInput.value) : 0;
+
+            // Validation Check
+            if (carMeta) {
+                const maxRank = getMaxRankForStar(carMeta, star);
+                if (maxRank > 0 && rank > maxRank) {
+                    alert(`현재 랭크가 최대값(${maxRank.toLocaleString()})을 초과했습니다.\n값을 확인해주세요.`);
+                    rankInput.focus();
+                    return;
+                }
+            }
+
+            GarageManager.saveCar(carId, {
+                star: star,
+                rank: rank,
+                // Preserve other fields if exists (like upgrade parts) by merging inside manager, 
+                // but manager overwrite logic needs check.
+                // GarageManager.saveCar merges data, so it's safe.
+            });
+
+            alert("저장되었습니다.");
+            window.location.href = "my_garage.html";
+        }
+
+        function goToUpgrade() {
+            const isOwned = document.getElementById('ownedCheck').checked;
+            if (isOwned) {
+                // We should ideally save first, but simpler to just navigate. 
+                // The Save button is explicit.
+                setTimeout(() => {
+                    window.location.href = `car-upgrade.html?car=${carId}`;
+                }, 100);
+            } else {
+                window.location.href = `car-upgrade.html?car=${carId}`;
+            }
+        }
+
+        function goToSim(type) {
+            if (!carMeta) return;
+
+            // Determine active star
+            const activeStarBtn = document.querySelector('.star-btn.active');
+            let currentStar = activeStarBtn ? parseInt(activeStarBtn.dataset.star) : 0;
+            const isOwned = document.getElementById('ownedCheck').checked;
+
+            // Read Target Star
+            const targetSel = document.getElementById('targetStarSelect');
+            const targetStar = targetSel ? parseInt(targetSel.value) : (carMeta.max_star || 6);
+
+            // Validation
+            if (!isOwned) currentStar = 0;
+            if (currentStar >= targetStar) {
+                alert(`현재 성(${currentStar})이 목표 성(${targetStar}) 이상입니다.`);
+                return;
+            }
+
+            // Check data availability
+            if (!carMeta.bp_cumulative || !Array.isArray(carMeta.bp_cumulative)) {
+                alert("이 차량의 청사진 데이터가 없습니다.");
+                return;
+            }
+
+            // Calculate Needed for Target
+            // bp_cumulative[i] is total BP for (i+1) Star
+            // e.g. bp_cumulative[0] = 5 (Total for 1 Star)
+            // e.g. bp_cumulative[2] = 43 (Total for 3 Star)
+
+            let totalNeeded = 0;
+            if (targetStar <= carMeta.bp_cumulative.length) {
+                // To reach Target Star, we need total X
+                // But bp_cumulative indexes are 0-based.
+                // If Target is 3, we need bp_cumulative[2].
+                // Wait, logic check:
+                // If I want 2 stars, I need total bp_cumulative[1].
+                // The last index might be less than max_star? usually max_star matches array length.
+                totalNeeded = carMeta.bp_cumulative[targetStar - 1];
+            } else {
+                // Fallback to bp_all if target >= max, or last cumulative
+                totalNeeded = carMeta.bp_all || carMeta.bp_cumulative[carMeta.bp_cumulative.length - 1];
+            }
+
+            let currentAccumulated = 0;
+            if (currentStar > 0) {
+                if (currentStar <= carMeta.bp_cumulative.length) {
+                    currentAccumulated = carMeta.bp_cumulative[currentStar - 1];
+                } else {
+                    currentAccumulated = carMeta.bp_all;
+                }
+            }
+
+            let remaining = totalNeeded - currentAccumulated;
+            if (remaining < 0) remaining = 0;
+
+            // Navigate
+            const targetUrl = type === 'car-hunt' ? 'car-hunt.html' : 'fullstar.html';
+            window.location.href = `${targetUrl}?targetBP=${remaining}`;
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

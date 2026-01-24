@@ -14,7 +14,10 @@
   <script>window.SIM_ID = "upgrade-cost";</script>
   <script src="../assets/theme-init.js"></script>
   <link rel="stylesheet" href="../assets/theme-adapter.css">
+  <script src="../assets/lang.js?v=2"></script>
+  <script src="../assets/i18n.js"></script>
 
+  <script src="../assets/garage.js"></script>
   <style>
     /* Variable Mapping */
     :root {
@@ -492,6 +495,8 @@
 
         <div class="btn-row">
           <button type="button" id="resetBtn" data-i18n="cu.btn_reset">초기화</button>
+          <button type="button" id="saveGarageBtn"
+            style="background:var(--panel); border:1px solid var(--accent); color:var(--accent);">💾 차고 저장</button>
           <button type="button" id="calcBtn" class="primary" data-i18n="cu.btn_calc">계산하기</button>
         </div>
 
@@ -573,6 +578,16 @@
         upgrades = await upgRes.json();
 
         populateCarDropdown();
+
+        // Auto-select from URL
+        const pCar = window.getQueryParam ? window.getQueryParam('car') : null;
+        if (pCar) {
+          const sel = document.getElementById("carSelect");
+          if (sel.querySelector(`option[value="${pCar}"]`)) {
+            sel.value = pCar;
+            onCarChange();
+          }
+        }
       } catch (err) {
         console.error(err);
         document.getElementById("carMetaHint").textContent =
@@ -796,20 +811,6 @@
         return;
       }
 
-      const select = document.getElementById("carSelect");
-      select.value = id;
-      onCarChange();
-    }
-
-    function calculate() {
-      const errorBox = document.getElementById("errorBox");
-      errorBox.textContent = "";
-
-      const carId = document.getElementById("carSelect").value;
-      if (!carId) {
-        errorBox.textContent = I18N.t('cu.err_no_car');
-        return;
-      }
 
       clampCurrentStar();
       const currentStar = Number(document.getElementById("currentStar").value || 1);

@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Garage — 내 차고</title>
+    <meta name="color-scheme" content="light dark" />
+
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="../assets/themes.css">
+
+    <script>window.SIM_ID = "my-garage";</script>
+    <script src="../assets/theme-init.js"></script>
+    <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+    <script src="../assets/lang.js?v=2"></script>
+    <script src="../assets/i18n.js"></script>
+    <script src="../assets/garage.js"></script>
+
+    <style>
+        /* Specific styles for Garage Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--ink);
+        }
+
+        .garage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .car-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .car-card.unowned {
+            opacity: 0.6;
+            filter: grayscale(0.6);
+            border-style: dashed;
+        }
+
+        .car-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent);
+            opacity: 1;
+            filter: grayscale(0);
+            z-index: 10;
+        }
+
+        .car-card .card-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.02), transparent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .car-class {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            background: var(--chip-bg);
+            color: var(--ink);
+            border: 1px solid var(--border);
+        }
+
+        .car-class.d {
+            color: #4ade80;
+            border-color: rgba(74, 222, 128, 0.3);
+        }
+
+        .car-class.c {
+            color: #fbbf24;
+            border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        .car-class.b {
+            color: #60a5fa;
+            border-color: rgba(96, 165, 250, 0.3);
+        }
+
+        .car-class.a {
+            color: #a78bfa;
+            border-color: rgba(167, 139, 250, 0.3);
+        }
+
+        .car-class.s {
+            color: #f87171;
+            border-color: rgba(248, 113, 113, 0.3);
+        }
+
+        .car-card .card-body {
+            padding: 16px;
+            flex-grow: 1;
+        }
+
+        .car-name {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .car-specs {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .owned-badge {
+            display: none;
+            font-size: 10px;
+            background: var(--accent);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .car-card.owned .owned-badge {
+            display: inline-block;
+        }
+
+        /* Controls Bar */
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: var(--surface-hover);
+            color: var(--ink);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .control-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--ink);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sort-select {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            color: var(--ink);
+            font-size: 13px;
+        }
+
+        /* Gold Card Styling */
+        .car-card.gold-status {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 223, 0, 0.3) 100%);
+            border: 1px solid #FFD700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        html[data-theme='dark'] .car-card.gold-status {
+            background: linear-gradient(135deg, rgba(184, 134, 11, 0.2) 0%, rgba(255, 215, 0, 0.1) 100%);
+            border-color: #DAA520;
+        }
+
+        .car-card.gold-status::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) rotate(45deg);
+            }
+
+            100% {
+                transform: translateX(100%) rotate(45deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <h1>📂 <span data-i18n="mg.title">마이 차고</span></h1>
+            </div>
+            <div class="toolbar">
+                <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn" onclick="backupData()">💾 백업</button>
+                        <button class="btn" onclick="document.getElementById('restoreInput').click()">📤 복원</button>
+                        <input type="file" id="restoreInput" style="display:none" accept=".json"
+                            onchange="restoreData(this)">
+                        <a class="btn" href="garage_import.html">📸 가져오기</a>
+                        <a class="btn" href="garage_stat.html" data-i18n="gs.link">📊 통계</a>
+                        <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
+                    </div>
+                    <div style="font-size:16px; color:var(--muted); margin-top:4px;">⚠️ 데이터 보호를 위해 주기적인 <b>[백업]</b>을
+                        권장합니다.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="dashboard-grid">
+            <div class="kpi-card">
+                <div class="kpi-label" data-i18n="mg.kpi_total">보유 / 전체</div>
+                <div class="kpi-value"><span id="kpiOwned">0</span> <span style="opacity:0.4;font-size:0.6em;">/ <span
+                            id="kpiTotal">0</span></span></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label" data-i18n="mg.kpi_progress">수집률</div>
+                <div class="kpi-value" id="kpiProgress">0%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label" data-i18n="mg.kpi_gold">황금 차량</div>
+                <div class="kpi-value" id="kpiGold">0</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-bar">
+            <div class="filter-group">
+                <button class="filter-btn active" data-class="ALL">ALL</button>
+                <button class="filter-btn" data-class="S">S</button>
+                <button class="filter-btn" data-class="A">A</button>
+                <button class="filter-btn" data-class="B">B</button>
+                <button class="filter-btn" data-class="C">C</button>
+                <button class="filter-btn" data-class="D">D</button>
+            </div>
+
+            <div class="control-right">
+                <button id="btnManualBulkAdd" class="filter-btn" onclick="location.href='add_batch.html'"
+                    style="background:var(--primary); color:white; border:none; margin-left:8px; display:inline-flex; align-items:center; gap:4px;">
+                    <span>➕</span> <span style="font-weight:600;">차량 추가</span>
+                </button>
+                <label class="toggle-label">
+                    <input type="checkbox" id="filterOwned">
+                    <span>내 차량만 보기</span>
+                </label>
+
+                <select id="sortSelect" class="sort-select">
+                    <option value="default">기본 순서</option>
+                    <option value="id_asc">ID 오름차순</option>
+                    <option value="id_desc">ID 내림차순</option>
+                    <option value="rank_desc">랭크 높은순 (Max)</option>
+                    <option value="rank_asc">랭크 낮은순 (Max)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Grid -->
+        <div id="garageGrid" class="garage-grid">
+            <!-- Loading State -->
+            <div style="grid-column:1/-1; padding:40px; text-align:center; color:var(--muted);">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        let carMeta = []; // Array of car objects
+
+        let state = {
+            filterClass: 'ALL',
+            onlyOwned: false,
+            sortBy: 'default'
+        };
+
+        async function loadMeta() {
+            try {
+                const res = await fetch('../assets/cars.json');
+                if (!res.ok) throw new Error("Failed to load cars.json");
+                carMeta = await res.json();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // Backup & Restore
+        function backupData() {
+            const data = GarageManager.exportData();
+            const blob = new Blob([data], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `my_garage_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function restoreData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if (confirm('현재 데이터를 덮어쓰고 복원하시겠습니까?\n(이 작업은 되돌릴 수 없습니다!)')) {
+                        GarageManager.overwrite(json);
+                        renderGarage();
+                        alert('복원되었습니다!');
+                    }
+                } catch (err) {
+                    alert('파일 형식이 올바르지 않습니다.');
+                }
+                input.value = ''; // Reset input
+            };
+            reader.readAsText(file);
+        }
+
+        function getMaxRankForStar(car, star) {
+            if (!car || !Array.isArray(car.stat)) return 0;
+            const targetStar = Number(star);
+            const relevant = car.stat.filter(s => Number(s.star) === targetStar);
+            if (relevant.length === 0) return 0;
+            return Math.max(...relevant.map(s => Number(s.rank) || 0));
+        }
+
+        // Helper to get Absolute Max Rank of a car (for sorting)
+        function getAbsoluteMaxRank(car) {
+            const maxS = car.max_star || 6;
+            return getMaxRankForStar(car, maxS);
+        }
+
+        function renderGarage() {
+            const grid = document.getElementById('garageGrid');
+            const kpiOwned = document.getElementById('kpiOwned');
+            const kpiTotal = document.getElementById('kpiTotal');
+            const kpiProgress = document.getElementById('kpiProgress');
+            const kpiGold = document.getElementById('kpiGold');
+
+            // 1. Get Global Data
+            const ownedCars = GarageManager.getAll();
+            const ownedMap = {};
+            ownedCars.forEach(c => {
+                ownedMap[c.id] = c;
+            });
+
+            // Calculate Global Gold Count (using new logic: Owned + Max Star + Max Rank)
+            let goldCount = 0;
+
+            // 2. Filter List
+            let list = carMeta.filter(c => {
+                // Class
+                if (state.filterClass !== 'ALL' && c.class !== state.filterClass) return false;
+                // Owned
+                if (state.onlyOwned && !ownedMap[c.id]) return false;
+                return true;
+            });
+
+            // 3. Sort List
+            if (state.sortBy !== 'default') {
+                list.sort((a, b) => {
+                    if (state.sortBy === 'id_asc') return (a.id - b.id);
+                    if (state.sortBy === 'id_desc') return (b.id - a.id);
+
+                    const rA = getAbsoluteMaxRank(a);
+                    const rB = getAbsoluteMaxRank(b);
+                    if (state.sortBy === 'rank_asc') return rA - rB;
+                    if (state.sortBy === 'rank_desc') return rB - rA;
+                    return 0;
+                });
+            }
+
+            grid.innerHTML = '';
+
+            if (list.length === 0) {
+                grid.innerHTML = `<div style="grid-column:1/-1; padding:40px; text-align:center; color:var(--muted);">검색 결과가 없습니다.</div>`;
+            } else {
+                list.forEach(meta => {
+                    const myData = ownedMap[meta.id]; // exists if owned
+                    const isOwned = !!myData;
+                    const star = myData ? (myData.star || 1) : 1;
+                    const clsLower = (meta.class || '').toLowerCase();
+                    const maxStar = meta.max_star || 6;
+
+                    // Check Gold Status
+                    // Condition: Owned AND Star == MaxStar AND Rank == MaxRankForMaxStar
+                    let isGoldStatus = false;
+                    if (isOwned) {
+                        const currentRank = myData.rank || 0;
+                        const maxPossible = getMaxRankForStar(meta, maxStar);
+                        const isMaxStarReached = (star >= maxStar);
+                        const isMaxRankReached = (currentRank >= maxPossible);
+
+                        if (isMaxStarReached && isMaxRankReached) {
+                            isGoldStatus = true;
+                            goldCount++; // Count for Dashboard? 
+                            // Wait, Dashboard usually shows Global Gold Count. 
+                            // Counting inside render loop depends on filtered list...
+                            // Let's recalculate Global Gold separately or accept it reflects filtered view?
+                            // User probably wants global count.
+                        }
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = `car-card ${isOwned ? 'owned' : 'unowned'} ${isGoldStatus ? 'gold-status' : ''}`;
+
+                    // Tilt effect
+                    card.addEventListener('mousemove', e => {
+                        const rect = card.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        // Simple parallax if desired
+                    });
+
+                    card.innerHTML = `
+                      <div class="card-header">
+                        <span class="car-class ${clsLower}">${meta.class}</span>
+                        ${isOwned ? '<span class="owned-badge">OWNED</span>' : ''}
+                      </div>
+                      <div class="card-body">
+                        <div class="car-name">${meta.name}</div>
+                        <div class="car-specs">
+                          <div class="spec-row">
+                            <span>Star</span>
+                            <span style="color:var(--accent); font-weight:${isOwned ? 'bold' : 'normal'};">
+                              ${isOwned ? star : '-'} / ${maxStar}★
+                            </span>
+                          </div>
+                          <div class="spec-row">
+                            <span>Rank</span>
+                            <span style="${isGoldStatus ? 'color:#FFD700;font-weight:800' : ''}">
+                                ${isOwned && myData.rank ? myData.rank : '-'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+
+                    card.addEventListener('click', () => {
+                        location.href = `garage_detail.html?id=${meta.id}`;
+                    });
+
+                    grid.appendChild(card);
+                });
+            }
+
+            // Update Dashboard
+            const globalOwned = ownedCars.length;
+            const globalTotal = carMeta.length;
+            // Recalculate Global Gold (Iterate all owned cars)
+            let globalGold = 0;
+            ownedCars.forEach(od => {
+                const m = carMeta.find(x => String(x.id) === String(od.id));
+                if (m) {
+                    const maxS = m.max_star || 6;
+                    const maxR = getMaxRankForStar(m, maxS);
+                    if (od.star >= maxS && od.rank >= maxR) globalGold++;
+                }
+            });
+
+            kpiOwned.textContent = globalOwned;
+            kpiTotal.textContent = globalTotal;
+            kpiProgress.textContent = globalTotal > 0 ? Math.round((globalOwned / globalTotal) * 100) + "%" : "0%";
+            kpiGold.textContent = globalGold;
+        }
+
+        function setupControls() {
+            // Class
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.filterClass = btn.dataset.class;
+                    renderGarage();
+                });
+            });
+
+            // Owned
+            document.getElementById('filterOwned').addEventListener('change', (e) => {
+                state.onlyOwned = e.target.checked;
+                renderGarage();
+            });
+
+            // Sort
+            document.getElementById('sortSelect').addEventListener('change', (e) => {
+                state.sortBy = e.target.value;
+                renderGarage();
+            });
+        }
+
+        (async function () {
+            await loadMeta();
+            setupControls();
+            renderGarage();
+        })();
+    </script>
+</body>
+
+</html>

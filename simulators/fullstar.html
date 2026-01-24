@@ -527,6 +527,22 @@
         alert('CSV Export functionality preserved but simplified (check console/clipboard if implemented).');
       });
 
+      // URL Params Integration (Garage)
+      const params = new URLSearchParams(location.search);
+      const tBP = params.get('targetBP');
+      if (tBP) {
+        const el = document.getElementById('needDefault');
+        const elB = document.getElementById('needDefaultB');
+        const cc = document.getElementById('carCount');
+        const ccB = document.getElementById('carCountB');
+
+        if (el) el.value = tBP;
+        if (elB) elB.value = tBP;
+
+        // Force single car mode for garage integration
+        if (cc) cc.value = 1;
+        if (ccB) ccB.value = 1;
+      }
     })();
   </script>
 </body>

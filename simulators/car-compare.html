@@ -603,9 +603,16 @@
           });
 
           filteredCars = allCars.slice();
+
+          // Auto-select from URL
+          const pLeft = window.getQueryParam ? window.getQueryParam('left') : null;
+          const pRight = window.getQueryParam ? window.getQueryParam('right') : null;
+          if (pLeft) leftSel.carId = pLeft;
+          if (pRight) rightSel.carId = pRight;
+
           populateCarSelects(false);
 
-          // 처음엔 아무 차도 없으니까, 단계 드롭다운은 비활성화 상태로
+          // 처음엔 아무 차도 없으니까 (만약 선택 안됐으면), 단계 드롭다운은 비활성화 상태로
           initEmptyStageSelect(stageSelectLeft);
           initEmptyStageSelect(stageSelectRight);
         } catch (e) {

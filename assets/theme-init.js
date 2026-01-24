@@ -33,4 +33,32 @@
     }
 
     try { apply(); } catch (e) { console.warn("Theme Init Error:", e); }
+    // Expose Global Utils
+    window.getQueryParam = function (name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    };
+
+    // PWA: Inject Manifest & Register Service Worker
+    var path = window.location.pathname;
+    // Simple heuristic: if 'simulators' or 'board' in path, go up one level
+    var isSub = path.indexOf('/simulators/') !== -1 || path.indexOf('/board/') !== -1;
+    var relPath = isSub ? '../' : './';
+
+    // 1. Inject Manifest
+    var link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = relPath + 'manifest.json';
+    document.head.appendChild(link);
+
+    // 2. Register SW
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register(relPath + 'sw.js').then(function (reg) {
+                console.log('SW registered: ', reg.scope);
+            }, function (err) {
+                console.log('SW registry failed: ', err);
+            });
+        });
+    }
 })();

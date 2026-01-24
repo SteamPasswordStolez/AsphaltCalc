@@ -292,10 +292,45 @@
       color: var(--ink-muted);
       font-size: 13px;
     }
+
+    /* Garage Integration Styles */
+    .owned-badge {
+      display: inline-flex;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .owned-row td {
+      background: rgba(var(--accent-rgb), 0.03);
+    }
+
+    html[data-theme='dark'] .owned-row td {
+      background: rgba(var(--accent-rgb), 0.08);
+    }
+
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--ink);
+      cursor: pointer;
+      user-select: none;
+      margin-left: auto;
+      /* Push to right */
+    }
   </style>
 
   <script src="../assets/lang.js"></script>
   <script src="../assets/i18n.js"></script>
+  <script src="../assets/garage.js"></script>
 </head>
 
 <body>
@@ -339,6 +374,12 @@
           <li class="class-chip" data-class="A">A</li>
           <li class="class-chip" data-class="S">S</li>
         </ul>
+
+        <!-- Owned Toggle -->
+        <label class="toggle-wrap">
+          <input type="checkbox" id="filterOwned">
+          <span data-i18n="cs.filter_owned">Owned Only</span>
+        </label>
       </div>
 
       <div class="car-list-wrap">
@@ -362,245 +403,206 @@
   </div>
 
   <script>
-    async function loadCarData() {
-      if (Array.isArray(window.CAR_DATA)) return window.CAR_DATA;
+    // State
+    let allCars = [];
+    let state = {
+      search: "",
+      class: "ALL",
+      sort: "default",
+      onlyOwned: false
+    };
 
+    // Load Data
+    async function init() {
       try {
-        var res = await fetch("../assets/cars.json");
-        if (res.ok) {
-          var data = await res.json();
-          if (Array.isArray(data)) return data;
-          return Object.values(data);
-        }
+        const res = await fetch('../assets/cars.json');
+        if (!res.ok) throw new Error("Failed to load");
+        allCars = await res.json();
+
+        // Initial Render
+        render();
+
+        // Listeners
+        setupListeners();
       } catch (e) {
-        console.warn(I18N.t('cs.err_load'), e);
+        console.error(e);
+        const body = document.getElementById('carListBody');
+        if (body) body.innerHTML = `<tr><td colspan="6" class="state-msg">Error loading data.</td></tr>`;
       }
-      return [];
     }
 
-    function getMaxRank(car) {
-      if (!car || !Array.isArray(car.stat) || car.stat.length === 0) return null;
-      var goldEntry = null;
-      var maxRankEntry = null;
-      for (var i = 0; i < car.stat.length; i++) {
-        var s = car.stat[i];
-        if (!maxRankEntry || (typeof s.rank === "number" && s.rank > maxRankEntry.rank)) {
-          maxRankEntry = s;
-        }
-        if (s.type === "gold") goldEntry = s;
+    // Setup Listeners
+    function setupListeners() {
+      // Search
+      const searchInp = document.getElementById('searchInput');
+      if (searchInp) {
+        searchInp.addEventListener('input', (e) => {
+          state.search = e.target.value.toLowerCase().trim();
+          render();
+        });
       }
-      return (goldEntry && typeof goldEntry.rank === "number")
-        ? goldEntry.rank
-        : (maxRankEntry && typeof maxRankEntry.rank === "number")
-          ? maxRankEntry.rank
-          : null;
+
+      // Class Filter
+      const classFilter = document.getElementById('classFilter');
+      if (classFilter) {
+        classFilter.addEventListener('click', (e) => {
+          const chip = e.target.closest('.class-chip');
+          if (!chip) return;
+
+          // Toggle active
+          classFilter.querySelectorAll('.class-chip').forEach(c => c.classList.remove('is-active'));
+          chip.classList.add('is-active');
+
+          state.class = chip.dataset.class;
+          render();
+        });
+      }
+
+      // Sort Filter
+      const sortFilter = document.getElementById('sortFilter');
+      if (sortFilter) {
+        sortFilter.addEventListener('click', (e) => {
+          const chip = e.target.closest('.sort-chip');
+          if (!chip) return;
+
+          sortFilter.querySelectorAll('.sort-chip').forEach(c => c.classList.remove('is-active'));
+          chip.classList.add('is-active');
+
+          state.sort = chip.dataset.sort;
+          render();
+        });
+      }
+
+      // Owned Filter
+      const ownedCheck = document.getElementById('filterOwned');
+      if (ownedCheck) {
+        ownedCheck.addEventListener('change', (e) => {
+          state.onlyOwned = e.target.checked;
+          render();
+        });
+      }
+    }
+
+    // Helper: Max Rank Logic
+    function getMaxRank(car) {
+      if (!car.stat || !Array.isArray(car.stat)) return 0;
+      return Math.max(...car.stat.map(s => s.rank || 0));
     }
 
     function formatNumber(n) {
-      if (typeof n !== "number" || !isFinite(n)) return "-";
-      return n.toLocaleString("ko-KR");
+      return n.toLocaleString();
     }
 
-    function initCarList(cars) {
-      var carListBody = document.getElementById("carListBody");
-      var searchInput = document.getElementById("searchInput");
-      var classFilter = document.getElementById("classFilter");
-      var sortChips = document.getElementById("sortChips");
-      var countBadge = document.getElementById("countBadge");
+    // Render List
+    function render() {
+      const tbody = document.getElementById('carListBody');
+      const countLabel = document.getElementById('totalCount');
+      if (!tbody) return;
 
-      var allCars = Array.isArray(cars) ? cars.slice() : [];
-      var filteredCars = allCars.slice();
-      var currentClassFilter = "ALL";
-      var currentSearch = "";
-      var currentSort = "default"; // 기본
+      // 1. Filter
+      let list = allCars.filter(c => {
+        // Class
+        if (state.class !== 'ALL' && c.class !== state.class) return false;
 
-      countBadge.textContent = I18N.t('cs.total_count').replace('{n}', allCars.length);
+        // Search
+        if (state.search) {
+          const matchName = (c.name || "").toLowerCase().includes(state.search);
+          const matchId = String(c.id).includes(state.search);
+          if (!matchName && !matchId) return false;
+        }
 
-      function sortCars() {
-        var classOrder = { "D": 0, "C": 1, "B": 2, "A": 3, "S": 4 };
+        // Owned
+        if (state.onlyOwned && window.GarageManager && !GarageManager.hasCar(c.id)) return false;
 
-        filteredCars.sort(function (a, b) {
-          var idA = Number(a.id);
-          var idB = Number(b.id);
-          if (!isFinite(idA)) idA = 0;
-          if (!isFinite(idB)) idB = 0;
+        return true;
+      });
 
-          var ra = getMaxRank(a);
-          var rb = getMaxRank(b);
-          var aHasRank = (typeof ra === "number" && isFinite(ra));
-          var bHasRank = (typeof rb === "number" && isFinite(rb));
-
-          // 기본: 클래스 D→C→B→A→S, 같은 클래스는 "최대 랭크 오름차순"
-          if (currentSort === "default") {
-            var ca = classOrder[a.class] != null ? classOrder[a.class] : 99;
-            var cb = classOrder[b.class] != null ? classOrder[b.class] : 99;
-            if (ca !== cb) return ca - cb;
-
-            if (!aHasRank && !bHasRank) {
-              return idA - idB;
-            }
-            if (!aHasRank) return 1;
-            if (!bHasRank) return -1;
-
-            if (ra !== rb) return ra - rb;
-            return idA - idB;
-          }
-
-          // ID 정렬
-          if (currentSort === "id-asc") {
-            if (idA !== idB) return idA - idB;
-            return 0;
-          }
-          if (currentSort === "id-desc") {
-            if (idA !== idB) return idB - idA;
-            return 0;
-          }
-
-          // 랭크 정렬
-          if (!aHasRank && !bHasRank) {
-            var ca2 = classOrder[a.class] != null ? classOrder[a.class] : 99;
-            var cb2 = classOrder[b.class] != null ? classOrder[b.class] : 99;
-            if (ca2 !== cb2) return ca2 - cb2;
-            return idA - idB;
-          }
-          if (!aHasRank) return 1;
-          if (!bHasRank) return -1;
-
-          if (currentSort === "rank-asc") {
-            if (ra !== rb) return ra - rb;
-            return idA - idB;
-          }
-          // 나머지는 rank-desc (랭크 높은 순)
-          if (ra !== rb) return rb - ra;
-          return idA - idB;
+      // 2. Sort
+      if (state.sort !== 'default') {
+        list.sort((a, b) => {
+          if (state.sort === 'id_asc') return (a.id - b.id);
+          if (state.sort === 'id_desc') return (b.id - a.id);
+          if (state.sort === 'rank_asc') return getMaxRank(a) - getMaxRank(b);
+          if (state.sort === 'rank_desc') return getMaxRank(b) - getMaxRank(a);
+          return 0;
         });
       }
 
-      function applyFilter() {
-        var q = currentSearch.trim().toLowerCase();
-        filteredCars = allCars.filter(function (car) {
-          if (currentClassFilter !== "ALL" && car.class !== currentClassFilter) return false;
-          if (q) {
-            var name = (car.name || "").toLowerCase();
-            var idStr = String(car.id || "");
-            return name.indexOf(q) !== -1 || idStr.indexOf(q) !== -1;
-          }
-          return true;
-        });
-        sortCars();
-        renderList();
+      // Update Count
+      if (countLabel) countLabel.textContent = list.length;
+
+      // 3. Draw
+      tbody.innerHTML = '';
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="state-msg" data-i18n="cs.msg_no_result">No cars found.</td></tr>`;
+        return;
       }
 
-      function renderList() {
-        carListBody.innerHTML = "";
-        if (filteredCars.length === 0) {
-          var tr = document.createElement("tr");
-          var td = document.createElement("td");
-          td.colSpan = 6;
-          td.textContent = I18N.t('cs.msg_no_result');
-          td.style.fontSize = "12px";
-          td.style.color = "var(--ink-soft)";
-          td.style.padding = "10px 8px";
-          tr.appendChild(td);
-          carListBody.appendChild(tr);
-          return;
-        }
+      const fragment = document.createDocumentFragment();
 
-        for (var i = 0; i < filteredCars.length; i++) {
-          var car = filteredCars[i];
-          var tr = document.createElement("tr");
-          tr.dataset.carId = car.id;
+      list.forEach(car => {
+        const tr = document.createElement('tr');
+        const isOwned = window.GarageManager && GarageManager.hasCar(car.id);
 
-          var tdClass = document.createElement("td");
-          tdClass.className = "col-class";
-          var spanClass = document.createElement("span");
-          spanClass.className = "class-badge";
-          spanClass.textContent = car.class || "-";
-          tdClass.appendChild(spanClass);
+        if (isOwned) tr.classList.add('owned-row');
 
-          var tdId = document.createElement("td");
-          tdId.className = "col-id";
-          tdId.textContent = car.id != null ? car.id : "-";
+        tr.onclick = () => {
+          location.href = `car-upgrade.html?car=${car.id}`;
+        };
 
-          var tdName = document.createElement("td");
-          tdName.textContent = car.name || "-";
+        // Class Cell
+        const tdClass = document.createElement('td');
+        tdClass.className = 'col-class';
+        tdClass.innerHTML = `<span class="class-badge class-${(car.class || '').toLowerCase()}">${car.class}</span>`;
 
-          var tdMaxRank = document.createElement("td");
-          tdMaxRank.className = "col-max-rank";
-          var maxRank = getMaxRank(car);
-          tdMaxRank.textContent = maxRank == null ? "-" : formatNumber(maxRank);
+        // ID Cell
+        const tdId = document.createElement('td');
+        tdId.className = 'col-id';
+        tdId.style.color = 'var(--ink-muted)';
+        tdId.textContent = car.id;
 
-          var tdMaxStar = document.createElement("td");
-          tdMaxStar.className = "col-max-star";
-          tdMaxStar.textContent = car.max_star != null ? car.max_star : "-";
+        // Name Cell
+        const tdName = document.createElement('td');
+        tdName.className = 'car-name-cell';
+        tdName.innerHTML = `
+          ${car.name} 
+          ${isOwned ? '<span class="owned-badge">OWNED</span>' : ''}
+        `;
 
-          var tdFuel = document.createElement("td");
-          tdFuel.className = "col-fuel";
-          tdFuel.textContent = car.fuel != null ? car.fuel : "-";
+        // Max Rank Cell
+        const tdMaxRank = document.createElement('td');
+        tdMaxRank.className = 'col-max-rank';
+        tdMaxRank.textContent = formatNumber(getMaxRank(car));
 
-          tr.appendChild(tdClass);
-          tr.appendChild(tdId);
-          tr.appendChild(tdName);
-          tr.appendChild(tdMaxRank);
-          tr.appendChild(tdMaxStar);
-          tr.appendChild(tdFuel);
+        // Max Star Cell
+        const tdMaxStar = document.createElement('td');
+        tdMaxStar.className = 'col-max-star';
+        const maxStar = car.max_star || 6;
+        let starHtml = `<div class="star-wrap max">`;
+        for (let i = 0; i < maxStar; i++) starHtml += `★`;
+        starHtml += `</div>`;
+        tdMaxStar.innerHTML = starHtml;
 
-          carListBody.appendChild(tr);
-        }
-      }
+        // Fuel Cell
+        const tdFuel = document.createElement('td');
+        tdFuel.className = 'col-fuel';
+        tdFuel.textContent = car.fuel;
 
-      // 검색
-      searchInput.addEventListener("input", function () {
-        currentSearch = searchInput.value;
-        applyFilter();
+        tr.appendChild(tdClass);
+        tr.appendChild(tdId);
+        tr.appendChild(tdName);
+        tr.appendChild(tdMaxRank);
+        tr.appendChild(tdMaxStar);
+        tr.appendChild(tdFuel);
+
+        fragment.appendChild(tr);
       });
 
-      // 클래스 칩
-      classFilter.addEventListener("click", function (e) {
-        var chip = e.target.closest(".class-chip");
-        if (!chip) return;
-        var cls = chip.dataset.class;
-        if (!cls) return;
-
-        currentClassFilter = cls;
-        var chips = classFilter.querySelectorAll(".class-chip");
-        for (var i = 0; i < chips.length; i++) {
-          chips[i].classList.toggle("is-active", chips[i] === chip);
-        }
-        applyFilter();
-      });
-
-      // 정렬 칩
-      sortChips.addEventListener("click", function (e) {
-        var chip = e.target.closest(".sort-chip");
-        if (!chip) return;
-        var sortKey = chip.dataset.sort;
-        if (!sortKey) return;
-
-        currentSort = sortKey;
-        var chips = sortChips.querySelectorAll(".sort-chip");
-        for (var i = 0; i < chips.length; i++) {
-          chips[i].classList.toggle("is-active", chips[i] === chip);
-        }
-        applyFilter();
-      });
-
-      // 행 클릭 → 상세 페이지 이동
-      carListBody.addEventListener("click", function (e) {
-        var tr = e.target.closest("tr");
-        if (!tr || !tr.dataset.carId) return;
-        var carId = tr.dataset.carId;
-        window.location.href = "car-detail.html?id=" + encodeURIComponent(carId);
-      });
-
-      // 초기 렌더
-      applyFilter();
+      tbody.appendChild(fragment);
     }
 
-    (async function () {
-      var cars = await loadCarData();
-      initCarList(cars);
-    })();
+    init();
   </script>
   <!-- Hub Back Button Inject -->
   <style>

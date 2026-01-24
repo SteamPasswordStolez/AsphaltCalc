@@ -5,6 +5,7 @@ function getFavs() { try { return JSON.parse(localStorage.getItem('simhub_favs')
 function setFavs(v) { localStorage.setItem('simhub_favs', JSON.stringify(v)) }
 function isFav(id) { return getFavs().includes(id) }
 function toggleFav(id) { const a = getFavs(); const i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else a.push(id); setFavs(a); renderList(window.__CAT__) }
+function getQueryParam(name) { const urlParams = new URLSearchParams(window.location.search); return urlParams.get(name); }
 
 async function loadCatalog() {
   // 1) Try inline JSON (works on file://)

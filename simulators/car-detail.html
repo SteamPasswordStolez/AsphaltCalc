@@ -189,7 +189,7 @@
     }
   </style>
 
-  <script src="../assets/lang.js"></script>
+  <script src="../assets/lang.js?v=2"></script>
   <script src="../assets/i18n.js"></script>
 </head>
 
@@ -204,6 +204,8 @@
         </h1>
       </div>
       <div class="toolbar">
+        <a id="btnActionCompare" class="btn" href="#" style="display:none;" data-i18n="cd.btn_compare">⚡ 비교</a>
+        <a id="btnActionUpgrade" class="btn" href="#" style="display:none;" data-i18n="cd.btn_upgrade">💰 비용</a>
         <a class="btn" href="car-search.html" data-i18n="cd.back">← 목록</a>
       </div>
     </div>
@@ -345,6 +347,19 @@
       detailName.textContent = car.name || "(이름 없음)";
       detailClassBadge.textContent = car.class || "-";
       detailIdPill.textContent = "ID " + idStr;
+
+      // Update Action Buttons
+      var btnCompare = document.getElementById("btnActionCompare");
+      var btnUpgrade = document.getElementById("btnActionUpgrade");
+      if (car.id) {
+        btnCompare.href = "car-compare.html?left=" + car.id;
+        btnCompare.style.display = "";
+        btnUpgrade.href = "car-upgrade.html?car=" + car.id;
+        btnUpgrade.style.display = "";
+      } else {
+        btnCompare.style.display = "none";
+        btnUpgrade.style.display = "none";
+      }
 
       // 기본 정보
       basicInfoList.innerHTML = "";

@@ -582,6 +582,19 @@
       $('run').addEventListener('click', run);
       $('reset').addEventListener('click', () => location.reload()); // Simple reset
     })();
+    // URL Params Integration (Garage)
+    (function () {
+      const p = new URLSearchParams(location.search);
+      const tBP = p.get('targetBP');
+      if (tBP) {
+        const el = document.getElementById('targetBP');
+        if (el) {
+          el.value = tBP;
+          // Switch to Goal tab just in case
+          document.querySelector('.tab[data-tab="goal"]').click();
+        }
+      }
+    })();
   </script>
 </body>
 

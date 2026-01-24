@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>일괄 추가 — 내 차고</title>
+    <meta name="color-scheme" content="light dark" />
+
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="../assets/themes.css">
+
+    <script>window.SIM_ID = "add-batch";</script>
+    <script src="../assets/theme-init.js"></script>
+    <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+    <script src="../assets/lang.js?v=2"></script>
+    <script src="../assets/i18n.js"></script>
+    <script src="../assets/garage.js"></script>
+
+    <style>
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .split-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .suggest-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: none;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+            margin-top: 4px;
+        }
+
+        .suggest-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+        }
+
+        .suggest-item:hover {
+            background: var(--bg);
+        }
+
+        .input-form {
+            background: var(--surface-soft);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            opacity: 0.5;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+
+        .input-form.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .cart-list {
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg);
+            margin-bottom: 16px;
+        }
+
+        .cart-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            background: var(--surface-hover);
+            color: var(--ink);
+        }
+
+        .filter-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .preset-btn {
+            flex: 1;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: left;
+        }
+
+        .preset-btn:hover {
+            background: var(--surface-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .car-class-badge {
+            display: inline-flex;
+            width: 24px;
+            height: 24px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-right: 8px;
+            color: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <h1>➕ 일괄 추가</h1>
+            </div>
+            <div class="toolbar">
+                <button class="btn" onclick="undoLastAction()" id="btnUndo" disabled>↩️ 실행 취소</button>
+                <a class="btn" href="my_garage.html">← 마이 차고</a>
+            </div>
+        </div>
+
+        <div class="split-layout">
+            <!-- Left: Search & Add -->
+            <div class="panel">
+                <h2 style="margin-top:0;">🚗 차량 검색</h2>
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="input-field" placeholder="차량 이름 검색 (예: Trion, 911...)">
+                    <div id="suggestList" class="suggest-list"></div>
+                </div>
+
+                <div id="inputForm" class="input-form">
+                    <h3 id="selectedCarName" style="margin-top:0; color:var(--primary);">차량을 선택하세요</h3>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+                        <div>
+                            <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">별
+                                (Star)</label>
+                            <input type="number" id="inputStar" class="input-field" min="1" max="6" value="1">
+                        </div>
+                        <div>
+                            <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px;">랭크
+                                (Rank)</label>
+                            <input type="number" id="inputRank" class="input-field" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
+                            <input type="checkbox" id="inputIsMax" style="width:18px; height:18px;">
+                            <span style="font-weight:bold; color:#ff9800;">MAX 상태로 저장</span>
+                        </label>
+                        <button onclick="addToCart()" class="btn primary">담기 👇</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Cart -->
+            <div class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h2 style="margin:0;">📝 대기 목록 (<span id="cartCount">0</span>)</h2>
+                    <button onclick="cart=[]; renderCart();"
+                        style="font-size:12px; color:var(--danger); background:none; border:none; cursor:pointer;">비우기</button>
+                </div>
+
+                <div id="cartList" class="cart-list">
+                    <div style="padding:24px; text-align:center; color:var(--muted);">
+                        목록이 비어있습니다.<br>좌측에서 차량을 검색하여 담아주세요.
+                    </div>
+                </div>
+
+                <button onclick="saveCart()" id="btnSaveCart" class="btn primary"
+                    style="width:100%; padding:16px; font-size:16px;" disabled>저장하기</button>
+            </div>
+        </div>
+
+        <!-- Presets -->
+        <div class="panel">
+            <h2 style="margin-top:0;">⚡ 빠른 프리셋 (Batch Preset)</h2>
+            <p style="color:var(--muted); margin-bottom:16px; line-height:1.6;">
+                특정 클래스의 <b>모든 차량</b>을 일괄 변경합니다. <br>
+                <span
+                    style="color:var(--danger); font-weight:bold; background:rgba(255,0,0,0.1); padding:4px 8px; border-radius:4px; display:inline-block; margin-top:4px;">
+                    ⚠️ 경고: 실행 즉시 해당 클래스의 모든 차량 데이터가 덮어씌워집니다. <br>
+                    (실수했다면 상단의 [실행 취소]를 누르세요)
+                </span>
+            </p>
+
+            <div style="display:flex; gap:8px; margin-bottom:24px;" id="presetFilter">
+                <button class="filter-btn active" data-target="ALL">ALL (전체)</button>
+                <button class="filter-btn" data-target="S">S Class</button>
+                <button class="filter-btn" data-target="A">A Class</button>
+                <button class="filter-btn" data-target="B">B Class</button>
+                <button class="filter-btn" data-target="C">C Class</button>
+                <button class="filter-btn" data-target="D">D Class</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+                <!-- Basic Actions -->
+                <button class="preset-btn" onclick="applyPreset('unlock')">
+                    <div style="font-size:24px; margin-bottom:8px;">🔓</div>
+                    <div>1성 해금</div>
+                    <div style="font-size:12px; color:var(--muted); margin-top:4px;">1성 / 기본 랭크</div>
+                </button>
+                <button class="preset-btn" onclick="applyPreset('star_2')">
+                    <div style="font-size:24px; margin-bottom:8px;">⭐⭐</div>
+                    <div>2성 만들기</div>
+                </button>
+                <button class="preset-btn" onclick="applyPreset('star_3')">
+                    <div style="font-size:20px; margin-bottom:8px;">⭐⭐⭐</div>
+                    <div>3성 만들기</div>
+                </button>
+                <button class="preset-btn" onclick="applyPreset('max_star')">
+                    <div style="font-size:24px; margin-bottom:8px;">🌟</div>
+                    <div>풀성 (Max Star)</div>
+                    <div style="font-size:12px; color:var(--muted); margin-top:4px;">별만 최대로 / 랭크 0</div>
+                </button>
+
+                <!-- Advanced -->
+                <button class="preset-btn" onclick="applyPreset('gold')">
+                    <div style="font-size:24px; margin-bottom:8px;">🏆</div>
+                    <div>황금작 (Gold Max)</div>
+                    <div style="font-size:12px; color:var(--muted); margin-top:4px;">최대 별 + 최대 랭크</div>
+                </button>
+
+                <!-- Remove -->
+                <button class="preset-btn" onclick="applyPreset('remove')"
+                    style="border-color:var(--danger); color:var(--danger);">
+                    <div style="font-size:24px; margin-bottom:8px;">🗑️</div>
+                    <div>모두 삭제</div>
+                    <div style="font-size:12px; opacity:0.7; margin-top:4px;">소유 상태 해제</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let carMeta = [];
+        let cart = [];
+        let selectedCar = null;
+        let presetTarget = 'ALL';
+
+        // Undo System
+        let historyStack = [];
+        const MAX_HISTORY = 5;
+
+        function pushHistory() {
+            try {
+                const data = GarageManager.exportData(); // JSON string
+                historyStack.push(data);
+                if (historyStack.length > MAX_HISTORY) historyStack.shift();
+                updateUndoButton();
+            } catch (e) { console.error("History Save Error", e); }
+        }
+
+        function undoLastAction() {
+            if (historyStack.length === 0) return;
+            const prevData = historyStack.pop();
+            const success = GarageManager.overwrite(JSON.parse(prevData));
+            if (success) {
+                alert('이전 상태로 되돌렸습니다.');
+                updateUndoButton();
+            } else {
+                alert('복원 실패');
+            }
+        }
+
+        function updateUndoButton() {
+            document.getElementById('btnUndo').disabled = (historyStack.length === 0);
+        }
+
+        // Load Meta
+        (async function () {
+            try {
+                const res = await fetch('../assets/cars.json');
+                carMeta = await res.json();
+            } catch (e) { console.error(e); }
+
+            // Preset Filters
+            document.querySelectorAll('#presetFilter .filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#presetFilter .filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    presetTarget = btn.dataset.target;
+                });
+            });
+        })();
+
+        // Helper functions from my_garage
+        function getMaxRankForStar(car, star) {
+            if (!car || !Array.isArray(car.stat)) return 0;
+            const targetStar = Number(star);
+            const relevant = car.stat.filter(s => Number(s.star) === targetStar);
+            if (relevant.length === 0) return 0;
+            return Math.max(...relevant.map(s => Number(s.rank) || 0));
+        }
+
+        // Search Logic
+        const searchInput = document.getElementById('searchInput');
+        const suggestList = document.getElementById('suggestList');
+        const starInput = document.getElementById('inputStar');
+        const rankInput = document.getElementById('inputRank');
+
+        // Auto Rank Calculation on Star Change
+        starInput.addEventListener('input', () => {
+            if (!selectedCar) return;
+            let val = parseInt(starInput.value);
+            const maxS = selectedCar.max_star || 6;
+
+            // Clamp star value
+            if (val > maxS) {
+                val = maxS;
+                starInput.value = val;
+            }
+            if (val < 1) { // Min 1
+                // val = 1; starInput.value = 1; // Don't enforce while typing
+            }
+
+            // Calculate Max Rank for this star
+            // User requested: "Current star -> Max Rank"
+            if (val >= 1 && val <= maxS) {
+                const autoRank = getMaxRankForStar(selectedCar, val);
+                if (autoRank > 0) rankInput.value = autoRank;
+            }
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            const val = e.target.value.trim().toLowerCase();
+            suggestList.innerHTML = '';
+
+            if (val.length < 1) {
+                suggestList.style.display = 'none';
+                return;
+            }
+
+            const matches = carMeta.filter(c => c.name.toLowerCase().includes(val)).slice(0, 50); // limit 50
+
+            if (matches.length > 0) {
+                matches.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'suggest-item';
+
+                    // Class Color
+                    let color = '#ccc';
+                    if (c.class === 'D') color = '#4ade80';
+                    if (c.class === 'C') color = '#fbbf24';
+                    if (c.class === 'B') color = '#60a5fa';
+                    if (c.class === 'A') color = '#a78bfa';
+                    if (c.class === 'S') color = '#f87171';
+
+                    div.innerHTML = `
+                        <span class="car-class-badge" style="background:${color}">${c.class}</span>
+                        <span>${c.name}</span>
+                    `;
+                    div.onclick = () => selectCar(c);
+                    suggestList.appendChild(div);
+                });
+                suggestList.style.display = 'block';
+            } else {
+                suggestList.style.display = 'none';
+            }
+        });
+
+        function selectCar(car) {
+            selectedCar = car;
+            suggestList.style.display = 'none';
+            searchInput.value = car.name;
+
+            const form = document.getElementById('inputForm');
+            form.classList.add('active');
+
+            const nameEl = document.getElementById('selectedCarName');
+            let color = '#ccc';
+            if (car.class === 'D') color = '#4ade80';
+            if (car.class === 'C') color = '#fbbf24';
+            if (car.class === 'B') color = '#60a5fa';
+            if (car.class === 'A') color = '#a78bfa';
+            if (car.class === 'S') color = '#f87171';
+
+            nameEl.innerHTML = `<span class="car-class-badge" style="background:${color}">${car.class}</span> ${car.name}`;
+
+            // Set Initial Values
+            // Default: 1 Star, Max Rank for 1 Star (per request)
+            const max = car.max_star || 6;
+            starInput.max = max;
+            starInput.value = 1;
+            rankInput.value = getMaxRankForStar(car, 1); // Set Initial Rank
+
+            document.getElementById('inputIsMax').checked = false;
+        }
+
+        // Add to Cart
+        window.addToCart = function () {
+            if (!selectedCar) return;
+
+            const isMaxCheck = document.getElementById('inputIsMax');
+
+            let star = parseInt(starInput.value) || 1;
+            let rank = parseInt(rankInput.value) || 0;
+            const isMax = isMaxCheck.checked;
+
+            if (isMax) {
+                // Auto fill max values
+                star = selectedCar.max_star || 6;
+                rank = getMaxRankForStar(selectedCar, star);
+            }
+
+            // Add to cart
+            cart.push({
+                idx: Date.now(),
+                meta: selectedCar,
+                star, rank, isMax
+            });
+
+            renderCart();
+
+            // Reset
+            selectedCar = null;
+            document.getElementById('inputForm').classList.remove('active');
+            searchInput.value = '';
+            searchInput.focus();
+        };
+
+        function renderCart() {
+            const list = document.getElementById('cartList');
+            const btn = document.getElementById('btnSaveCart');
+
+            document.getElementById('cartCount').textContent = cart.length;
+            list.innerHTML = '';
+
+            if (cart.length === 0) {
+                list.innerHTML = `<div style="padding:24px; text-align:center; color:var(--muted);">목록이 비어있습니다.<br>좌측에서 차량을 검색하여 담아주세요.</div>`;
+                btn.disabled = true;
+                return;
+            }
+
+            btn.disabled = false;
+
+            // Show recent on top
+            [...cart].reverse().forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'cart-item';
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight:bold;">${item.meta.name}</div>
+                        <div style="font-size:12px; color:var(--muted);">
+                            ⭐${item.star} / 랭크 ${item.rank > 0 ? item.rank : 'N/A'} 
+                            ${item.isMax ? '<span style="color:#ff9800; font-weight:bold;">(MAX)</span>' : ''}
+                        </div>
+                    </div>
+                    <button onclick="removeFromCart(${item.idx})" style="background:none; border:none; cursor:pointer; font-size:18px;">❌</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        window.removeFromCart = function (idx) {
+            cart = cart.filter(i => i.idx !== idx);
+            renderCart();
+        };
+
+        // Save Cart to Garage
+        window.saveCart = function () {
+            if (cart.length === 0) return;
+
+            pushHistory(); // Save State before changes
+
+            let count = 0;
+            cart.forEach(item => {
+                GarageManager.saveCar(item.meta.id, {
+                    star: item.star,
+                    rank: item.rank
+                });
+                count++;
+            });
+
+            alert(`${count}대 차량 저장 완료!`);
+            cart = [];
+            renderCart();
+        };
+
+        // Apply Preset
+        window.applyPreset = function (type) {
+            const targetClass = presetTarget;
+            const targetCars = carMeta.filter(c => targetClass === 'ALL' || c.class === targetClass);
+
+            if (targetCars.length === 0) {
+                alert('해당 클래스의 차량 데이터가 없습니다.');
+                return;
+            }
+
+            let actionName = "변경";
+            if (type === 'remove') actionName = "삭제";
+
+            const msg = `⚠️ [${targetClass}] 클래스 차량 ${targetCars.length}대를 일괄 '${actionName}' 하시겠습니까?\n\n[주의사항]\n1. 기존에 저장된 별/랭크 정보가 모두 사라지고 프리셋 값으로 대체됩니다.\n2. 이 작업은 매우 강력합니다.\n\n정말 진행하시겠습니까?`;
+            if (!confirm(msg)) return;
+
+            pushHistory(); // Save State before changes
+
+            let count = 0;
+            targetCars.forEach(c => {
+                let star = 1;
+                let rank = 0;
+                const maxS = c.max_star || 6;
+
+                if (type === 'remove') {
+                    GarageManager.deleteCar(c.id);
+                    count++;
+                    return; // Continue
+                }
+
+                if (type === 'unlock') {
+                    star = 1;
+                    rank = getMaxRankForStar(c, 1); // 1 Star Max Rank (requested behavior likely)
+                } else if (type === 'star_2') {
+                    star = Math.min(2, maxS);
+                    rank = 0; // Just star up
+                } else if (type === 'star_3') {
+                    star = Math.min(3, maxS);
+                    rank = 0;
+                } else if (type === 'max_star') {
+                    star = maxS;
+                    rank = 0;
+                } else if (type === 'gold') {
+                    star = maxS;
+                    rank = getMaxRankForStar(c, maxS);
+                }
+
+                GarageManager.saveCar(c.id, { star, rank });
+                count++;
+            });
+
+            alert(`${count}대 차량 작업 완료!`);
+        };
+    </script>
+</body>
+
+</html>

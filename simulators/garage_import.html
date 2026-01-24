@@ -1,0 +1,1577 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Garage Import — 차고 가져오기</title>
+    <meta name="color-scheme" content="light dark" />
+
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="../assets/themes.css">
+
+    <script>window.SIM_ID = "garage-import";</script>
+    <script src="../assets/theme-init.js"></script>
+    <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+    <script src="../assets/lang.js?v=2"></script>
+    <script src="../assets/i18n.js"></script>
+    <script src="../assets/garage.js"></script>
+    <!-- Tesseract.js CDN -->
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+
+    <style>
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 18px;
+            padding: 40px;
+            text-align: center;
+            background: var(--panel);
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 24px;
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--accent);
+            background: var(--surface-hover);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .preview-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            background: #000;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.7;
+        }
+
+        .preview-item.processed img {
+            opacity: 1;
+            border: 2px solid var(--accent);
+        }
+
+        .result-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .result-thumb {
+            width: 60px;
+            height: 40px;
+            background: #000;
+            border-radius: 6px;
+            /* Placeholder for cropped car image */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <h1>📸 <span>OCR 사진 가져오기</span></h1>
+            </div>
+            <div class="toolbar">
+                <a class="btn" href="my_garage.html" data-i18n="common.back">← 내 차고</a>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="section-title">🤖 Gemini AI 분석</div>
+
+            <!-- API Key Input -->
+            <div
+                style="margin-bottom:16px; padding:12px; background:var(--bg); border-radius:8px; border:1px solid var(--border);">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="password" id="geminiApiKey" placeholder="API Key 입력 (여러 개는 콤마 ','로 구분)"
+                        style="flex:1; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); color:var(--text);">
+                    <button id="btnSaveApiKey" class="btn secondary">저장</button>
+                </div>
+                <p style="font-size:11px; color:var(--muted); margin-top:6px;">
+                    <a href="https://ai.google.dev/" target="_blank" style="color:var(--primary);">Google AI
+                        Studio</a>에서 무료 키 발급.
+                    <span style="color:#ff9800;">Tip: 프로젝트를 여러 개 만들어 키를 여러 개 넣으면 한도가 늘어납니다! (콤마로 구분, 구글 계정이 여러 개 필요하지
+                        않습니다)</span>
+                </p>
+            </div>
+
+            <!-- Upload Area -->
+            <div id="dropZone" class="upload-area">
+                <div class="upload-icon">📂</div>
+                <h3>여기에 스크린샷을 드래그하거나 클릭하세요</h3>
+                <p style="color:var(--muted)">여러 장 선택 가능 • Gemini AI 자동 인식</p>
+                <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+            </div>
+
+            <div id="previewGrid" class="preview-grid"></div>
+
+            <div class="actions">
+                <button id="btnProcess" class="btn primary" style="width:100%" disabled>🤖 AI 분석 시작</button>
+            </div>
+        </div>
+
+        <!-- Detected List -->
+        <div id="resultPanel" class="panel hidden" style="margin-top:24px">
+            <div class="editor-header">
+                <h2 class="title">인식 결과 <span id="detectCount">(0)</span></h2>
+                <div style="display:flex; gap:8px;">
+                    <button id="btnEditJson" class="btn secondary">✏️ 일괄 편집</button>
+                    <button id="btnSaveAll" class="btn primary">모두 저장</button>
+                </div>
+            </div>
+            <div id="resultList" class="result-list"></div>
+        </div>
+
+        <!-- Demo Logic -->
+        <div style="margin-top:40px; padding:20px; border-top:1px solid var(--border); opacity:0.8">
+            <h4>💡 개발자 도구 (Demo)</h4>
+            <p style="font-size:12px; color:var(--muted); margin-bottom:12px">방금 업로드하신 4장의 사진 데이터를 미리 분석해두었습니다.</p>
+            <button id="btnLoadDemo" class="btn secondary">업로드된 4장 데이터 불러오기 (Analysis Result)</button>
+        </div>
+
+        <!-- Debug Log -->
+        <div style="margin-top:24px;">
+            <button class="btn sub" onclick="toggleDebug()">🔍 원본 텍스트 보기 (Debug)</button>
+            <pre id="debugLog"
+                style="display:none; background:#000; color:#0f0; padding:12px; border-radius:8px; overflow:auto; max-height:300px; font-size:11px; margin-top:8px;"></pre>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Demo Data ---
+        // Manually extracted from user images
+        const DEMO_DATA = [
+            { name: "Mosler Super GT", star: 6, rank: 5169, max: true },
+            { name: "Koenigsegg Jesko Absolut", star: 6, rank: 5355, max: true },
+            { name: "Devel Sixteen", star: 4, rank: 4757, bp_current: 55, bp_max: 70 },
+            { name: "Arash Imperium", star: 4, rank: 5315 },
+            { name: "Bugatti Bolide", star: 6, rank: 5190, max: true },
+            { name: "Koenigsegg Chimera", star: 6, rank: 5239 },
+            // RAESR Locked
+            { name: "Aston Martin DBS Superleggera", star: 5, rank: 4059, max: true },
+            { name: "Lamborghini SC63", star: 5, rank: 4247, max: true },
+            { name: "Lamborghini Essenza SCV12", star: 5, rank: 4061, max: true },
+            { name: "McLaren 600LT Spider", star: 5, rank: 4075, max: true },
+            { name: "McLaren Solus GT", star: 5, rank: 3296 },
+            { name: "Lamborghini Aventador SVJ Roadster", star: 5, rank: 3590 },
+            { name: "Peugeot 9x8", star: 5, rank: 3175 },
+            { name: "Lamborghini Aventador J", star: 4, rank: 2957 }, // Image says 4/4 star? actually 2957 might be lower star. Wait, user img 3: Aventador J 4/4 stars.
+            { name: "Porsche 911 GT3 RS", star: 5, rank: 1809 }, // Wait, 1809 is stock?
+            { name: "Automobili Pininfarina Battista Edizione Nino Farina", star: 5, rank: 3012 }, // 3/3 stars?
+            { name: "Peugeot Onyx", star: 6, rank: 3026 },
+            { name: "Glickenhaus 007S", star: 5, rank: 3325 },
+            { name: "Spania GTA 2015 GTA Spano", star: 6, rank: 4070, max: true },
+            { name: "Ferrari LaFerrari Aperta", star: 6, rank: 3377 }, // 3/3 stars?
+            { name: "Hyundai N Vision 74", star: 6, rank: 3287 } // 3/3?
+        ];
+
+        let allCars = [];
+        let detectedCars = [];
+
+        async function init() {
+            try {
+                const res = await fetch('../assets/cars.json');
+                allCars = await res.json();
+            } catch (e) { console.error(e); }
+
+            setupUpload();
+
+            document.getElementById('btnLoadDemo').addEventListener('click', loadDemo);
+            document.getElementById('btnSaveAll').addEventListener('click', saveAll);
+            document.getElementById('btnEditJson').addEventListener('click', openJsonEditor);
+            document.getElementById('btnSaveApiKey').addEventListener('click', saveApiKey);
+
+            // Load saved API key
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('geminiApiKey').value = savedKey;
+            }
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('geminiApiKey').value.trim();
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                alert('API 키가 저장되었습니다!');
+            }
+        }
+
+        function logDebug(msg) {
+            const el = document.getElementById('debugLog');
+            if (el) {
+                el.textContent += msg + "\n";
+                el.scrollTop = el.scrollHeight;
+            }
+            console.log(msg);
+        }
+
+        window.toggleDebug = () => {
+            const el = document.getElementById('debugLog');
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        };
+
+        let filesToProcess = [];
+
+        function setupUpload() {
+            const drop = document.getElementById('dropZone');
+            const inp = document.getElementById('fileInput');
+
+            drop.onclick = () => inp.click();
+            inp.onchange = (e) => handleFiles(e.target.files);
+
+            drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('dragover'); };
+            drop.ondragleave = () => drop.classList.remove('dragover');
+            drop.ondrop = (e) => {
+                e.preventDefault();
+                drop.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            };
+
+            document.getElementById('btnProcess').onclick = runGeminiAI;
+        }
+
+        function handleFiles(files) {
+            if (!files.length) return;
+            const grid = document.getElementById('previewGrid');
+
+            Array.from(files).forEach(f => {
+                if (!f.type.startsWith('image/')) return;
+                filesToProcess.push(f); // Add to queue
+
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(f);
+                div.appendChild(img);
+                grid.appendChild(div);
+            });
+
+            document.getElementById('btnProcess').disabled = false;
+            document.getElementById('btnProcess').textContent = `분석 시작 (${filesToProcess.length}장)`;
+        }
+
+        async function processImages() {
+            const btn = document.getElementById('btnProcess');
+            btn.disabled = true;
+
+            detectedCars = []; // Clear previous
+
+            const debugEl = document.getElementById('debugLog');
+            if (debugEl) {
+                debugEl.textContent = "=== ROI-based Image Analysis Start ===\n";
+                debugEl.style.display = 'block';
+            }
+
+            // Card ROI definitions (relative to card size)
+            const CARD_ROIS = {
+                name: { x: 0.02, y: 0.72, w: 0.55, h: 0.22 },  // 하단 좌측 (차명)
+                rank: { x: 0.02, y: 0.02, w: 0.38, h: 0.12 },  // 상단 좌측 (랭크)
+                stars: { x: 0.02, y: 0.58, w: 0.35, h: 0.10 },  // 중간 좌측 (별)
+                max: { x: 0.50, y: 0.78, w: 0.45, h: 0.18 }   // 하단 우측 (MAX)
+            };
+
+            for (let i = 0; i < filesToProcess.length; i++) {
+                btn.textContent = `분석중... (${i + 1}/${filesToProcess.length})`;
+                const file = filesToProcess[i];
+                logDebug(`\n📄 Processing: ${file.name}`);
+
+                try {
+                    // Step 1: Load image and extract 6 cards
+                    const img = await loadImageFromFile(file);
+                    const cards = extractCards(img, 3, 2); // 3 cols, 2 rows
+                    logDebug(`📦 Extracted ${cards.length} cards`);
+
+                    // Step 2: Analyze each card
+                    for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
+                        const card = cards[cardIdx];
+                        const row = Math.floor(cardIdx / 3);
+                        const col = cardIdx % 3;
+
+                        // 2a: Check if owned (color analysis)
+                        const isOwned = analyzeCardOwnership(card);
+                        logDebug(`\n� Card[${row},${col}]: ${isOwned ? '✅ Owned' : '❌ Unowned'}`);
+
+                        if (!isOwned) continue;
+
+                        // 2b: Extract ROIs
+                        const nameROI = extractROI(card, CARD_ROIS.name);
+                        const rankROI = extractROI(card, CARD_ROIS.rank);
+                        const starsROI = extractROI(card, CARD_ROIS.stars);
+                        const maxROI = extractROI(card, CARD_ROIS.max);
+
+                        // 2c: Analyze each ROI
+                        btn.textContent = `카드 ${cardIdx + 1}/6 분석중...`;
+
+                        // Stars: Icon counting (no OCR)
+                        const starCount = countStarIcons(starsROI);
+
+                        // MAX: Badge detection (no OCR)
+                        const hasMax = detectMaxBadge(maxROI);
+
+                        // Rank: OCR + regex validation
+                        const rankText = await ocrROI(rankROI);
+                        const { current: currentRank, max: maxRank } = parseRank(rankText);
+
+                        // Name: OCR + fuzzy match
+                        const nameText = await ocrROI(nameROI);
+                        const matchResult = fuzzyMatchCar(nameText);
+
+                        if (matchResult) {
+                            const car = matchResult.car;
+                            const confidence = matchResult.confidence;
+
+                            // Determine star level
+                            let star = starCount > 0 ? starCount : 1;
+                            if (hasMax && car.max_star) star = car.max_star;
+
+                            // Determine rank
+                            let rank = hasMax ? (maxRank || getMaxRankForStar(car, star)) : (currentRank || 0);
+
+                            logDebug(`   🚗 ${car.name}`);
+                            logDebug(`      Stars: ${star} | Rank: ${rank} | Max: ${hasMax}`);
+                            logDebug(`      Confidence: ${(confidence * 100).toFixed(0)}%`);
+
+                            detectedCars.push({
+                                id: car.id,
+                                name: car.name,
+                                class: car.class,
+                                star: star,
+                                dbMaxStar: car.max_star,
+                                rank: rank,
+                                isMax: hasMax,
+                                confidence: confidence,
+                                method: 'roi'
+                            });
+                        } else {
+                            logDebug(`   ❓ No match for: "${nameText.substring(0, 30)}..."`);
+                        }
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    logDebug("❌ Error: " + e.message);
+                    alert("분석 중 오류가 발생했습니다: " + file.name);
+                }
+            }
+
+            logDebug(`\n✅ Total: ${detectedCars.length} cars detected`);
+            btn.textContent = "분석 완료";
+            renderResults();
+            filesToProcess = [];
+        }
+
+        // ============================================
+        // Gemini Vision AI Analysis
+        // ============================================
+        async function runGeminiAI() {
+            const apiKey = localStorage.getItem('gemini_api_key');
+            if (!apiKey) {
+                alert('먼저 Gemini API 키를 입력하고 저장하세요!');
+                return;
+            }
+
+            const previewItems = document.querySelectorAll('.preview-item img');
+            if (previewItems.length === 0) {
+                alert('먼저 이미지를 업로드하세요!');
+                return;
+            }
+
+            const btn = document.getElementById('btnProcess');
+            btn.disabled = true;
+            btn.textContent = '🤖 분석중...';
+
+            logDebug(`\n🤖 === Gemini Vision AI Analysis Start ===`);
+            detectedCars = []; // Clear previous
+
+            for (let i = 0; i < previewItems.length; i++) {
+                const imgSrc = previewItems[i].src;
+                logDebug(`\n📄 Gemini AI: Image ${i + 1}/${previewItems.length}`);
+
+                try {
+                    const result = await callGeminiVision(apiKey, imgSrc);
+
+                    if (result && result.cars && result.cars.length > 0) {
+                        logDebug(`   Found ${result.cars.length} cars from AI`);
+
+                        for (const aiCar of result.cars) {
+                            // Match AI result to cars.json
+                            const matchedCar = fuzzyMatchCar(aiCar.name);
+                            if (matchedCar) {
+                                const car = matchedCar.car;
+                                const star = aiCar.stars || matchedCar.car.max_star || 1;
+                                const rank = aiCar.rank || 0;
+                                const isMax = aiCar.isMax || false;
+
+                                logDebug(`   🚗 ${car.name} | Stars: ${star} | Rank: ${rank} | Max: ${isMax}`);
+
+                                detectedCars.push({
+                                    id: car.id,
+                                    name: car.name,
+                                    class: car.class,
+                                    star: star,
+                                    dbMaxStar: car.max_star,
+                                    rank: rank,
+                                    isMax: isMax,
+                                    confidence: 0.95,
+                                    method: 'gemini'
+                                });
+                            }
+                        }
+                    } else {
+                        logDebug(`   ⚠️ No cars detected by AI`);
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    logDebug(`❌ Gemini AI Error: ${e.message}`);
+                }
+            }
+
+            logDebug(`\n🤖 Gemini AI Complete: ${detectedCars.length} cars`);
+            btn.disabled = false;
+            btn.textContent = '🤖 AI 분석 시작';
+            renderResults();
+        }
+
+        async function callGeminiVision(apiKey, imageUrl) {
+            // Support multiple keys (comma separated)
+            const keys = apiKey.split(',').map(k => k.trim()).filter(k => k);
+            const keyToUse = keys[Math.floor(Math.random() * keys.length)];
+
+            // Resize image and convert to base64
+            const base64Image = await resizeImageForOcr(imageUrl, 1024, 0.8);
+            const base64Data = base64Image.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+
+            const prompt = `Asphalt Legends 차고(Garage) 스크린샷을 분석해줘.
+
+## 분석 규칙
+
+### 1. 소유 차량만 포함
+다음 조건을 만족하면 "소유 차량"이야:
+- 차량 카드가 컬러풀하게 표시됨 (회색이 아님)
+- 랭크 숫자가 "현재/최대" 형태로 표시됨 (예: 3,012/3,012)
+- 별(★)이 노란색/금색으로 채워져 있음
+
+### 2. 미소유 차량 제외
+다음 조건이면 제외해:
+- 카드가 회색/어두운 톤
+- "X/60", "X/70" 등 설계도 숫자가 표시됨
+- "+" 버튼만 있고 차량 이미지가 흐림
+- "이 자동차로 레이스하려면 열쇠가 필요합니다" 메시지 표시
+
+### 3. MAX 뱃지 판별
+- 금색/주황색 "최대" 또는 육각형 MAX 뱃지가 있으면 isMax: true
+- 랭크가 "동일/동일" 형태(예: 4,229/4,229)이거나 별이 모두 채워졌으면 MAX일 가능성 높음
+
+### 4. 추출 정보
+각 소유 차량에서:
+- name: 정확한 차량 이름 (브랜드 + 모델)
+- rank: 현재 랭크 (슬래시 왼쪽 숫자, 쉼표 제거)
+- stars: 채워진 별 개수 (1-6)
+- isMax: MAX 뱃지 여부
+
+## 응답 형식 (JSON만)
+{"cars": [{"name": "PORSCHE 935 (2019)", "rank": 4229, "stars": 6, "isMax": true}, ...]}
+
+소유 차량이 없으면: {"cars": []}`;
+
+            let retries = 3;
+            while (retries > 0) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: prompt },
+                                    {
+                                        inline_data: {
+                                            mime_type: 'image/jpeg',
+                                            data: base64Data
+                                        }
+                                    }
+                                ]
+                            }],
+                            generationConfig: {
+                                temperature: 0.1,
+                                maxOutputTokens: 4096,
+                                responseMimeType: "application/json"
+                            }
+                        })
+                    });
+
+                    if (response.status === 429 || response.status === 503) {
+                        throw new Error("Server overloaded or rate limit exceeded");
+                    }
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error?.message || `API Error: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+                    const jsonMatch = text.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            return JSON.parse(jsonMatch[0]);
+                        } catch (e) {
+                            console.warn("JSON parse warning, retrying...", e);
+                            throw new Error("Invalid JSON response");
+                        }
+                    }
+                    return { cars: [] };
+
+                } catch (e) {
+                    retries--;
+                    if (retries === 0) {
+                        logDebug(`   ❌ Gemini AI Failed after 3 retries: ${e.message}`);
+                        throw e;
+                    }
+                    logDebug(`   ⚠️ Error: ${e.message}. Retrying... (${retries} left)`);
+                    await new Promise(r => setTimeout(r, 2000 + (3 - retries) * 1000));
+                }
+            }
+        }
+
+        async function old_callGeminiVision(apiKey, imageUrl) {
+            // Resize image and convert to base64
+            const base64Image = await resizeImageForOcr(imageUrl, 1024, 0.8);
+            const base64Data = base64Image.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+
+            const prompt = `Asphalt Legends 차고(Garage) 스크린샷을 분석해줘.
+
+## 분석 규칙
+
+### 1. 소유 차량만 포함
+다음 조건을 만족하면 "소유 차량"이야:
+- 차량 카드가 컬러풀하게 표시됨 (회색이 아님)
+- 랭크 숫자가 "현재/최대" 형태로 표시됨 (예: 3,012/3,012)
+- 별(★)이 노란색/금색으로 채워져 있음
+
+### 2. 미소유 차량 제외
+다음 조건이면 제외해:
+- 카드가 회색/어두운 톤
+- "X/60", "X/70" 등 설계도 숫자가 표시됨
+- "+" 버튼만 있고 차량 이미지가 흐림
+- "이 자동차로 레이스하려면 열쇠가 필요합니다" 메시지 표시
+
+### 3. MAX 뱃지 판별
+- 금색/주황색 "최대" 또는 육각형 MAX 뱃지가 있으면 isMax: true
+- 랭크가 "동일/동일" 형태(예: 4,229/4,229)이거나 별이 모두 채워졌으면 MAX일 가능성 높음
+
+### 4. 추출 정보
+각 소유 차량에서:
+- name: 정확한 차량 이름 (브랜드 + 모델)
+- rank: 현재 랭크 (슬래시 왼쪽 숫자, 쉼표 제거)
+- stars: 채워진 별 개수 (1-6)
+- isMax: MAX 뱃지 여부
+
+## 응답 형식 (JSON만)
+{"cars": [{"name": "PORSCHE 935 (2019)", "rank": 4229, "stars": 6, "isMax": true}, ...]}
+
+소유 차량이 없으면: {"cars": []}`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: prompt },
+                            {
+                                inline_data: {
+                                    mime_type: 'image/jpeg',
+                                    data: base64Data
+                                }
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.1,
+                        maxOutputTokens: 4096,
+                        responseMimeType: "application/json"
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || `API Error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            // Extract JSON from response
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    return JSON.parse(jsonMatch[0]);
+                } catch (e) {
+                    logDebug(`   ⚠️ JSON parse error: ${e.message}`);
+                    return { cars: [] };
+                }
+            }
+
+            return { cars: [] };
+        }
+
+        function renderResults() {
+            const list = document.getElementById('resultList');
+            const countSpan = document.getElementById('detectCount');
+            const resultPanel = document.getElementById('resultPanel');
+
+            if (!list || !countSpan || !resultPanel) return;
+
+            list.innerHTML = '';
+            countSpan.textContent = `(${detectedCars.length})`;
+            resultPanel.classList.remove('hidden');
+
+            detectedCars.forEach((car, index) => {
+                const div = document.createElement('div');
+                div.className = 'result-item';
+                div.onclick = () => editCar(index);
+                div.style.cursor = 'pointer';
+                div.title = '클릭하여 수정';
+
+                let html = `
+                    <div class="result-info">
+                        <div class="car-name">${car.name}</div>
+                        <div class="car-details">
+                            <span class="rank">R: ${car.rank}</span>
+                            <span class="stars">⭐ ${car.stars}</span>
+                            ${car.isMax ? '<span class="max-badge" style="background:#ff9800; color:black; padding:2px 4px; border-radius:4px; font-size:0.8em; font-weight:bold; margin-left:4px;">MAX</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="action-btn" onclick="removeCar(event, ${index})" style="cursor:pointer; color:var(--danger); padding:4px;">❌</div>
+                `;
+                div.innerHTML = html;
+                list.appendChild(div);
+            });
+        }
+
+        window.removeCar = function (e, index) {
+            e.stopPropagation();
+            if (confirm('이 차량을 목록에서 삭제할까요?')) {
+                detectedCars.splice(index, 1);
+                renderResults();
+            }
+        };
+
+        window.editCar = function (index) {
+            const car = detectedCars[index];
+            const newName = prompt("차량 이름 수정:", car.name);
+            if (newName === null) return;
+
+            const newRank = prompt("랭크 수정:", car.rank);
+            if (newRank === null) return;
+
+            const newStars = prompt("별 개수 수정 (1-6):", car.stars);
+            if (newStars === null) return;
+
+            const newIsMax = confirm("MAX 상태입니까? (확인=예, 취소=아니오)");
+
+            detectedCars[index] = {
+                ...car,
+                name: newName,
+                rank: parseInt(newRank) || 0,
+                stars: parseInt(newStars) || 1,
+                isMax: newIsMax
+            };
+            renderResults();
+        };
+
+        // ============================================
+        // ROI Helper Functions
+        // ============================================
+        function loadImageFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        function extractCards(img, cols, rows) {
+            const cardWidth = img.width / cols;
+            const cardHeight = img.height / rows;
+            const cards = [];
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = cardWidth;
+                    canvas.height = cardHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img,
+                        col * cardWidth, row * cardHeight, cardWidth, cardHeight,
+                        0, 0, cardWidth, cardHeight);
+                    cards.push(canvas);
+                }
+            }
+            return cards;
+        }
+
+        function extractROI(cardCanvas, roi) {
+            const w = cardCanvas.width, h = cardCanvas.height;
+            const x = Math.floor(roi.x * w);
+            const y = Math.floor(roi.y * h);
+            const rw = Math.floor(roi.w * w);
+            const rh = Math.floor(roi.h * h);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = rw;
+            canvas.height = rh;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(cardCanvas, x, y, rw, rh, 0, 0, rw, rh);
+            return canvas;
+        }
+
+        function analyzeCardOwnership(cardCanvas) {
+            const ctx = cardCanvas.getContext('2d');
+            // Sample center area of card
+            const x = cardCanvas.width * 0.2;
+            const y = cardCanvas.height * 0.3;
+            const w = cardCanvas.width * 0.6;
+            const h = cardCanvas.height * 0.4;
+
+            const data = ctx.getImageData(x, y, w, h);
+            let colorful = 0, total = 0;
+
+            for (let i = 0; i < data.data.length; i += 16) {
+                const r = data.data[i], g = data.data[i + 1], b = data.data[i + 2];
+                const max = Math.max(r, g, b), min = Math.min(r, g, b);
+                const saturation = max > 0 ? (max - min) / max : 0;
+                if (saturation > 0.3) colorful++;
+                total++;
+            }
+
+            return (colorful / total) > 0.2;  // 20% 이상 채도 있으면 소유
+        }
+
+        function countStarIcons(canvas) {
+            const ctx = canvas.getContext('2d');
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            // Count bright yellow pixels per column
+            const columnBrightness = [];
+            for (let x = 0; x < canvas.width; x++) {
+                let bright = 0;
+                for (let y = 0; y < canvas.height; y++) {
+                    const i = (y * canvas.width + x) * 4;
+                    const r = data.data[i], g = data.data[i + 1], b = data.data[i + 2];
+                    // Yellow/gold star: high R, high G, low B
+                    if (r > 180 && g > 130 && b < 120) bright++;
+                }
+                columnBrightness.push(bright);
+            }
+
+            // Count peaks (stars)
+            let stars = 0, inPeak = false, peakWidth = 0;
+            const threshold = canvas.height * 0.15;
+            const minGap = canvas.width * 0.08;
+
+            for (let i = 0; i < columnBrightness.length; i++) {
+                if (columnBrightness[i] > threshold) {
+                    if (!inPeak) { inPeak = true; stars++; }
+                    peakWidth++;
+                } else {
+                    if (inPeak && peakWidth > 2) inPeak = false;
+                    peakWidth = 0;
+                }
+            }
+
+            return Math.min(stars, 6);  // Max 6 stars
+        }
+
+        function detectMaxBadge(canvas) {
+            const ctx = canvas.getContext('2d');
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            let goldPixels = 0, total = 0;
+            for (let i = 0; i < data.data.length; i += 4) {
+                const r = data.data[i], g = data.data[i + 1], b = data.data[i + 2];
+                // Gold/orange MAX badge
+                if (r > 200 && g > 140 && g < 220 && b < 100) goldPixels++;
+                total++;
+            }
+
+            return (goldPixels / total) > 0.08;  // 8% 이상 금색이면 MAX
+        }
+
+        async function ocrROI(canvas) {
+            const worker = await Tesseract.createWorker('eng+kor');
+            const { data } = await worker.recognize(canvas);
+            await worker.terminate();
+            return data.text.trim();
+        }
+
+        function parseRank(text) {
+            // Try to find pattern like "3,012" or "3012/3157" or "3,012/3,157"
+            const cleaned = text.replace(/[^\d,\/]/g, '').replace(/,/g, '');
+
+            // Pattern: current/max
+            const match = cleaned.match(/(\d{3,4})\/(\d{3,4})/);
+            if (match) {
+                return { current: parseInt(match[1]), max: parseInt(match[2]) };
+            }
+
+            // Single number
+            const single = cleaned.match(/(\d{3,4})/);
+            if (single) {
+                return { current: parseInt(single[1]), max: null };
+            }
+
+            return { current: null, max: null };
+        }
+
+        function fuzzyMatchCar(ocrText) {
+            const cleaned = ocrText.toUpperCase()
+                .replace(/[^A-Z0-9\s\-]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (cleaned.length < 3) return null;
+
+            let bestMatch = null, bestScore = 0;
+
+            allCars.forEach(car => {
+                const carName = car.name.toUpperCase();
+                const score = calculateSimilarity(cleaned, carName);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMatch = car;
+                }
+            });
+
+            // Also try matching just the model name (last word)
+            const words = cleaned.split(' ').filter(w => w.length >= 2);
+            if (words.length > 0) {
+                const lastWord = words[words.length - 1];
+                allCars.forEach(car => {
+                    const carWords = car.name.toUpperCase().split(/[\s\-]+/);
+                    const carLastWord = carWords[carWords.length - 1];
+                    if (lastWord === carLastWord || carLastWord.includes(lastWord)) {
+                        const score = 0.7 + (lastWord.length / carLastWord.length) * 0.3;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMatch = car;
+                        }
+                    }
+                });
+            }
+
+            return bestScore > 0.5 ? { car: bestMatch, confidence: bestScore } : null;
+        }
+
+        function calculateSimilarity(s1, s2) {
+            if (s1.length === 0 || s2.length === 0) return 0;
+            if (s1 === s2) return 1;
+
+            // Simple word overlap + containment check
+            const words1 = s1.split(' ').filter(w => w.length >= 2);
+            const words2 = s2.split(' ').filter(w => w.length >= 2);
+
+            let matches = 0;
+            words1.forEach(w1 => {
+                if (words2.some(w2 => w2.includes(w1) || w1.includes(w2))) {
+                    matches++;
+                }
+            });
+
+            const overlap = matches / Math.max(words1.length, words2.length);
+            const containment = s2.includes(s1) || s1.includes(s2) ? 0.3 : 0;
+
+            return Math.min(overlap + containment, 1);
+        }
+
+        // ============================================
+        // Cloud OCR: OCR.space API
+        // ============================================
+        async function runCloudOcr() {
+            const fileInput = document.getElementById('fileInput');
+            const previewItems = document.querySelectorAll('.preview-item img');
+
+            if (previewItems.length === 0) {
+                alert('먼저 이미지를 업로드하세요!');
+                return;
+            }
+
+            const btn = document.getElementById('btnCloudOcr');
+            btn.disabled = true;
+            btn.textContent = '☁️ 분석중...';
+
+            logDebug(`\n☁️ === Cloud OCR (OCR.space) Start ===`);
+            detectedCars = []; // Clear previous
+
+            // Get images from preview
+            for (let i = 0; i < previewItems.length; i++) {
+                const imgSrc = previewItems[i].src;
+                logDebug(`\n📄 Cloud OCR: Image ${i + 1}`);
+
+                try {
+                    const text = await callOcrSpaceApi(imgSrc);
+                    logDebug(`--- Cloud OCR Result ---`);
+                    logDebug(text.substring(0, 500) + (text.length > 500 ? '...' : ''));
+
+                    // Use existing text parser
+                    const textResults = parseTextBased(text);
+                    logDebug(`   Found ${textResults.length} cars`);
+
+                    textResults.forEach(car => {
+                        if (!detectedCars.find(d => d.id === car.id)) {
+                            detectedCars.push(car);
+                        }
+                    });
+
+                } catch (e) {
+                    console.error(e);
+                    logDebug(`❌ Cloud OCR Error: ${e.message}`);
+                }
+            }
+
+            logDebug(`\n☁️ Cloud OCR Complete: ${detectedCars.length} cars`);
+            btn.disabled = false;
+            btn.textContent = '☁️ 클라우드 OCR';
+            renderResults();
+        }
+
+        async function callOcrSpaceApi(imageUrl) {
+            // OCR.space free API (demo key: 'helloworld')
+            // For production, users should get their own key from https://ocr.space/ocrapi
+            const apiKey = 'helloworld';
+
+            // Resize image to fit within 1MB limit
+            const resizedBase64 = await resizeImageForOcr(imageUrl, 1200, 0.7);
+            logDebug(`   Image resized: ${Math.round(resizedBase64.length / 1024)}KB`);
+
+            const formData = new FormData();
+            formData.append('apikey', apiKey);
+            formData.append('base64Image', resizedBase64);
+            formData.append('language', 'eng');
+            formData.append('isTable', 'true');
+            formData.append('OCREngine', '2'); // Engine 2 is better for screenshots
+
+            const apiResponse = await fetch('https://api.ocr.space/parse/image', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await apiResponse.json();
+
+            if (result.IsErroredOnProcessing) {
+                throw new Error(result.ErrorMessage || 'OCR.space API error');
+            }
+
+            return result.ParsedResults?.[0]?.ParsedText || '';
+        }
+
+        async function resizeImageForOcr(imageUrl, maxSize, quality) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    let { width, height } = img;
+
+                    // Scale down if larger than maxSize
+                    if (width > maxSize || height > maxSize) {
+                        const ratio = Math.min(maxSize / width, maxSize / height);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Convert to JPEG with specified quality
+                    const base64 = canvas.toDataURL('image/jpeg', quality);
+                    resolve(base64);
+                };
+                img.onerror = reject;
+                img.src = imageUrl;
+            });
+        }
+
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // ============================================
+        // Image Color Analysis (Canvas-based)
+        // ============================================
+        async function analyzeImageColors(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    // Assume 3x2 grid of car cards (common layout)
+                    // Adjust based on image aspect ratio
+                    const cols = 3;
+                    const rows = 2;
+                    const cardWidth = img.width / cols;
+                    const cardHeight = img.height / rows;
+
+                    const cardData = [];
+                    for (let row = 0; row < rows; row++) {
+                        for (let col = 0; col < cols; col++) {
+                            // Sample center of each card (focus on car image area)
+                            const x = col * cardWidth + cardWidth * 0.15;
+                            const y = row * cardHeight + cardHeight * 0.25;
+                            const w = cardWidth * 0.7;
+                            const h = cardHeight * 0.5;
+
+                            const metrics = calculateColorfulness(ctx, x, y, w, h);
+                            // Unowned cars have more gray/dark pixels (higher darkRatio)
+                            // Threshold: if >25% pixels are dark/gray, likely unowned
+                            const isOwned = metrics.darkRatio < 0.25;
+
+                            cardData.push({
+                                row, col,
+                                x: col * cardWidth,
+                                y: row * cardHeight,
+                                colorfulness: metrics.colorfulness,
+                                darkRatio: metrics.darkRatio,
+                                isOwned
+                            });
+
+                            logDebug(`     Card[${row},${col}]: Color=${metrics.colorfulness.toFixed(1)} Dark=${(metrics.darkRatio * 100).toFixed(0)}% → ${isOwned ? '✅ Owned' : '❌ Unowned'}`);
+                        }
+                    }
+
+                    URL.revokeObjectURL(img.src);
+                    resolve(cardData);
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        // Measures "colorfulness" - grayscale images have similar RGB, colorful images have varied RGB
+        function calculateColorfulness(ctx, x, y, w, h) {
+            const imageData = ctx.getImageData(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
+            const pixels = imageData.data;
+
+            let totalRGBVariance = 0;
+            let darkPixelCount = 0;
+            let sampleCount = 0;
+
+            // Sample every 10th pixel for performance
+            for (let i = 0; i < pixels.length; i += 40) {
+                const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
+
+                // Calculate RGB variance (how different are R, G, B from each other)
+                const avg = (r + g + b) / 3;
+                const variance = Math.abs(r - avg) + Math.abs(g - avg) + Math.abs(b - avg);
+                totalRGBVariance += variance;
+
+                // Count dark/gray pixels (low brightness, low variance)
+                const brightness = (r + g + b) / 3;
+                const rgbDiff = Math.max(r, g, b) - Math.min(r, g, b);
+                if (brightness < 120 && rgbDiff < 40) {
+                    darkPixelCount++;
+                }
+
+                sampleCount++;
+            }
+
+            const avgVariance = sampleCount > 0 ? totalRGBVariance / sampleCount : 0;
+            const darkRatio = sampleCount > 0 ? darkPixelCount / sampleCount : 0;
+
+            // Return object with both metrics
+            return {
+                colorfulness: avgVariance,
+                darkRatio: darkRatio
+            };
+        }
+
+        // ============================================
+        // Method 1: Bounding Box OCR (Spatial Analysis)
+        // ============================================
+        function parseBoundingBox(words, colorData = []) {
+            const results = [];
+            if (!words || words.length === 0) return results;
+
+            const MAX_KEYWORDS = ['최대', '최ㅁ', '최띠', '최ㄷ', '최 ㅁ', '최 대', '초 대', '초대', 'max'];
+            const Y_TOLERANCE = 25; // pixels to group as same row
+
+            // Get image dimensions from word bounding boxes
+            let maxX = 0, maxY = 0;
+            words.forEach(w => {
+                if (w.bbox) {
+                    maxX = Math.max(maxX, w.bbox.x1);
+                    maxY = Math.max(maxY, w.bbox.y1);
+                }
+            });
+
+            // Helper: determine which card a word belongs to based on position
+            function getCardIndex(word) {
+                if (!word.bbox || colorData.length === 0) return -1;
+                const cols = 3, rows = 2;
+                const cardWidth = maxX / cols;
+                const cardHeight = maxY / rows;
+                const col = Math.floor(word.bbox.x0 / cardWidth);
+                const row = Math.floor(word.bbox.y0 / cardHeight);
+                return row * cols + col;
+            }
+
+            // Group words by Y coordinate (rows)
+            const ocrRows = [];
+            const sortedWords = [...words].sort((a, b) => (a.bbox?.y0 || 0) - (b.bbox?.y0 || 0));
+
+            sortedWords.forEach(word => {
+                if (!word.bbox || !word.text || word.text.trim().length === 0) return;
+
+                const y = word.bbox.y0;
+                let foundRow = ocrRows.find(r => Math.abs(r.y - y) < Y_TOLERANCE);
+
+                if (foundRow) {
+                    foundRow.words.push(word);
+                    foundRow.y = (foundRow.y + y) / 2;
+                } else {
+                    ocrRows.push({ y, words: [word] });
+                }
+            });
+
+            // Sort words within each row by X position
+            ocrRows.forEach(row => {
+                row.words.sort((a, b) => (a.bbox?.x0 || 0) - (b.bbox?.x0 || 0));
+                row.text = row.words.map(w => w.text).join(' ');
+            });
+
+            allCars.forEach(car => {
+                const carNameLower = car.name.toLowerCase();
+                const nameWords = carNameLower.split(/[\s\-]+/).filter(w => w.length >= 2);
+                if (nameWords.length === 0) return;
+
+                const significantWords = nameWords.filter(w => w.length >= 3);
+                if (significantWords.length === 0) return;
+
+                const modelName = significantWords[significantWords.length - 1];
+                const brandName = significantWords.length >= 2 ? significantWords[0] : null;
+                const secondWord = significantWords.length >= 2 ? significantWords[significantWords.length - 2] : null;
+
+                // Find model name in any row
+                let modelRowIdx = -1;
+                let modelWord = null;
+                for (let i = 0; i < ocrRows.length; i++) {
+                    for (const word of ocrRows[i].words) {
+                        if (word.text.toLowerCase().includes(modelName)) {
+                            modelWord = word;
+                            modelRowIdx = i;
+                            break;
+                        }
+                    }
+                    if (modelRowIdx !== -1) break;
+                }
+                if (modelRowIdx === -1) return;
+
+                // Check brand in nearby rows
+                if (brandName) {
+                    const nearbyText = ocrRows.slice(Math.max(0, modelRowIdx - 2), modelRowIdx + 3)
+                        .map(r => r.text).join(' ').toLowerCase();
+                    if (!nearbyText.includes(brandName)) return;
+                }
+
+                // For multi-word models, verify second word is nearby
+                if (secondWord) {
+                    const nearbyText = ocrRows.slice(Math.max(0, modelRowIdx - 1), modelRowIdx + 2)
+                        .map(r => r.text).join(' ').toLowerCase();
+                    if (!nearbyText.includes(secondWord)) return;
+                }
+
+                // **COLOR ANALYSIS: Log only (not reliable for ownership detection)**
+                if (colorData.length > 0 && modelWord) {
+                    const cardIdx = getCardIndex(modelWord);
+                    if (cardIdx >= 0 && cardIdx < colorData.length) {
+                        const card = colorData[cardIdx];
+                        // Just log position info, don't filter based on color
+                    }
+                }
+
+                // Get context from model row ±2 rows
+                const contextRows = ocrRows.slice(Math.max(0, modelRowIdx - 2), modelRowIdx + 3);
+                const context = contextRows.map(r => r.text).join(' ');
+
+                // Check for MAX
+                const isMax = MAX_KEYWORDS.some(k => context.toLowerCase().includes(k.toLowerCase()));
+
+                // Extract rank
+                let rank = 0;
+                const rankMatches = context.match(/\b([1-5][,.]?\d{3})\b/g);
+                if (rankMatches && rankMatches.length > 0) {
+                    rank = parseInt(rankMatches[0].replace(/[,.]/g, ''));
+                }
+
+                if (!isMax && rank === 0) return;
+
+                let star = 0;
+                if (isMax) {
+                    star = car.max_star || 6;
+                    if (car.stat) {
+                        const maxStat = car.stat.find(s => s.star == star && (s.type === 'gold' || s.type === 'full'));
+                        if (maxStat) rank = maxStat.rank;
+                        else rank = getMaxRankForStar(car, star);
+                    }
+                } else {
+                    star = estimateStarFromRank(car, rank);
+                    if (star === 0) star = 1;
+                }
+
+                logDebug(`     [BBox] ${car.name} | Rank: ${rank} | Star: ${star} | Max: ${isMax}`);
+
+                results.push({
+                    id: car.id,
+                    name: car.name,
+                    class: car.class,
+                    star: star,
+                    dbMaxStar: car.max_star,
+                    rank: rank,
+                    isMax: isMax,
+                    method: 'bbox',
+                    confidence: isMax ? 0.9 : 0.7
+                });
+            });
+
+            return results;
+        }
+
+        // ============================================
+        // Method 2: Text-based OCR (Character Position)
+        // ============================================
+        function parseTextBased(text) {
+            const results = [];
+            const textLower = text.toLowerCase();
+            const MAX_KEYWORDS = ['최대', '최ㅁ', '최띠', '최ㄷ', '최 ㅁ', '최 대', '초 대', '초대'];
+
+            function escapeRegex(str) {
+                return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+
+            allCars.forEach(car => {
+                const carName = car.name.toLowerCase();
+                const nameWords = carName.split(/[\s\-]+/).filter(w => w.length >= 2);
+                if (nameWords.length === 0) return;
+
+                const significantWords = nameWords.filter(w => w.length >= 3);
+                if (significantWords.length === 0) return;
+
+                const modelName = significantWords[significantWords.length - 1];
+                const brandName = significantWords.length >= 2 ? significantWords[0] : null;
+                const secondWord = significantWords.length >= 2 ? significantWords[significantWords.length - 2] : null;
+
+                if (!modelName || modelName.length < 3) return;
+
+                const modelRegex = new RegExp(`\\b${escapeRegex(modelName)}\\b`, 'gi');
+                const modelMatch = modelRegex.exec(textLower);
+                if (!modelMatch) return;
+
+                const modelPos = modelMatch.index;
+
+                // For multi-word models, verify second word is nearby
+                if (secondWord) {
+                    const nearbyArea = textLower.substring(Math.max(0, modelPos - 50), modelPos + modelName.length + 50);
+                    const secondRegex = new RegExp(`\\b${escapeRegex(secondWord)}\\b`, 'i');
+                    if (!secondRegex.test(nearbyArea)) return;
+                }
+
+                if (brandName) {
+                    const brandRegex = new RegExp(`\\b${escapeRegex(brandName)}\\b`, 'i');
+                    const brandArea = textLower.substring(Math.max(0, modelPos - 150), modelPos + modelName.length);
+                    if (!brandRegex.test(brandArea)) return;
+                }
+
+                const ctxStart = Math.max(0, modelPos - 80);
+                const ctxEnd = Math.min(text.length, modelPos + modelName.length + 100);
+                const context = text.substring(ctxStart, ctxEnd);
+
+
+                // NOTE: Not checking for /60 - OCR text too mixed for reliable detection
+
+                const isMax = MAX_KEYWORDS.some(k => context.includes(k));
+
+                let rank = 0;
+                const rankRegex = /\b([1-5][,.]?\d{3})\b/g;
+                let rankMatch;
+                let closestDist = Infinity;
+
+                while ((rankMatch = rankRegex.exec(context)) !== null) {
+                    const dist = Math.abs(rankMatch.index - (modelPos - ctxStart));
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        rank = parseInt(rankMatch[1].replace(/[,.]/g, ''));
+                    }
+                }
+
+                if (!isMax && rank === 0) return;
+
+                let star = 0;
+                if (isMax) {
+                    star = car.max_star || 6;
+                    if (car.stat) {
+                        const maxStat = car.stat.find(s => s.star == star && (s.type === 'gold' || s.type === 'full'));
+                        if (maxStat) rank = maxStat.rank;
+                        else rank = getMaxRankForStar(car, star);
+                    }
+                } else {
+                    star = estimateStarFromRank(car, rank);
+                    if (star === 0) star = 1;
+                }
+
+                logDebug(`     [Text] ${car.name} | Rank: ${rank} | Star: ${star} | Max: ${isMax}`);
+
+                results.push({
+                    id: car.id,
+                    name: car.name,
+                    class: car.class,
+                    star: star,
+                    dbMaxStar: car.max_star,
+                    rank: rank,
+                    isMax: isMax,
+                    method: 'text',
+                    confidence: isMax ? 0.85 : 0.6
+                });
+            });
+
+            return results;
+        }
+
+        // ============================================
+        // Cross-Validation: Merge Results
+        // ============================================
+        function mergeResults(bboxResults, textResults) {
+            const merged = new Map(); // id -> best result
+
+            // Process bbox results first (higher spatial accuracy)
+            bboxResults.forEach(car => {
+                merged.set(car.id, { ...car, sources: ['bbox'] });
+            });
+
+            // Merge text results
+            textResults.forEach(car => {
+                if (merged.has(car.id)) {
+                    const existing = merged.get(car.id);
+                    existing.sources.push('text');
+                    existing.confidence = Math.min(1.0, existing.confidence + 0.2); // Boost confidence
+
+                    // If disagreement on rank, prefer bbox (spatial accuracy)
+                    // If disagreement on MAX, prefer the one that says MAX
+                    if (car.isMax && !existing.isMax) {
+                        existing.isMax = true;
+                        existing.star = car.star;
+                        existing.rank = car.rank;
+                    }
+
+                    logDebug(`     ✓ Cross-validated: ${car.name} (both methods agree)`);
+                } else {
+                    merged.set(car.id, { ...car, sources: ['text'] });
+                    logDebug(`     ○ Text-only: ${car.name}`);
+                }
+            });
+
+            // Convert to array and add validation notes
+            const finalResults = [];
+            merged.forEach((car, id) => {
+                const validated = car.sources.length > 1;
+                finalResults.push({
+                    id: car.id,
+                    name: car.name,
+                    class: car.class,
+                    star: car.star,
+                    dbMaxStar: car.dbMaxStar,
+                    rank: car.rank,
+                    confidence: car.confidence,
+                    validated: validated
+                });
+            });
+
+            return finalResults;
+        }
+
+        // Helper: Estimate star count from rank by comparing with DB stats
+        function estimateStarFromRank(car, rank) {
+            if (!car.stat || car.stat.length === 0) return 1;
+
+            // Find the closest matching star level
+            let bestStar = 1;
+            let closestDiff = Infinity;
+
+            for (const stat of car.stat) {
+                const diff = Math.abs(stat.rank - rank);
+                if (diff < closestDiff) {
+                    closestDiff = diff;
+                    bestStar = stat.star;
+                }
+            }
+
+            return bestStar;
+        }
+
+        function getMaxRankForStar(car, star) {
+            if (car.stat) {
+                const stats = car.stat.filter(s => s.star == star);
+                if (stats.length) return Math.max(...stats.map(s => s.rank));
+            }
+            return 0;
+        }
+
+        // --- Core Logic ---
+
+        function loadDemo() {
+            detectedCars = [];
+
+            DEMO_DATA.forEach(d => {
+                // Find matching car in DB by name fuzzy match
+                const match = findCarByName(d.name);
+                if (match) {
+                    detectedCars.push({
+                        id: match.id,
+                        name: match.name,
+                        class: match.class,
+                        star: d.star,
+                        rank: d.rank,
+                        dbMaxStar: match.max_star
+                    });
+                }
+            });
+
+            renderResults();
+        }
+
+        function findCarByName(name) {
+            // Normalize
+            const clean = n => n.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const target = clean(name);
+
+            // Exact match
+            let found = allCars.find(c => clean(c.name) === target);
+            if (found) return found;
+
+            // Contains match
+            found = allCars.find(c => clean(c.name).includes(target) || target.includes(clean(c.name)));
+            return found;
+        }
+
+        function renderResults() {
+            const panel = document.getElementById('resultPanel');
+            panel.classList.remove('hidden');
+            document.getElementById('detectCount').textContent = `(${detectedCars.length})`;
+
+            const list = document.getElementById('resultList');
+            list.innerHTML = '';
+
+            detectedCars.forEach((c, i) => {
+                const el = document.createElement('div');
+                el.className = 'result-item';
+                el.innerHTML = `
+                    <div style="font-weight:bold; width:30px">${i + 1}</div>
+                    <div style="flex:1">
+                        <div style="font-weight:700">${c.name}</div>
+                        <div style="font-size:12px; color:var(--muted)">Class ${c.class} • ID ${c.id}</div>
+                    </div>
+                    
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <span style="font-size:12px">Rank</span>
+                        <input type="number" value="${c.rank}" class="rank-input" style="width:60px; padding:4px; border-radius:4px; border:1px solid var(--border)">
+                    </div>
+                    
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <span style="font-size:12px">Star</span>
+                        <input type="number" value="${c.star}" min="1" max="${c.dbMaxStar || 6}" class="star-input" style="width:40px; padding:4px; border-radius:4px; border:1px solid var(--border)">
+                        <span style="font-size:12px; color:var(--muted)">/ ${c.dbMaxStar || 6}</span>
+                    </div>
+                    
+                    <button class="btn sub" onclick="removeResult(${i})">X</button>
+                `;
+
+                // Bind inputs
+                const rInput = el.querySelector('.rank-input');
+                rInput.onchange = (e) => c.rank = parseInt(e.target.value);
+
+                const sInput = el.querySelector('.star-input');
+                sInput.onchange = (e) => c.star = parseInt(e.target.value);
+
+                list.appendChild(el);
+            });
+        }
+
+        window.removeResult = (idx) => {
+            detectedCars.splice(idx, 1);
+            renderResults();
+        };
+
+        function saveAll() {
+            if (!confirm(`${detectedCars.length}대의 차량을 차고에 추가/업데이트하시겠습니까?`)) return;
+
+            let count = 0;
+            detectedCars.forEach(c => {
+                GarageManager.saveCar(c.id, {
+                    star: c.star,
+                    rank: c.rank
+                });
+                count++;
+            });
+
+            alert(`${count}대 저장 완료! 차고로 이동합니다.`);
+            window.location.href = 'my_garage.html';
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

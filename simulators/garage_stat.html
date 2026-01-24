@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Garage Statistics — 차고 통계</title>
+    <meta name="color-scheme" content="light dark" />
+
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="../assets/themes.css">
+
+    <script>window.SIM_ID = "garage-stat";</script>
+    <script src="../assets/theme-init.js"></script>
+    <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+    <script src="../assets/lang.js?v=2"></script>
+    <script src="../assets/i18n.js"></script>
+    <script src="../assets/garage.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            line-height: 1;
+        }
+
+        .kpi-sub {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .chart-viewer {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .score-box {
+            background: linear-gradient(135deg, var(--accent-intense, #0ea5e9), var(--accent-subtle, #38bdf8));
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .score-box .kpi-label,
+        .score-box .kpi-sub {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .score-box .kpi-value {
+            color: #fff;
+        }
+
+        .rank-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .rank-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: var(--surface-soft);
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .rank-badge {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--surface-strong);
+            color: var(--ink-muted);
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .rank-item:nth-child(1) .rank-badge {
+            background: #FFD700;
+            color: #000;
+        }
+
+        .rank-item:nth-child(2) .rank-badge {
+            background: #C0C0C0;
+            color: #000;
+        }
+
+        .rank-item:nth-child(3) .rank-badge {
+            background: #CD7F32;
+            color: #000;
+        }
+
+        .rank-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rank-name {
+            font-weight: 700;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rank-meta {
+            font-size: 11px;
+            color: var(--muted);
+            display: flex;
+            gap: 8px;
+        }
+
+        .rank-score {
+            font-weight: 800;
+            font-size: 14px;
+            color: var(--accent);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .data-table th {
+            padding: 12px;
+            border-bottom: 2px solid var(--border);
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--ink);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .class-tag {
+            display: inline-block;
+            width: 24px;
+            text-align: center;
+            font-weight: 800;
+            border-radius: 4px;
+            padding: 2px 0;
+            color: #fff;
+            font-size: 11px;
+        }
+
+        .tag-D {
+            background: #4ade80;
+        }
+
+        .tag-C {
+            background: #fbbf24;
+        }
+
+        .tag-B {
+            background: #60a5fa;
+        }
+
+        .tag-A {
+            background: #a78bfa;
+        }
+
+        .tag-S {
+            background: #f87171;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <h1>📊 <span data-i18n="gs.title">차고 통계</span></h1>
+            </div>
+            <div class="toolbar">
+                <a class="btn" href="my_garage.html" data-i18n="common.back">← 내 차고</a>
+            </div>
+        </div>
+
+        <!-- KPI Dashboard -->
+        <div class="stat-grid">
+            <div class="kpi-card score-box">
+                <div class="kpi-label" data-i18n="gs.score">차고 환산 점수 (Garage Score)</div>
+                <div class="kpi-value" id="kpiScore">0</div>
+                <div class="kpi-sub" data-i18n="gs.score_desc">랭크 가중치 + 보너스 합계</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label" data-i18n="mg.kpi_total">보유 차량</div>
+                <div class="kpi-value"><span id="kpiOwned">0</span> <span style="font-size:16px; opacity:0.5">/ <span
+                            id="kpiTotal">0</span></span></div>
+                <div class="kpi-sub" id="kpiPct">0% 수집완료</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label" data-i18n="mg.kpi_gold">황금 차량</div>
+                <div class="kpi-value" id="kpiGold" style="color:#eab308">0</div>
+                <div class="kpi-sub">완전체 (Max Rank)</div>
+            </div>
+        </div>
+
+        <!-- Upper Section: Charts & Top 5 -->
+        <div class="grid-responsive cols-3" style="gap:24px; align-items:start; margin-bottom:24px;">
+            <!-- Top 5 List -->
+            <div class="panel-col" style="grid-column: span 1;">
+                <div class="chart-card" style="height:100%">
+                    <div class="chart-header">
+                        <h3 class="chart-title">🏆 Top 5 에이스</h3>
+                    </div>
+                    <div id="top5List" class="rank-list">
+                        <!-- JS Generated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Area -->
+            <div class="panel-col" style="grid-column: span 2;">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">클래스별 평균 성능 비교</h3>
+                    </div>
+                    <div class="chart-viewer" style="height:220px">
+                        <canvas id="chartAvg"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid-responsive cols-2" style="gap:16px">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title" style="font-size:14px">보유 현황</h3>
+                        </div>
+                        <div class="chart-viewer" style="height:180px"><canvas id="chartClass"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title" style="font-size:14px">등급 분포</h3>
+                        </div>
+                        <div class="chart-viewer" style="height:180px"><canvas id="chartStar"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Table -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3 class="chart-title">클래스별 상세 현황</h3>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>수집 (보유/전체)</th>
+                            <th>진행률</th>
+                            <th>평균 랭크 (내 차고)</th>
+                            <th>잠재력 (Max Avg)</th>
+                            <th>황금차</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let allCars = [];
+
+        async function init() {
+            try {
+                const res = await fetch('../assets/cars.json');
+                allCars = await res.json();
+            } catch (e) {
+                console.error(e);
+            }
+
+            calculateStats();
+        }
+
+        function calculateStats() {
+            const myCars = GarageManager.getAll();
+            const myMap = {};
+            myCars.forEach(c => myMap[c.id] = c);
+
+            // Stats Buckets
+            const buckets = {
+                D: { total: 0, owned: 0, myRankSum: 0, maxRankSum: 0, gold: 0 },
+                C: { total: 0, owned: 0, myRankSum: 0, maxRankSum: 0, gold: 0 },
+                B: { total: 0, owned: 0, myRankSum: 0, maxRankSum: 0, gold: 0 },
+                A: { total: 0, owned: 0, myRankSum: 0, maxRankSum: 0, gold: 0 },
+                S: { total: 0, owned: 0, myRankSum: 0, maxRankSum: 0, gold: 0 }
+            };
+            const starCounts = [0, 0, 0, 0, 0, 0, 0];
+
+            let totalScore = 0;
+            const scoredCars = [];
+
+            // Weights
+            const WEIGHTS = { D: 1.0, C: 1.2, B: 1.5, A: 2.0, S: 3.0 };
+
+            allCars.forEach(meta => {
+                const cls = (meta.class || 'D').toUpperCase();
+                const b = buckets[cls] || buckets.D;
+                b.total++;
+
+                // Max Rank Calc
+                const maxPossible = getMaxRank(meta);
+                b.maxRankSum += maxPossible;
+
+                const my = myMap[meta.id];
+                if (my) {
+                    b.owned++;
+                    const star = my.star || 1;
+                    if (star >= 1 && star <= 6) starCounts[star]++;
+
+                    const rank = my.rank || 0;
+                    b.myRankSum += rank;
+
+                    // --- Score V2 Calculation ---
+                    let carScore = rank * (WEIGHTS[cls] || 1);
+
+                    // Bonuses
+                    const maxS = meta.max_star || 6;
+                    // Full Star Bonus
+                    if (star >= maxS) carScore += 500;
+                    // Gold Bonus (Full Rank)
+                    const isGold = (rank >= maxPossible);
+                    if (isGold) {
+                        carScore += 2000;
+                        b.gold++;
+                    }
+
+                    totalScore += carScore;
+
+                    scoredCars.push({
+                        name: meta.name,
+                        cls: cls,
+                        rank: rank,
+                        score: Math.round(carScore),
+                        star: star,
+                        maxStar: maxS,
+                        isGold: isGold
+                    });
+                }
+            });
+
+            // Render KPIs
+            const totalCount = allCars.length;
+            const ownedCount = myCars.length;
+            const goldTotal = Object.values(buckets).reduce((a, b) => a + b.gold, 0);
+
+            document.getElementById('kpiOwned').textContent = ownedCount;
+            document.getElementById('kpiTotal').textContent = totalCount;
+            document.getElementById('kpiPct').textContent = totalCount > 0 ? (Math.round(ownedCount / totalCount * 100)) + '% 수집완료' : '-';
+            document.getElementById('kpiGold').textContent = goldTotal;
+            document.getElementById('kpiScore').textContent = Math.round(totalScore).toLocaleString();
+
+            // Render Top 5
+            scoredCars.sort((a, b) => b.score - a.score);
+            renderTop5(scoredCars.slice(0, 5));
+
+            // Render Table
+            renderDetailTable(buckets);
+
+            // Render Charts
+            renderCharts(buckets, starCounts);
+        }
+
+        function getMaxRank(car) {
+            if (!car.stat) return 0;
+            return Math.max(...car.stat.map(s => s.rank || 0));
+        }
+
+        function renderTop5(list) {
+            const container = document.getElementById('top5List');
+            if (container) {
+                container.innerHTML = '';
+                list.forEach((car, i) => {
+                    const el = document.createElement('div');
+                    el.className = 'rank-item';
+                    el.innerHTML = `
+                        <div class="rank-badge">${i + 1}</div>
+                        <div class="rank-info">
+                            <div class="rank-name">${car.name}</div>
+                            <div class="rank-meta">
+                                <span class="class-tag tag-${car.cls}">${car.cls}</span>
+                                <span>${car.star}★</span>
+                                <span style="color:${car.isGold ? '#eab308' : 'var(--muted)'}">${car.rank} Rank</span>
+                            </div>
+                        </div>
+                        <div class="rank-score">${car.score.toLocaleString()}</div>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+        }
+
+        function renderDetailTable(buckets) {
+            const tbody = document.getElementById('detailBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            ['D', 'C', 'B', 'A', 'S'].forEach(cls => {
+                const b = buckets[cls];
+                const pct = b.total > 0 ? Math.round(b.owned / b.total * 100) : 0;
+                const avgMy = b.owned > 0 ? Math.round(b.myRankSum / b.owned) : 0;
+                const avgMax = b.total > 0 ? Math.round(b.maxRankSum / b.total) : 0;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="class-tag tag-${cls}">${cls}</span></td>
+                    <td><b>${b.owned}</b> / <span style="color:var(--muted)">${b.total}</span></td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <div style="flex:1;height:4px;background:var(--surface-strong);border-radius:2px;overflow:hidden">
+                                <div style="width:${pct}%;height:100%;background:var(--accent)"></div>
+                            </div>
+                            <span style="font-size:11px;width:30px;text-align:right">${pct}%</span>
+                        </div>
+                    </td>
+                    <td style="font-weight:bold">${avgMy.toLocaleString()}</td>
+                    <td style="color:var(--muted)">${avgMax.toLocaleString()}</td>
+                    <td style="color:${b.gold > 0 ? '#eab308' : ''}">${b.gold}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCharts(buckets, starCounts) {
+            const labels = ['D', 'C', 'B', 'A', 'S'];
+
+            // 1. Avg Rank Comparison
+            const myAvgs = labels.map(l => buckets[l].owned > 0 ? Math.round(buckets[l].myRankSum / buckets[l].owned) : 0);
+            const maxAvgs = labels.map(l => buckets[l].total > 0 ? Math.round(buckets[l].maxRankSum / buckets[l].total) : 0);
+
+            new Chart(document.getElementById('chartAvg'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: '내 평균', data: myAvgs, backgroundColor: '#3b82f6', borderRadius: 4 },
+                        { label: '전체 평균 (Max)', data: maxAvgs, backgroundColor: '#e5e7eb', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(128,128,128,0.1)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // 2. Class Distribution (Owned vs Total)
+            const ownedCounts = labels.map(l => buckets[l].owned);
+            new Chart(document.getElementById('chartClass'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: ownedCounts,
+                        backgroundColor: ['#4ade80', '#fbbf24', '#60a5fa', '#a78bfa', '#f87171'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10 } } }
+                }
+            });
+
+            // 3. Star Distribution
+            new Chart(document.getElementById('chartStar'), {
+                type: 'bar',
+                data: {
+                    labels: ['1★', '2★', '3★', '4★', '5★', '6★'],
+                    datasets: [{
+                        label: 'Count',
+                        data: starCounts.slice(1),
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false } }
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
