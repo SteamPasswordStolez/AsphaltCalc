@@ -83,212 +83,194 @@
   <div class="container mobile-full">
     <div class="header">
       <div class="brand">
+        <div class="logo"></div>
+        <!-- Added logo container for consistency if needed, or remove if specific to daily-credit -->
         <h1>💰 <span data-i18n="dc.title">일일 크레딧 계산기</span></h1>
       </div>
       <div class="toolbar">
         <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
-        <button id="btnReload" class="btn">
+        <button id="btnReload" onclick="location.reload()" class="btn">
           <span data-i18n="common.reload">새로고침</span>
         </button>
       </div>
     </div>
 
     <!-- Main Grid -->
-    <div class="grid-responsive cols-2" style="align-items:start">
+    <div class="grid-responsive cols-12 gap-6" style="align-items:start">
 
       <!-- Left: Inputs -->
-      <div class="panel-col">
-        <div class="card">
-          <div class="body">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;">
-              <div class="meta" data-i18n="dc.desc" style="font-size:13px">맵별 시간 + 광고 + 팩 드롭 -> 일일 크레딧 추정</div>
-              <div class="chip">v1.0</div>
-            </div>
+      <div style="grid-column: span 5">
+        <div class="card p-6">
 
-            <h2 class="title" data-i18n="dc.basic_setting">기본 설정</h2>
+          <div class="flex-between mb-4">
+            <h2 class="title mb-0" data-i18n="dc.basic_setting">기본 설정</h2>
+            <div class="chip text-xs">v1.0</div>
+          </div>
 
-            <div class="form-group">
-              <label><span data-i18n="dc.gl_level">차고 레벨</span> <span class="chip" id="glVal">18</span></label>
-              <input type="range" id="gl" min="1" max="18" value="18" style="width:100%">
-            </div>
+          <div class="form-group">
+            <label class="label-heading">
+              <span data-i18n="dc.gl_level">차고 레벨</span>
+              <span class="chip ml-2" id="glVal">18</span>
+            </label>
+            <input type="range" id="gl" min="1" max="18" value="18" class="full-width">
+          </div>
 
-            <div class="form-group">
-              <label><span data-i18n="dc.rep_level">명성 레벨 (평판)</span></label>
-              <input type="number" id="rep" value="100" min="1" max="100">
-            </div>
+          <div class="form-group">
+            <label class="label-heading" data-i18n="dc.rep_level">명성 레벨</label>
+            <input type="number" id="rep" value="100" min="1" max="100" class="input">
+          </div>
 
-            <div class="form-group">
-              <label><span data-i18n="dc.pass_type">패스 종류</span></label>
-              <select id="pass">
+          <div class="form-group">
+            <label class="label-heading" data-i18n="dc.pass_type">패스 효과</label>
+            <div class="select-wrapper">
+              <select id="pass" class="input">
                 <option value="none" data-i18n="dc.pass_none">없음 (F2P)</option>
                 <option value="lp" data-i18n="dc.pass_lp">레전드 패스 (LP)</option>
                 <option value="bundle" data-i18n="dc.pass_bundle">번들 패스 (BP)</option>
               </select>
             </div>
-
-            <div class="grid-responsive cols-3" style="margin-top:10px; gap:10px">
-              <div class="form-group">
-                <label data-i18n="dc.play_time">하루 시간(분)</label>
-                <input id="playMinutes" type="number" min="0" value="120">
-              </div>
-              <div class="form-group">
-                <label data-i18n="dc.bonus_count">보너스(%)</label>
-                <input id="bonusPercent" type="number" min="0" value="0">
-              </div>
-              <div class="form-group">
-                <label data-i18n="dc.sim_count">시뮬 횟수</label>
-                <input id="simRuns" type="number" min="1" value="1000">
-              </div>
-            </div>
-
-            <div class="grid-responsive cols-3" style="margin-top:10px; gap:10px">
-              <div class="form-group">
-                <label data-i18n="dc.fixed_credit">고정 크레딧</label>
-                <input id="fixedCredit" type="number" min="0" value="0">
-              </div>
-              <div class="form-group">
-                <label style="display:flex;align-items:center;gap:6px">
-                  <input id="creditHeist" type="checkbox" style="width:auto"> <span
-                    data-i18n="dc.credit_boost">하이스트</span>
-                </label>
-              </div>
-              <div class="form-group">
-                <label data-i18n="dc.lobby_time">로비(초/판)</label>
-                <input id="lobbySeconds" type="number" min="0" value="0">
-              </div>
-            </div>
-
-            <h2 class="title" style="margin-top:24px; display:flex; align-items:center">
-              <span data-i18n="dc.map_config">맵 구성</span>
-              <span class="pill-badge" data-i18n="dc.map_config_badge">시간 분배</span>
-            </h2>
-            <div style="overflow-x:auto">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th style="width:24%" data-i18n="dc.th_map">맵 이름</th>
-                    <th style="width:10%" data-i18n="dc.th_base_credit">기본</th>
-                    <th style="width:14%" data-i18n="dc.th_run_time">1판(초)</th>
-                    <th style="width:14%" data-i18n="dc.th_alloc_time">배분(분)</th>
-                    <th style="width:14%" data-i18n="dc.th_packs">팩/판</th>
-                    <th style="width:18%" data-i18n="dc.th_use_pack">팩</th>
-                    <th style="width:6%"></th>
-                  </tr>
-                </thead>
-                <tbody id="mapBody"></tbody>
-              </table>
-            </div>
-            <div class="actions" style="margin-top:8px">
-              <button id="addMap" class="sub" data-i18n="dc.add_map">+ 맵 추가</button>
-              <button id="clearMaps" class="sub" data-i18n="dc.delete_all">삭제</button>
-            </div>
-            <div id="mapError" class="danger-hint" style="display:none"></div>
-
-            <h2 class="title" style="margin-top:24px; display:flex; align-items:center">
-              <span data-i18n="dc.pack_config">팩 확률</span>
-            </h2>
-            <div style="overflow-x:auto">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th style="width:28%" data-i18n="dc.th_pack_name">팩 이름</th>
-                    <th data-i18n="dc.th_prob_list">크레딧:확률%</th>
-                    <th style="width:6%"></th>
-                  </tr>
-                </thead>
-                <tbody id="packBody"></tbody>
-              </table>
-            </div>
-            <div class="actions" style="margin-top:8px">
-              <button id="addPack" class="sub" data-i18n="dc.add_pack">+ 팩 추가</button>
-              <button id="clearPacks" class="sub" data-i18n="dc.delete_all">삭제</button>
-            </div>
-
-            <h2 class="title" style="margin-top:24px" data-i18n="dc.daily_event">일일 이벤트</h2>
-            <div class="form-group">
-              <label><span data-i18n="dc.car_hunt">자동차 사냥 (판수)</span></label>
-              <input type="number" id="hunt" value="0" min="0">
-            </div>
-
-            <div class="grid-responsive cols-2" style="margin-top:10px">
-              <div class="form-group">
-                <label data-i18n="dc.ad_time">광고 시간(초)</label>
-                <input id="adSeconds" type="number" value="30">
-              </div>
-              <div class="form-group">
-                <label style="display:flex;align-items:center;gap:6px; margin-top:24px">
-                  <span data-i18n="dc.ad_handling">광고 포함?</span>
-                  <input id="adsConsumeTime" type="checkbox" style="width:auto" checked>
-                </label>
-              </div>
-            </div>
-
-            <div class="danger-hint" data-i18n="dc.simulation_warning">
-              ⚠️ 시뮬레이션 추정치입니다.
-            </div>
-
-            <div class="actions" style="margin-top:16px">
-              <button id="calc" class="primary" data-i18n="common.calculate">계산</button>
-              <button id="reset" class="sub" data-i18n="common.reset">초기화</button>
-            </div>
-
           </div>
+
+          <div class="grid-2-col gap-3 mt-4">
+            <div class="form-group mb-0">
+              <label class="label-sm" data-i18n="dc.play_time">하루 플레이(분)</label>
+              <input id="playMinutes" type="number" min="0" value="120" class="input text-center">
+            </div>
+            <div class="form-group mb-0">
+              <label class="label-sm" data-i18n="dc.bonus_count">추가 보너스(%)</label>
+              <input id="bonusPercent" type="number" min="0" value="0" class="input text-center">
+            </div>
+          </div>
+
+          <div class="grid-2-col gap-3 mt-2">
+            <div class="form-group mb-0">
+              <label class="label-sm" data-i18n="dc.fixed_credit">고정 획득량</label>
+              <input id="fixedCredit" type="number" min="0" value="0" class="input text-center">
+            </div>
+            <div class="form-group mb-0">
+              <label class="label-sm" data-i18n="dc.lobby_time">로비 시간(초)</label>
+              <input id="lobbySeconds" type="number" min="0" value="0" class="input text-center">
+            </div>
+          </div>
+
+          <div class="form-group mt-4">
+            <label class="checkbox-label">
+              <input id="creditHeist" type="checkbox">
+              <span data-i18n="dc.credit_boost">크레딧 하이스트 포함</span>
+            </label>
+          </div>
+
+          <div class="section-divider my-6"></div>
+
+          <h2 class="title mb-4 flex items-center gap-2" style="font-size:18px">
+            <span data-i18n="dc.map_config">맵 구성</span>
+          </h2>
+
+          <div class="overflow-x-auto">
+            <table class="data-table tiny">
+              <thead>
+                <tr>
+                  <th style="width:25%">맵 이름</th>
+                  <th style="width:20%">판당(초)</th>
+                  <th>배분(분)</th>
+                  <th style="width:40px"></th>
+                </tr>
+              </thead>
+              <tbody id="mapBody"></tbody>
+            </table>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button id="addMap" class="btn sub text-xs py-1 px-3" data-i18n="dc.add_map">+ 추가</button>
+            <button id="clearMaps" class="btn sub text-xs py-1 px-3 warn" data-i18n="dc.delete_all">삭제</button>
+          </div>
+          <div id="mapError" class="danger-hint hidden"></div>
+
+          <h2 class="title mt-6 mb-4 flex items-center gap-2" style="font-size:18px">
+            <span data-i18n="dc.pack_config">팩 확률</span>
+          </h2>
+          <div class="overflow-x-auto">
+            <table class="data-table tiny">
+              <tbody id="packBody"></tbody>
+            </table>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button id="addPack" class="btn sub text-xs py-1 px-3" data-i18n="dc.add_pack">+ 추가</button>
+            <button id="clearPacks" class="btn sub text-xs py-1 px-3 warn" data-i18n="dc.delete_all">삭제</button>
+          </div>
+
+          <div class="section-divider my-6"></div>
+
+          <h2 class="title mb-2" style="font-size:18px" data-i18n="dc.daily_event">광고 설정</h2>
+          <div class="grid-2-col gap-3">
+            <div class="form-group">
+              <label class="label-sm" data-i18n="dc.ad_time">광고 시간(초)</label>
+              <input id="adSeconds" type="number" value="30" class="input">
+            </div>
+            <div class="form-group">
+              <label class="label-sm">최대 광고 수</label>
+              <input id="adsPerDay" type="number" value="10" class="input">
+            </div>
+          </div>
+          <div class="form-group mt-2">
+            <label class="checkbox-label">
+              <input id="adsConsumeTime" type="checkbox" checked>
+              <span data-i18n="dc.ad_handling">광고 시간 포함 (플레이 시간 차감)</span>
+            </label>
+          </div>
+
+          <div class="actions mt-6">
+            <button id="calc" class="btn primary full-width py-3 text-lg font-bold" data-i18n="common.calculate">계산
+              실행</button>
+            <button id="reset" class="btn sub full-width mt-2" data-i18n="common.reset">초기화</button>
+          </div>
+
         </div>
       </div>
 
       <!-- Right: Results -->
-      <div class="panel-col">
-        <div class="card">
-          <div class="body">
-            <h2 class="title" data-i18n="dc.result">계산 결과</h2>
-            <div class="meta" id="summaryMeta"></div>
+      <div style="grid-column: span 7">
+        <div class="card p-6">
+          <h2 class="title mb-2" data-i18n="dc.result">계산 결과</h2>
+          <div class="meta text-xs mb-6" id="summaryMeta"></div>
 
-            <div class="total-box">
-              <div class="total-label" data-i18n="dc.total_daily">하루 총 획득량</div>
-              <div class="total-value" id="totalDaily">0</div>
-            </div>
-
-            <div class="meta" style="margin-top:12px" data-i18n="dc.result_placeholder">입력 후 계산을 누르면 결과가 표시됩니다.</div>
-
-            <div id="breakdown" style="margin-top:20px; font-size:14px; line-height:1.6"></div>
-            <hr style="margin:16px 0; border:none; border-top:1px dashed var(--border)">
-            <div id="simSummary" class="meta" style="font-size:13px"></div>
-
-            <div class="preset-section" id="presetSection">
-              <div class="preset-header">
-                <span data-i18n="common.preset">프리셋</span>
-              </div>
-              <div class="preset-controls">
-                <div>
-                  <input id="dcPresetName" type="text" placeholder="이름" />
-                </div>
-                <div>
-                  <select id="dcPresetSelect">
-                    <option value="">(선택)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="actions">
-                <button class="btn" id="dcPresetSaveBtn" data-i18n="dc.preset_save">저장</button>
-                <button class="btn" id="dcPresetLoadBtn" data-i18n="dc.preset_load">로드</button>
-                <button class="btn" id="dcPresetDeleteBtn" data-i18n="dc.preset_delete">삭제</button>
-              </div>
-              <div class="actions" style="margin-top:4px">
-                <button class="btn" id="dcPresetExportBtn" data-i18n="dc.preset_export">내보내기</button>
-                <button class="btn" id="dcPresetImportBtn" data-i18n="dc.preset_import">가져오기</button>
-                <input id="dcPresetImportFile" type="file" accept="application/json" style="display:none" />
-              </div>
-            </div>
-
-            <div class="preset-section" id="historySection">
-              <div class="preset-header">
-                <span data-i18n="dc.history_title">히스토리</span>
-                <button class="btn" id="dcHistoryClearBtn" style="font-size:11px">정리</button>
-              </div>
-              <div id="dcHistoryList" class="history-list"></div>
-            </div>
-
+          <div class="total-box">
+            <div class="total-label" data-i18n="dc.total_daily">예상 하루 획득량</div>
+            <div class="total-value" id="totalDaily">0</div>
           </div>
+
+          <div class="meta text-center mt-2" data-i18n="dc.result_placeholder">입력 후 계산을 누르면 결과가 표시됩니다.</div>
+
+          <div id="breakdown" class="mt-6 text-sm leading-relaxed p-4 bg-soft rounded-lg"></div>
+
+          <div id="simSummary" class="meta mt-4 text-xs p-4 border border-white-10 rounded-lg"></div>
+
+          <!-- Presets -->
+          <div class="preset-section mt-6 p-4 bg-deep rounded-lg border border-white-10">
+            <div class="flex-between mb-2">
+              <span class="font-bold text-sm" data-i18n="common.preset">프리셋 관리</span>
+            </div>
+            <div class="flex gap-2 mb-2">
+              <input id="dcPresetName" type="text" placeholder="이름" class="input text-sm grow" />
+              <select id="dcPresetSelect" class="input text-sm" style="width:140px">
+                <option value="">(선택)</option>
+              </select>
+            </div>
+            <div class="flex gap-2">
+              <button class="btn sub text-xs grow" id="dcPresetSaveBtn" data-i18n="dc.preset_save">저장</button>
+              <button class="btn sub text-xs grow" id="dcPresetLoadBtn" data-i18n="dc.preset_load">로드</button>
+              <button class="btn sub text-xs grow warn" id="dcPresetDeleteBtn" data-i18n="dc.preset_delete">삭제</button>
+            </div>
+          </div>
+
+          <!-- History -->
+          <div class="mt-6">
+            <div class="flex-between mb-2">
+              <span class="font-bold text-sm" data-i18n="dc.history_title">히스토리</span>
+              <button class="btn sub text-only text-xs" id="dcHistoryClearBtn">지우기</button>
+            </div>
+            <div id="dcHistoryList" class="list max-h-[200px] overflow-y-auto"></div>
+          </div>
+
         </div>
       </div>
 

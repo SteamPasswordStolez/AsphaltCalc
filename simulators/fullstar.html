@@ -77,7 +77,7 @@
 
               <div class="form-group">
                 <label data-i18n="fs.per_car_target">단독 목표 설정 (선택사항)</label>
-                <input id="targets" placeholder="예: 300, 280, 300...">
+                <input id="targets" type="text" class="input" placeholder="예: 300, 280, 300...">
                 <div class="hint">쉼표(,)로 구분하여 차량별 목표 지정</div>
               </div>
 
@@ -186,7 +186,7 @@
               <h2 class="title" data-i18n="fs.bud_result">가능성 분석</h2>
 
               <div id="bBadge" class="badge-lg c-unknown"
-                style="margin-bottom:24px; text-align:center; font-size:24px; padding:16px; border-radius:16px; background:var(--bg-deep); border:1px solid var(--border)">
+                style="margin-bottom:24px; text-align:center; font-size:24px; padding:16px; border-radius:16px;">
                 판독 대기…
               </div>
 
@@ -454,12 +454,12 @@
         let label = '판독불가', cls = 'c-unknown';
         const thrExtreme = Math.max(0.9 * p95, (p95 + p80) / 2);
 
-        if (budget < thrExtreme) { label = '불가능'; cls = 'c-bad'; }
-        else if (budget < p80) { label = '극최소컷'; cls = 'c-bad'; }
-        else if (budget < p60) { label = '최소컷'; cls = 'c-warn'; }
-        else if (budget < p40) { label = '가능(Yellow)'; cls = 'c-warn'; }
-        else if (budget < p05) { label = '가능(Green)'; cls = 'c-good'; }
-        else { label = '여유컷'; cls = 'c-good'; }
+        if (budget < thrExtreme) { label = I18N.t('fs.status_impossible'); cls = 'c-impossible'; }
+        else if (budget < p80) { label = I18N.t('fs.status_ultramin'); cls = 'c-ultramin'; }
+        else if (budget < p60) { label = I18N.t('fs.status_min'); cls = 'c-min'; }
+        else if (budget < p40) { label = I18N.t('fs.status_possible'); cls = 'c-possible'; }
+        else if (budget < p05) { label = I18N.t('fs.status_easy'); cls = 'c-easy'; }
+        else { label = I18N.t('fs.status_easy'); cls = 'c-easy'; }
 
         const badge = $('bBadge');
         badge.className = `badge-lg ${cls}`;
