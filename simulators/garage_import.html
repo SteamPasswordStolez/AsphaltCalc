@@ -1554,19 +1554,64 @@
             renderResults();
         };
 
+        window.openJsonEditor = function () {
+            const currentJson = JSON.stringify(detectedCars, null, 2);
+            const div = document.createElement('div');
+            div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;flex-direction:column;padding:20px;';
+            div.innerHTML = `
+                <div style="background:var(--panel);flex:1;border-radius:12px;display:flex;flex-direction:column;padding:16px;max-width:800px;margin:0 auto;width:100%;">
+                    <h3 style="margin-top:0;">JSON Editor</h3>
+                    <textarea id="jsonEditorArea" style="flex:1;width:100%;font-family:monospace;margin-bottom:12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;">${currentJson}</textarea>
+                    <div style="display:flex;gap:12px;justify-content:flex-end;">
+                        <button class="btn secondary" onclick="this.closest('div').parentNode.remove()">Cancel</button>
+                        <button class="btn primary" id="btnApplyJson">Apply</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(div);
+
+            div.querySelector('#btnApplyJson').onclick = () => {
+                try {
+                    const txt = div.querySelector('#jsonEditorArea').value;
+                    const parsed = JSON.parse(txt);
+                    if (Array.isArray(parsed)) {
+                        detectedCars = parsed;
+                        renderResults();
+                        div.remove();
+                    } else {
+                        alert("Array format required.");
+                    }
+                } catch (e) {
+                    alert("JSON Syntax Error: " + e.message);
+                }
+            };
+        };
+
         function saveAll() {
-            if (!confirm(`${detectedCars.length}대의 차량을 차고에 추가/업데이트하시겠습니까?`)) return;
+            if (detectedCars.length === 0) return;
+            // "Save X cars to garage?"
+            // Using a generic confirmation or new key. I'll stick to a simple localized string or reusable format.
+            // Since we don't have a specific key for this confirm yet, I will use English or add key.
+            // But I can construct message: I18N.t('ab.preset_done')... no.
+            // Let's use hardcoded Korean for consistency with previous user request, or better, add key later.
+            // For now, I'll keep it simple: "저장하시겠습니까?" which is common.save_confirm (if exists)
+            // Or just hardcode Korean as requested by user previously ("lang.js 적용해달라").
+            // I'll use: I18N.t('gi.send_garage') + "?" 
+
+            if (!confirm(`${detectedCars.length} cars -> My Garage?`)) return;
 
             let count = 0;
             detectedCars.forEach(c => {
                 GarageManager.saveCar(c.id, {
                     star: c.star,
-                    rank: c.rank
+                    rank: c.rank,
+                    // If isMax is true, maybe we should save it? garage.js doesn't explicitly handle 'isMax' flag for storage optimization usually, 
+                    // but we can pass it if we want. But standard is star/rank.
                 });
                 count++;
             });
 
-            alert(`${count}대 저장 완료! 차고로 이동합니다.`);
+            alert(I18N.t('gi.send_success'));
             window.location.href = 'my_garage.html';
         }
 

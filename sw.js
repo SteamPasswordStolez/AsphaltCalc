@@ -40,6 +40,9 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // Ignore unsupported schemes (like chrome-extension://)
+    if (!event.request.url.startsWith('http')) return;
+
     // Stale-While-Revalidate strategy
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
