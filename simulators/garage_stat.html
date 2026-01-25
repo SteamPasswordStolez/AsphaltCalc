@@ -18,6 +18,7 @@
     <script src="../assets/lang.js?v=2"></script>
     <script src="../assets/i18n.js"></script>
     <script src="../assets/garage.js"></script>
+    <script src="../assets/history.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -279,6 +280,16 @@
 
             <!-- Charts Area -->
             <div class="panel-col" style="grid-column: span 2;">
+                <!-- Growth Chart (NEW) -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📈 차고 성장 추이 (30일)</h3>
+                    </div>
+                    <div class="chart-viewer" style="height:220px">
+                        <canvas id="chartGrowth"></canvas>
+                    </div>
+                </div>
+
                 <div class="chart-card">
                     <div class="chart-header">
                         <h3 class="chart-title">클래스별 평균 성능 비교</h3>
@@ -430,6 +441,64 @@
 
             // Render Charts
             renderCharts(buckets, starCounts);
+
+            // Render History Chart
+            renderGrowthChart();
+        }
+
+        function renderGrowthChart() {
+            if (window.HistoryManager) {
+                HistoryManager.init();
+                const snaps = HistoryManager._data.snapshots;
+
+                // Prepare Data
+                // If empty, create dummy for today
+                let dataPoints = snaps;
+                if (!dataPoints || dataPoints.length === 0) {
+                    dataPoints = [{
+                        date: new Date().toISOString().slice(0, 10),
+                        totalCars: document.getElementById('kpiOwned').textContent || 0,
+                        totalScore: 0
+                    }];
+                }
+
+                // Limit to last 30
+                if (dataPoints.length > 30) dataPoints = dataPoints.slice(dataPoints.length - 30);
+
+                const labels = dataPoints.map(d => d.date.slice(5)); // MM-DD
+                const carData = dataPoints.map(d => d.totalCars);
+
+                new Chart(document.getElementById('chartGrowth'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '보유 차량 수',
+                            data: carData,
+                            borderColor: '#8b5cf6', // Violet
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'top' }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(128,128,128,0.1)' },
+                                ticks: { precision: 0 }
+                            },
+                        }
+                    }
+                });
+            }
         }
 
         function getMaxRank(car) {

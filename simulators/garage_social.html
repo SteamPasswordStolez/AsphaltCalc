@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Garage Social — 차고 공유 & 비교</title>
+    <link rel="icon" href="../assets/favicon.png">
+    <link rel="stylesheet" href="../assets/style.css">
+    <link rel="stylesheet" href="../assets/themes.css">
+
+    <script>window.SIM_ID = "garage-social";</script>
+    <script src="../assets/theme-init.js"></script>
+    <link rel="stylesheet" href="../assets/theme-adapter.css">
+
+    <script src="../assets/lang.js?v=2"></script>
+    <script src="../assets/i18n.js"></script>
+    <script src="../assets/garage.js"></script>
+    <script src="../assets/efficiency.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        .social-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        @media (max-width: 768px) {
+            .social-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .card-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .code-display {
+            background: var(--chip-bg);
+            border: 2px dashed var(--border);
+            padding: 16px;
+            margin: 16px 0;
+            font-family: monospace;
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent);
+            border-radius: 12px;
+            word-break: break-all;
+        }
+
+        .compare-result {
+            display: none;
+            margin-top: 32px;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: var(--panel);
+            padding: 24px;
+            border-radius: 18px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .player {
+            text-align: center;
+        }
+
+        .player-score {
+            font-size: 32px;
+            font-weight: 900;
+        }
+
+        .vs-badge {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--muted);
+            opacity: 0.5;
+        }
+
+        .battle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+        .veteran-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* Leaderboard Table */
+        .rank-table th {
+            color: var(--muted);
+            padding: 12px 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .rank-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 14px;
+        }
+
+        .rank-tr:last-child td {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <h1>🤝 <span data-i18n="gs.social_title">소셜 라운지</span></h1>
+            </div>
+            <div class="toolbar">
+                <a class="btn" href="my_garage.html" data-i18n="common.back">← 내 차고</a>
+            </div>
+        </div>
+
+        <div style="margin-top:20px; text-align:center; margin-bottom:30px;">
+            <h2 style="margin:0">함께 성장하는 즐거움</h2>
+            <p style="color:var(--muted)">내 차고를 공유하거나 친구들을 초대하여 함께 비교하세요.<br>여러 명을 초대하면 <b>리더보드 모드</b>가 활성화됩니다!</p>
+        </div>
+
+        <div class="social-container">
+            <!-- Share -->
+            <div class="card">
+                <span class="card-icon">📤</span>
+                <h3>내 차고 공유하기</h3>
+                <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">
+                    현재 상태를 클라우드에 저장하고<br>공유 코드를 생성합니다.
+                </p>
+                <div id="shareSection">
+                    <button class="btn primary btn-lg" id="btnShare">코드 생성하기</button>
+                </div>
+                <div id="codeSection" style="display:none;">
+                    <div class="code-display" id="generatedCode">Loading...</div>
+                    <button class="btn" id="btnCopy">📋 코드 복사</button>
+                    <p style="font-size:11px; color:var(--muted); margin-top:8px;">이 코드를 친구에게 알려주세요!</p>
+                </div>
+            </div>
+
+            <!-- Compare Form -->
+            <div class="card">
+                <span class="card-icon">📥</span>
+                <h3>친구 차고 비교하기</h3>
+                <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">
+                    친구 코드를 입력하여 목록에 추가하세요.<br>(여러 명 추가하여 배틀로얄 가능!)
+                </p>
+
+                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <input type="text" id="inputCode" placeholder="공유 코드 입력 (예: 8F3kA...)"
+                        style="flex:1; padding:12px; font-size:16px; background:var(--bg); border:1px solid var(--border); border-radius:8px;">
+                    <button class="btn secondary" id="btnAddFriend" style="width:100px;">+ 추가</button>
+                </div>
+
+                <div id="playerList"
+                    style="text-align:left; margin-bottom:16px; display:flex; flex-wrap:wrap; gap:8px;">
+                    <!-- Chips injected here -->
+                    <div class="chip" style="background:var(--accent); color:#fff;">ME (나)</div>
+                </div>
+
+                <button class="btn primary btn-lg" id="btnCompare" style="width:100%;">분석 시작 (1명)</button>
+            </div>
+        </div>
+
+        <!-- Result Area -->
+        <div id="resultArea" class="compare-result">
+            <h2 style="text-align:center; margin-bottom:20px;">
+                ⚔️ 비교 리포트 <span id="modeBadge" class="veteran-badge"
+                    style="background:var(--tab); margin-left:8px; vertical-align:middle;">1:1 MODE</span>
+            </h2>
+
+            <!-- Dynamic Content Container -->
+            <div id="dynamicContent"></div>
+
+        </div>
+    </div>
+
+    <!-- Logic -->
+    <script type="module">
+        import ShareManager from '../assets/share_manager.js';
+
+        // State
+        let competitors = []; // { name: 'Friend 1', code: 'xyz', data: obj, color: hex }
+        // Predefined Colors
+        const COLORS = ['#3b82f6', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            // Me is always index 0 implicitly in rendering
+        });
+
+        document.getElementById('btnShare').onclick = async () => {
+            const btn = document.getElementById('btnShare');
+            btn.disabled = true;
+            btn.innerText = "업로드 중...";
+            try {
+                const data = GarageManager.exportData();
+                const json = JSON.parse(data);
+                const code = await ShareManager.shareGarage(json);
+                document.getElementById('shareSection').style.display = 'none';
+                document.getElementById('codeSection').style.display = 'block';
+                document.getElementById('generatedCode').innerText = code;
+            } catch (e) {
+                alert("업로드 실패: " + e.message);
+                btn.disabled = false;
+                btn.innerText = "코드 생성하기";
+            }
+        };
+
+        document.getElementById('btnCopy').onclick = () => {
+            const code = document.getElementById('generatedCode').innerText;
+            navigator.clipboard.writeText(code).then(() => alert("복사되었습니다!"));
+        };
+
+        document.getElementById('btnAddFriend').onclick = async () => {
+            const input = document.getElementById('inputCode');
+            const code = input.value.trim();
+            if (!code) return alert("코드를 입력하세요.");
+
+            // Check Duplicate
+            if (competitors.some(c => c.code === code)) return alert("이미 추가된 친구입니다.");
+
+            const btn = document.getElementById('btnAddFriend');
+            const orgText = btn.innerText;
+            btn.disabled = true; btn.innerText = "...";
+
+            try {
+                const data = await ShareManager.loadGarage(code);
+                const name = `Friend ${competitors.length + 1}`;
+                const color = COLORS[(competitors.length + 1) % COLORS.length];
+
+                competitors.push({ name, code, data, color });
+                updatePlayerList();
+                input.value = "";
+
+                // Update Compare Button Text
+                document.getElementById('btnCompare').innerText = `분석 시작 (${competitors.length + 1}명)`;
+
+            } catch (e) {
+                alert("코드 로드 실패: " + e.message);
+            } finally {
+                btn.disabled = false; btn.innerText = orgText;
+            }
+        };
+
+        function updatePlayerList() {
+            const container = document.getElementById('playerList');
+            // Keep ME
+            container.innerHTML = `<div class="chip" style="background:${COLORS[0]}; color:#fff;">ME (나)</div>`;
+
+            competitors.forEach((c, idx) => {
+                const chip = document.createElement('div');
+                chip.className = 'chip';
+                chip.style.background = 'var(--surface)';
+                chip.style.border = `1px solid ${c.color}`;
+                chip.style.color = c.color;
+                chip.innerHTML = `${c.name} <span style="cursor:pointer; margin-left:4px; font-weight:bold;" onclick="window.removeFriend(${idx})">×</span>`;
+                container.appendChild(chip);
+            });
+        }
+
+        window.removeFriend = (idx) => {
+            competitors.splice(idx, 1);
+            updatePlayerList();
+            document.getElementById('btnCompare').innerText = `분석 시작 (${competitors.length + 1}명)`;
+        };
+
+        document.getElementById('btnCompare').onclick = async () => {
+            if (competitors.length === 0) return alert("비교할 친구를 최소 1명 추가해주세요.");
+
+            const btn = document.getElementById('btnCompare');
+            btn.disabled = true; btn.innerText = "분석 중...";
+
+            try {
+                // Load Meta & ME
+                const res = await fetch('../assets/cars.json');
+                const allCars = await res.json();
+                const myData = GarageManager._data || {};
+
+                // Build Full List: [ME, ...Friends]
+                const participants = [
+                    { name: "ME", data: myData, color: COLORS[0] },
+                    ...competitors
+                ];
+
+                analyzeMulti(participants, allCars);
+
+                document.getElementById('resultArea').style.display = 'block';
+                setTimeout(() => document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth' }), 100);
+            } catch (e) {
+                console.error(e);
+                alert("분석 오류: " + e.message);
+            } finally {
+                btn.disabled = false; btn.innerText = `분석 시작 (${competitors.length + 1}명)`;
+            }
+        };
+
+        function analyzeMulti(participants, meta) {
+            // 1. Calc Stats for All
+            participants.forEach(p => {
+                p.stats = calcStats(p.data, meta);
+            });
+
+            const container = document.getElementById('dynamicContent');
+            const isMulti = participants.length > 2;
+
+            const badge = document.getElementById('modeBadge');
+            badge.innerText = isMulti ? 'BATTLE ROYALE 👑' : '1:1 MODE';
+            badge.style.background = isMulti ? 'linear-gradient(135deg, #f59e0b, #ef4444)' : 'var(--tab)';
+
+            let html = "";
+
+            // --- A. LEADERBOARD (Or simple Scoreboard) ---
+            if (isMulti) {
+                // Sort by Score Desc for table
+                const rankList = [...participants].sort((a, b) => b.stats.totalScore - a.stats.totalScore);
+
+                html += `
+                <div class="card" style="margin-bottom:24px; text-align:left;">
+                    <h3 style="font-size:18px; margin-bottom:16px;">🏆 종합 순위 (Leaderboard)</h3>
+                    <div style="overflow-x:auto;">
+                        <table class="rank-table" style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr style="border-bottom:2px solid var(--border);">
+                                    <th style="width:50px; text-align:center;">#</th>
+                                    <th>Player</th>
+                                    <th style="text-align:right;">Score</th>
+                                    <th style="text-align:center;">Tier</th>
+                                    <th style="text-align:center;">Cars</th>
+                                    <th style="text-align:center;">Gold</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rankList.map((p, i) => `
+                                <tr class="rank-tr" style="${p.name === 'ME' ? 'background:rgba(59,130,246,0.1); font-weight:bold;' : ''}">
+                                    <td style="text-align:center; padding:12px;">${i + 1}</td>
+                                    <td style="padding:12px;">
+                                        <span style="display:inline-block; width:10px; height:10px; background:${p.color}; border-radius:50%; margin-right:8px;"></span>
+                                        ${p.name}
+                                    </td>
+                                    <td style="text-align:right; font-family:monospace; font-size:16px;">${p.stats.totalScore.toLocaleString()}</td>
+                                    <td style="text-align:center;">${getVeteranTitle(p.stats)}</td>
+                                    <td style="text-align:center;">${p.stats.totalCars}</td>
+                                    <td style="text-align:center; color:#eab308;">${p.stats.goldCount}</td>
+                                </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            } else {
+                // Traditional 1:1 View
+                const me = participants[0];
+                const fr = participants[1];
+                const scoreMe = me.stats.totalScore;
+                const scoreFr = fr.stats.totalScore;
+
+                html += `
+                <div class="score-board">
+                    <div class="player">
+                        <div style="font-size:12px; color:var(--muted)">ME</div>
+                        <div class="player-score" style="color:${scoreMe >= scoreFr ? 'var(--accent)' : 'var(--muted)'}">${scoreMe.toLocaleString()}</div>
+                        <div class="veteran-badge" style="background:${getVeteranColor(me.stats)}">${getVeteranTitle(me.stats)}</div>
+                    </div>
+                    <div class="vs-badge">VS</div>
+                    <div class="player">
+                        <div style="font-size:12px; color:var(--muted)">${fr.name}</div>
+                        <div class="player-score" style="color:${scoreFr > scoreMe ? '#f43f5e' : 'var(--muted)'}">${scoreFr.toLocaleString()}</div>
+                        <div class="veteran-badge" style="background:${getVeteranColor(fr.stats)}">${getVeteranTitle(fr.stats)}</div>
+                    </div>
+                </div>
+                
+                <div class="grid-responsive cols-2" style="gap:12px; margin-bottom:24px;">
+                    <div class="card" style="padding:16px;">
+                        <div style="font-size:14px; font-weight:bold; margin-bottom:12px;">📊 요약 비교</div>
+                        <div class="stat-row"><span>총 보유량</span> <div><b style="color:${me.color}">${me.stats.totalCars}</b> vs <b style="color:${fr.color}">${fr.stats.totalCars}</b></div></div>
+                        <div class="stat-row"><span>수집률</span> <div><b style="color:${me.color}">${me.stats.pct}%</b> vs <b style="color:${fr.color}">${fr.stats.pct}%</b></div></div>
+                        <div class="stat-row" style="border:none"><span>황금차</span> <div><b style="color:${me.color}">${me.stats.goldCount}</b> vs <b style="color:${fr.color}">${fr.stats.goldCount}</b></div></div>
+                    </div>
+                    <div class="card" style="padding:16px; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+                        <div style="font-size:14px; color:var(--muted);">승률 분석</div>
+                        <div style="font-size:18px; font-weight:bold; margin-top:8px;">
+                             ${(scoreMe - scoreFr > 100000) ? "압도적인 승리! 👑" : (scoreMe - scoreFr > 0) ? "근소한 우위 ⚔️" : "패배... 재도전하라! 🛡️"}
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
+
+            // --- CHARTS ---
+            html += `
+            <div class="battle-grid">
+                <div class="card" style="grid-column: span 2;">
+                    <h3 style="font-size:16px;">🥊 클래스별 점수 대결</h3>
+                    <div style="height:300px;"><canvas id="classChart"></canvas></div>
+                </div>
+                <div class="card" style="grid-column: span 2;">
+                    <h3 style="font-size:16px;">📊 성급 분포 비교</h3>
+                    <div style="height:300px;"><canvas id="starChart"></canvas></div>
+                </div>
+                <div class="card" style="grid-column: span 2;">
+                    <h3 style="font-size:16px;">🏎️ 엔진 성능 레이더</h3>
+                    <div style="height:350px;"><canvas id="radarChart"></canvas></div>
+                </div>
+                <!-- Unique List only good for 1:1 or small groups, skip for big party or make special UI -->
+                ${!isMulti ? `
+                <div class="card" style="text-align:left;">
+                    <h3 style="font-size:16px;">💎 내가 더 가진 차 (Unique)</h3>
+                    <div id="uniqueMe" class="unique-list" style="margin-top:10px;"></div>
+                </div>
+                <div class="card" style="text-align:left;">
+                    <h3 style="font-size:16px;">🔥 친구가 더 가진 차 (Unique)</h3>
+                    <div id="uniqueFr" class="unique-list" style="margin-top:10px;"></div>
+                </div>
+                ` : ''}
+            </div>
+            `;
+
+            container.innerHTML = html;
+
+            // Render Charts
+            setTimeout(() => {
+                renderMultiChart('classChart', 'bar', participants, ['D', 'C', 'B', 'A', 'S'],
+                    p => [p.stats.classScores.D, p.stats.classScores.C, p.stats.classScores.B, p.stats.classScores.A, p.stats.classScores.S]);
+
+                renderMultiChart('starChart', 'bar', participants, ['1★', '2★', '3★', '4★', '5★', '6★'],
+                    p => p.stats.starCounts.slice(1));
+
+                renderMultiRadar(participants);
+
+                if (!isMulti) {
+                    // Render Unique
+                    const me = participants[0]; const fr = participants[1];
+                    const uMe = Object.keys(me.data).filter(id => !fr.data[id]);
+                    const uFr = Object.keys(fr.data).filter(id => !me.data[id]);
+                    renderUniqueList('uniqueMe', uMe, meta);
+                    renderUniqueList('uniqueFr', uFr, meta);
+                }
+            }, 50);
+        }
+
+        // ... (calcStats, getVeteranTitle, getVeteranColor are same) ...
+        function calcStats(garage, meta) {
+            let totalScore = 0, totalCars = 0, goldCount = 0;
+            let classScores = { D: 0, C: 0, B: 0, A: 0, S: 0 };
+            let starCounts = [0, 0, 0, 0, 0, 0, 0];
+            let engineSum = { top: 0, acc: 0, hnd: 0, nit: 0, count: 0 };
+            let effCounts = { S: 0, A: 0, B: 0, F: 0 }; // Efficiency need init?
+
+            let carList = [];
+
+            if (window.EfficiencyManager && !EfficiencyManager.isReady()) EfficiencyManager.init(meta, []);
+
+            Object.keys(garage).forEach(id => {
+                const c = garage[id];
+                const info = meta.find(m => String(m.id) === String(id));
+                if (!info) return;
+
+                totalCars++;
+                const rank = c.rank || 0;
+                let score = rank;
+                if (c.star >= (info.max_star || 6)) score += 500;
+
+                const maxS = info.max_star || 6;
+                if (c.star >= maxS) goldCount++;
+
+                totalScore += score;
+                classScores[info.class] = (classScores[info.class] || 0) + score;
+
+                const s = c.star || 1;
+                if (s >= 1 && s <= 6) starCounts[s]++;
+
+                carList.push({ id, rank, score, star: s, cls: info.class, name: info.name });
+
+                if (info.stat && info.stat.length > 0) {
+                    const best = info.stat.reduce((p, c) => (c.rank || 0) > (p.rank || 0) ? c : p);
+                    if (best) {
+                        engineSum.top += (best.top_speed || 0);
+                        engineSum.acc += (best.accel || 0);
+                        engineSum.hnd += (best.handling || 0);
+                        engineSum.nit += (best.nitro || 0);
+                        engineSum.count++;
+                    }
+                }
+            });
+
+            const engAvg = engineSum.count > 0 ? {
+                top: Math.round(engineSum.top / engineSum.count),
+                acc: Math.round(engineSum.acc / engineSum.count),
+                hnd: Math.round(engineSum.hnd / engineSum.count),
+                nit: Math.round(engineSum.nit / engineSum.count)
+            } : { top: 0, acc: 0, hnd: 0, nit: 0 };
+
+            carList.sort((a, b) => b.rank - a.rank);
+
+            return {
+                totalScore, totalCars, goldCount, classScores, starCounts,
+                pct: Math.round(totalCars / meta.length * 100),
+                topCars: carList.slice(0, 3),
+                engineStats: engAvg,
+                effCounts: effCounts
+            };
+        }
+
+        function getVeteranTitle(stats) {
+            const s = stats.totalScore;
+            if (s < 10000) return "Newbie 🐣";
+            if (s < 50000) return "Rookie 🌱";
+            if (s < 150000) return "Driver 🚗";
+            if (s < 300000) return "Pro 🏎️";
+            if (s < 600000) return "Master 🏆";
+            if (s < 1000000) return "Grand Master 👑";
+            return "Legend 🌟";
+        }
+
+        function getVeteranColor(stats) {
+            const s = stats.totalScore;
+            if (s < 50000) return "#10b981";
+            if (s < 300000) return "#3b82f6";
+            if (s < 600000) return "#8b5cf6";
+            return "#f59e0b";
+        }
+
+        // --- CHART HELPERS ---
+        let charts = {};
+
+        function renderMultiChart(canvasId, type, participants, labels, dataExtractor) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+
+            const datasets = participants.map(p => ({
+                label: p.name,
+                data: dataExtractor(p),
+                backgroundColor: p.color,
+                borderColor: p.color,
+                borderWidth: 1,
+                borderRadius: 4
+            }));
+
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        function renderMultiRadar(participants) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            if (charts['radarChart']) charts['radarChart'].destroy();
+
+            const datasets = participants.map(p => ({
+                label: p.name,
+                data: [p.stats.engineStats.top, p.stats.engineStats.acc, p.stats.engineStats.hnd, p.stats.engineStats.nit],
+                borderColor: p.color,
+                backgroundColor: p.color + '33', // 20% opacity
+                pointBackgroundColor: p.color
+            }));
+
+            charts['radarChart'] = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Top Speed 🏁', 'Acceleration 🚀', 'Handling 🔄', 'Nitro 🔥'],
+                    datasets
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    elements: { line: { borderWidth: 2 } },
+                    scales: { r: { beginAtZero: true } },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        function renderUniqueList(elId, ids, meta) {
+            const container = document.getElementById(elId);
+            container.innerHTML = '';
+            if (ids.length === 0) {
+                container.innerHTML = '<span style="color:var(--muted)">없음</span>';
+                return;
+            }
+            const list = ids.map(id => meta.find(m => String(m.id) === String(id))).filter(x => x);
+            const order = { S: 0, A: 1, B: 2, C: 3, D: 4 };
+            list.sort((a, b) => order[a.class] - order[b.class]);
+
+            list.slice(0, 15).forEach(car => {
+                const el = document.createElement('div');
+                el.className = 'car-badge';
+                el.innerHTML = `<span class="class-tag" style="background:${getClassColor(car.class)}; color:#fff; padding:2px 6px; border-radius:4px; margin-right:4px;">${car.class}</span> ${car.name}`;
+                el.style.marginBottom = '4px';
+                container.appendChild(el);
+            });
+
+            if (list.length > 15) {
+                const more = document.createElement('div');
+                more.style.fontSize = '11px';
+                more.innerText = `...외 ${list.length - 15}대`;
+                container.appendChild(more);
+            }
+        }
+
+        function getClassColor(cls) {
+            const map = { S: '#f87171', A: '#a78bfa', B: '#60a5fa', C: '#fbbf24', D: '#4ade80' };
+            return map[cls] || '#888';
+        }
+    </script>
+</body>
+
+</html>

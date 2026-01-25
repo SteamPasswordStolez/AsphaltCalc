@@ -18,6 +18,7 @@
     <script src="../assets/lang.js?v=2"></script>
     <script src="../assets/i18n.js"></script>
     <script src="../assets/garage.js"></script>
+    <script src="../assets/history.js"></script>
 
     <style>
         .panel {
@@ -446,7 +447,16 @@
         function saveState() {
             const isOwned = document.getElementById('ownedCheck').checked;
 
+            // [History] Get previous state for difference check
+            const oldData = GarageManager.getCar(carId);
+            const wasOwned = !!oldData;
+            const oldStar = oldData ? (oldData.star || 1) : 0;
+
             if (!isOwned) {
+                if (wasOwned) {
+                    // Deleted? Maybe no logging needed or log deletion?
+                    // Usually we track growth, not reduction.
+                }
                 GarageManager.deleteCar(carId);
                 alert("차고에서 삭제되었습니다.");
                 window.location.href = "my_garage.html";
@@ -471,10 +481,17 @@
             GarageManager.saveCar(carId, {
                 star: star,
                 rank: rank,
-                // Preserve other fields if exists (like upgrade parts) by merging inside manager, 
-                // but manager overwrite logic needs check.
-                // GarageManager.saveCar merges data, so it's safe.
             });
+
+            // [History] Log Events
+            if (!wasOwned && isOwned) {
+                HistoryManager.logEvent('UNLOCK', carMeta, '차량 획득', 0);
+            } else if (wasOwned && star > oldStar) {
+                HistoryManager.logEvent('STAR_UP', carMeta, `${oldStar}성 ➔ ${star}성 승급`, 0); // Cost unknown here
+            } else if (wasOwned && rank > (oldData.rank || 0) + 100) {
+                // Log significant rank up? Maybe skip to avoid spam.
+                // HistoryManager.logEvent('UPGRADE', carMeta, `랭크 상승 (${oldData.rank} → ${rank})`, 0);
+            }
 
             alert("저장되었습니다.");
             window.location.href = "my_garage.html";

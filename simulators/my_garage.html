@@ -21,6 +21,7 @@
     <script src="../assets/achievements.js"></script>
     <script src="../assets/efficiency.js"></script>
     <script src="../assets/goal_advisor.js"></script>
+    <script src="../assets/history.js"></script>
 
     <style>
         /* ... styles ... */
@@ -505,6 +506,8 @@
                     <div style="display:flex; gap:8px;">
                         <button class="btn" style="border-color:#3b82f6; color:#3b82f6;" onclick="openGoals()">🎯
                             목표</button>
+                        <button class="btn" onclick="openHistory()">📜 로그</button>
+                        <a class="btn" href="garage_social.html">🤝 소셜</a>
                         <button class="btn" onclick="openAchievements()">🏆 업적</button>
                         <button class="btn" onclick="backupData()">💾 백업</button>
                         <button class="btn" onclick="document.getElementById('restoreInput').click()">📤
@@ -807,7 +810,26 @@
         (async function () {
             await loadMeta();
             setupControls();
+
+            // Init History
+            if (window.HistoryManager) {
+                HistoryManager.init();
+            }
+
             renderGarage();
+
+            // Take Snapshot (after renderGarage calculates totals)
+            // But renderGarage doesn't return totals. Let's calc them or use DOM.
+            // Actually renderGarage updates KPI DOM. Let's trust GarageManager.getAll()
+            setTimeout(() => {
+                const all = GarageManager.getAll();
+                HistoryManager.forceSnapshot({
+                    totalCars: all.length,
+                    totalScore: 0, // Garage Score calc is complex, skip for now or implement later
+                    totalValue: 0
+                });
+            }, 1000);
+
         })();
     </script>
 
@@ -832,6 +854,19 @@
                 <button class="modal-close" onclick="closeGoals()">×</button>
             </div>
             <div class="modal-body" id="goalList">
+                <!-- JS Injected -->
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal-overlay" onclick="if(event.target===this) closeHistory()">
+        <div class="modal" style="width:500px">
+            <div class="modal-header">
+                <div class="modal-title">📜 차고 기록 (Recent Logs)</div>
+                <button class="modal-close" onclick="closeHistory()">×</button>
+            </div>
+            <div class="modal-body" id="historyList" style="padding:0;">
                 <!-- JS Injected -->
             </div>
         </div>
@@ -997,6 +1032,44 @@
 
         function closeAchievements() {
             document.getElementById('achModal').style.display = 'none';
+        }
+
+        function openHistory() {
+            const list = HistoryManager._data.logs;
+            const container = document.getElementById('historyList');
+            container.innerHTML = '';
+
+            if (list.length === 0) {
+                container.innerHTML = '<div style="padding:30px; text-align:center; color:var(--muted)">아직 기록된 활동이 없습니다.</div>';
+            } else {
+                list.forEach(log => {
+                    const el = document.createElement('div');
+                    el.style.padding = '12px 16px';
+                    el.style.borderBottom = '1px solid var(--border-subtle)';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.justifyContent = 'space-between';
+
+                    const date = new Date(log.ts).toLocaleString();
+                    const typeColor = log.type === 'UNLOCK' ? '#10b981' : '#3b82f6';
+                    const icon = log.type === 'UNLOCK' ? '🔓' : '⭐';
+
+                    el.innerHTML = `
+                        <div>
+                            <div style="font-size:10px; color:var(--muted); margin-bottom:2px;">${date}</div>
+                            <div style="font-size:14px; font-weight:600;">${icon} <span style="color:${typeColor}">${log.type}</span>: ${log.carName}</div>
+                            <div style="font-size:12px; opacity:0.8;">${log.desc}</div>
+                        </div>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+
+            document.getElementById('historyModal').style.display = 'flex';
+        }
+
+        function closeHistory() {
+            document.getElementById('historyModal').style.display = 'none';
         }
     </script>
 </body>
