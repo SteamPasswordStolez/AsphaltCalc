@@ -18,9 +18,63 @@
     <script src="../assets/lang.js?v=2"></script>
     <script src="../assets/i18n.js"></script>
     <script src="../assets/garage.js"></script>
+    <script src="../assets/achievements.js"></script>
+    <script src="../assets/efficiency.js"></script>
+    <script src="../assets/goal_advisor.js"></script>
 
     <style>
-        /* Specific styles for Garage Grid */
+        /* ... styles ... */
+
+        /* Goal Modal Styles */
+        .goal-card {
+            background: linear-gradient(135deg, var(--surface), var(--surface-soft));
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.1);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .goal-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .goal-tag {
+            background: var(--accent);
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .goal-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .goal-reason {
+            font-size: 13px;
+            line-height: 1.4;
+            color: var(--ink);
+            background: rgba(0, 0, 0, 0.03);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -274,6 +328,169 @@
                 transform: translateX(100%) rotate(45deg);
             }
         }
+
+        /* Achievement Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 650px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalSlide {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            background: var(--bg);
+            /* Ensure solid background */
+        }
+
+        .ach-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .ach-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            background: var(--surface-soft);
+            opacity: 0.6;
+            grayscale: (1);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Locked State */
+        .ach-item::after {
+            content: "🔒";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            opacity: 0.2;
+            font-size: 14px;
+        }
+
+        .ach-item.unlocked {
+            opacity: 1;
+            filter: none;
+            background: linear-gradient(145deg, var(--surface), var(--surface-soft));
+            border-color: var(--accent);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .ach-item.unlocked::after {
+            content: "";
+        }
+
+        .ach-icon {
+            font-size: 36px;
+            width: 48px;
+            text-align: center;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+        }
+
+        .ach-info {
+            flex: 1;
+        }
+
+        .ach-name {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 4px;
+            color: var(--ink);
+        }
+
+        .ach-desc {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .ach-date {
+            font-size: 11px;
+            color: #10b981;
+            margin-top: 8px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 99px;
+        }
     </style>
 </head>
 
@@ -286,15 +503,20 @@
             <div class="toolbar">
                 <div style="display:flex; flex-direction:column; align-items:flex-end;">
                     <div style="display:flex; gap:8px;">
+                        <button class="btn" style="border-color:#3b82f6; color:#3b82f6;" onclick="openGoals()">🎯
+                            목표</button>
+                        <button class="btn" onclick="openAchievements()">🏆 업적</button>
                         <button class="btn" onclick="backupData()">💾 백업</button>
-                        <button class="btn" onclick="document.getElementById('restoreInput').click()">📤 복원</button>
+                        <button class="btn" onclick="document.getElementById('restoreInput').click()">📤
+                            복원</button>
                         <input type="file" id="restoreInput" style="display:none" accept=".json"
                             onchange="restoreData(this)">
                         <a class="btn" href="garage_import.html">📸 가져오기</a>
                         <a class="btn" href="garage_stat.html" data-i18n="gs.link">📊 통계</a>
                         <a class="btn" href="../index.html" data-i18n="common.back">← 허브</a>
                     </div>
-                    <div style="font-size:16px; color:var(--muted); margin-top:4px;">⚠️ 데이터 보호를 위해 주기적인 <b>[백업]</b>을
+                    <div style="font-size:16px; color:var(--muted); margin-top:4px;">⚠️ 데이터 보호를
+                        위해 주기적인 <b>[백업]</b>을
                         권장합니다.</div>
                 </div>
             </div>
@@ -351,7 +573,8 @@
         <!-- Grid -->
         <div id="garageGrid" class="garage-grid">
             <!-- Loading State -->
-            <div style="grid-column:1/-1; padding:40px; text-align:center; color:var(--muted);">Loading...</div>
+            <div style="grid-column:1/-1; padding:40px; text-align:center; color:var(--muted);">
+                Loading...</div>
         </div>
     </div>
 
@@ -586,6 +809,195 @@
             setupControls();
             renderGarage();
         })();
+    </script>
+
+    <!-- Achievement Modal -->
+    <div id="achModal" class="modal-overlay" onclick="if(event.target===this) closeAchievements()">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🏆 업적 현황</div>
+                <button class="modal-close" onclick="closeAchievements()">×</button>
+            </div>
+            <div class="modal-body" id="achList">
+                <!-- JS Injected -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Goal Modal -->
+    <div id="goalModal" class="modal-overlay" onclick="if(event.target===this) closeGoals()">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">🎯 다음 목표 추천</div>
+                <button class="modal-close" onclick="closeGoals()">×</button>
+            </div>
+            <div class="modal-body" id="goalList">
+                <!-- JS Injected -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openGoals() {
+            // Need data ready
+            if (!GoalAdvisor._cars) {
+                GoalAdvisor.init(GarageManager._data).then(renderGoals);
+            } else {
+                renderGoals();
+            }
+        }
+
+        function renderGoals() {
+            GoalAdvisor._garage = GarageManager._data; // Ensure latest
+            const list = GoalAdvisor.getSuggestions();
+            const container = document.getElementById('goalList');
+            container.innerHTML = '';
+
+            if (list.length === 0) {
+                container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted)">모든 고효율 차량을 획득하셨거나, 추천할 업그레이드가 없습니다! 🎉</div>';
+            }
+
+            list.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'goal-card';
+                el.innerHTML = `
+                    <div class="goal-header">
+                        <div class="goal-title">${item.name} <span style="font-size:0.8em; opacity:0.8;">(${item.type === 'UNLOCK' ? '잠금 해제' : '스타 업 ⭐'})</span></div>
+                        <div class="goal-tag" style="background:${getTierColor(item.tier)}">
+                            ${item.tier} Tier / ${item.normalizedScore}점
+                        </div>
+                    </div>
+                    <div class="goal-stats">
+                        <div>
+                            <span style="display:block; font-size:10px;">목표</span>
+                            <b>${item.current} ➔ ${item.target}</b>
+                        </div>
+                        <div>
+                            <span style="display:block; font-size:10px;">필요 자원 (예상)</span>
+                            <b>${item.costLabel}</b>
+                        </div>
+                    </div>
+                    <div class="goal-reason">
+                        💡 ${item.reason}
+                    </div>
+                 `;
+                container.appendChild(el);
+            });
+
+            // Disclaimer
+            const disclaimer = document.createElement('div');
+            disclaimer.style.marginTop = '16px';
+            disclaimer.style.textAlign = 'center';
+            disclaimer.style.fontSize = '11px';
+            disclaimer.style.color = 'var(--muted)';
+            disclaimer.innerHTML = '⚠️ 본 추천 목록은 알고리즘 및 통계에 기반한 단순 참고용이며, 절대적인 정답이 아닙니다.<br>실제 플레이 스타일과 상황에 맞춰 유연하게 판단하시기 바랍니다.';
+            container.appendChild(disclaimer);
+
+            document.getElementById('goalModal').style.display = 'flex';
+        }
+
+        function closeGoals() {
+            document.getElementById('goalModal').style.display = 'none';
+        }
+
+        function getTierColor(tier) {
+            switch (tier) {
+                case 'S': return '#ef4444'; // Red
+                case 'A': return '#f59e0b'; // Amber
+                case 'B': return '#10b981'; // Emerald
+                default: return '#6b7280'; // Gray
+            }
+        }
+
+        // Initialize Achievements
+        (async function () {
+            // Need cars data for some achievements
+            await AchievementManager.init(null); // Load cars.json internally if needed
+            checkAchievements();
+        })();
+
+        async function checkAchievements() {
+            const cars = GarageManager.getAll();
+            const newUnlocks = AchievementManager.checkAll(cars);
+            if (newUnlocks.length > 0) {
+                // Toast simplified
+                const names = newUnlocks.map(u => u.title).join(', ');
+                alert("🎉 새로운 업적 달성!\n" + names);
+            }
+        }
+
+        function openAchievements() {
+            const list = AchievementManager.getAll();
+            const container = document.getElementById('achList');
+            container.innerHTML = '';
+
+            // Add simple stats summary
+            const unlockedCount = list.filter(a => a.unlocked).length;
+            const totalCount = list.length;
+            const progress = Math.floor((unlockedCount / totalCount) * 100);
+
+            const summary = document.createElement('div');
+            summary.style.padding = '0 0 16px 0';
+            summary.style.marginBottom = '16px';
+            summary.style.display = 'flex';
+            summary.style.justifyContent = 'space-between';
+            summary.style.alignItems = 'center';
+
+            const statsText = document.createElement('span');
+            statsText.innerHTML = `달성률: <b style="color:var(--accent)">${progress}%</b> (${unlockedCount} / ${totalCount})`;
+            summary.appendChild(statsText);
+
+            const resetBtn = document.createElement('button');
+            resetBtn.innerText = '⚠️ 초기화';
+            resetBtn.style.background = 'none';
+            resetBtn.style.border = '1px solid var(--border-subtle)';
+            resetBtn.style.color = 'var(--muted)';
+            resetBtn.style.fontSize = '11px';
+            resetBtn.style.cursor = 'pointer';
+            resetBtn.style.padding = '4px 8px';
+            resetBtn.style.borderRadius = '4px';
+            resetBtn.onclick = function () {
+                const check = prompt("정말로 모든 업적 데이터를 초기화하시겠습니까?\n진행하려면 '초기화' 라고 입력하세요.");
+                if (check === '초기화') {
+                    AchievementManager.reset();
+                    alert('모든 업적이 초기화되었습니다.');
+                    openAchievements(); // Refresh
+                }
+            };
+            summary.appendChild(resetBtn);
+
+            container.appendChild(summary);
+
+            const grid = document.createElement('div');
+            grid.className = 'ach-grid';
+
+            list.forEach(ach => {
+                const el = document.createElement('div');
+                el.className = 'ach-item' + (ach.unlocked ? ' unlocked' : '');
+                const diffColor = ach.diffObj ? ach.diffObj.color : '#888';
+                const diffLabel = ach.diffObj ? ach.diffObj.id : '?';
+
+                el.innerHTML = `
+                    <div class="ach-info">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div class="ach-name">${ach.title}</div>
+                            <span style="background:${diffColor}; font-size:9px; padding:2px 6px; border-radius:4px; color:#fff; font-weight:bold;">${diffLabel}</span>
+                        </div>
+                        <div style="font-size:10px; color:var(--muted); margin-bottom:4px; opacity:0.8;">[${ach.cat}]</div>
+                        <div class="ach-desc">${ach.desc}</div>
+                        ${ach.unlocked ? '<div class="ach-date">달성 완료!</div>' : ''}
+                    </div>
+                `;
+                grid.appendChild(el);
+            });
+            container.appendChild(grid);
+
+            document.getElementById('achModal').style.display = 'flex';
+        }
+
+        function closeAchievements() {
+            document.getElementById('achModal').style.display = 'none';
+        }
     </script>
 </body>
 

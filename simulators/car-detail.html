@@ -187,10 +187,94 @@
       color: var(--ink-soft);
       padding: 12px 4px;
     }
+
+    .eff-banner {
+      margin-bottom: 16px;
+      padding: 16px;
+      border-radius: 14px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .eff-banner.grade-S {
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%);
+      border-color: rgba(234, 179, 8, 0.4);
+    }
+
+    .eff-banner.grade-A {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .eff-banner.grade-B {
+      background: var(--surface-soft);
+      border-color: var(--border);
+    }
+
+    .eff-banner.grade-F {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .eff-icon {
+      font-size: 32px;
+      background: var(--surface);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      flex-shrink: 0;
+    }
+
+    .eff-content {
+      flex: 1;
+    }
+
+    .eff-title {
+      font-weight: 800;
+      font-size: 14px;
+      margin: 0 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .eff-desc {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .eff-alt {
+      margin-top: 8px;
+      font-size: 11px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 8px;
+      display: inline-block;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .eff-alt:hover {
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
   </style>
 
   <script src="../assets/lang.js?v=2"></script>
+
   <script src="../assets/i18n.js"></script>
+  <script src="../assets/efficiency.js"></script>
 </head>
 
 <body>
@@ -218,6 +302,7 @@
         </div>
 
         <div id="detailContent" style="display:none">
+          <div id="efficiencyBanner" style="display:none;" class="eff-banner"></div>
           <header class="detail-header">
             <div class="detail-title-block">
               <h2 class="detail-name" id="detailName">-</h2>
@@ -672,6 +757,12 @@
       var id = getQueryCarId();
       var cars = await loadCarData();
 
+      // Init Efficiency Logic
+      if (window.EfficiencyManager) {
+        // Pass cars data, let it fetch upgrades.json
+        EfficiencyManager.init(cars, null).catch(e => console.warn(e));
+      }
+
       var car = null;
       if (id != null) {
         for (var i = 0; i < cars.length; i++) {
@@ -686,7 +777,86 @@
       }
 
       renderDetail(car);
+
+      // Async render efficiency
+      if (car && window.EfficiencyManager) {
+        // Wait minor delay for Manager init if needed, or polling
+        // EfficiencyManager.analyze returns null if not ready.
+        // We'll retry a few times or await init.
+        var checkEff = setInterval(function () {
+          if (EfficiencyManager.isReady()) {
+            clearInterval(checkEff);
+            var res = EfficiencyManager.analyze(car.id);
+            if (res) renderEfficiency(res);
+          }
+        }, 100);
+      }
     })();
+
+    function renderEfficiency(res) {
+      var banner = document.getElementById('efficiencyBanner');
+      if (!banner) return;
+
+      var grade = res.grade;
+      var icon = '➖';
+      var title = '투자 효율: 보통 (B)';
+      var desc = '이 차량은 평균적인 가성비를 가지고 있습니다.';
+
+      if (res.isEstimated) {
+        title += ' (데이터 추정)';
+        desc = '업그레이드 비용 데이터가 없어 클래스 평균값으로 추정한 결과입니다.';
+      }
+
+      // Rank Badge Logic
+      var rankBadge = '';
+      if (typeof res.classRank === 'number') {
+        rankBadge = ' <span style="font-size:12px; opacity:0.8; font-weight:400; margin-left:6px;">(Class Rank: #' + res.classRank + ')</span>';
+      }
+
+      if (res.isExpert) {
+        title = '투자 효율: 전문가 추천 🏅' + rankBadge;
+        desc = '커뮤니티와 고수들이 보증하는 최고의 차량입니다. (' + res.classTotal + '대 중 ' + res.classRank + '위)';
+        icon = '🏅';
+        if (grade === 'S') banner.style.border = '2px solid #eab308';
+      } else {
+        if (grade === 'S') {
+          title = '투자 효율: 최고 (S) 🏆' + rankBadge;
+          desc = '강력 추천! 투자 대비 효율이 상위권입니다. (' + res.classTotal + '대 중 ' + res.classRank + '위)';
+          icon = '👑';
+        } else if (grade === 'A') {
+          title = '투자 효율: 좋음 (A) ✅' + rankBadge;
+          desc = '투자를 추천합니다. 상위 40% 이내의 우수한 성능입니다. (' + res.classTotal + '대 중 ' + res.classRank + '위)';
+          icon = '👍';
+        } else if (grade === 'B') {
+          title = '투자 효율: 보통 (B) ➖' + rankBadge;
+          desc = '평범합니다. 애정으로 키우실 게 아니라면 상위 랭크 차량을 먼저 보세요.';
+          icon = '➖';
+        } else if (grade === 'F') {
+          title = '투자 효율: 주의 (F) ⚠️' + rankBadge;
+          desc = '가성비가 낮습니다. (' + res.classRank + '위). 더 좋은 대안을 선택하세요.';
+          icon = '💸';
+        }
+      }
+
+      banner.className = 'eff-banner grade-' + grade;
+
+      var altHtml = '';
+      if (res.alternatives && res.alternatives.length > 0) {
+        var alt = res.alternatives[0];
+        altHtml = '<a href="car-detail.html?id=' + alt.id + '" class="eff-alt">💡 대안: ' + alt.name + ' 보러가기</a>';
+      }
+
+      banner.innerHTML = `
+            <div class="eff-icon">${icon}</div>
+            <div class="eff-content">
+                <div class="eff-title" style="color:var(--ink)">${title}</div>
+                <p class="eff-desc">${desc}</p>
+                ${altHtml}
+                <div style="font-size:10px; color:var(--muted); margin-top:8px;">⚠️ 본 분석 결과는 통계에 기반한 참고용입니다.</div>
+            </div>
+        `;
+      banner.style.display = 'flex';
+    }
   </script>
 </body>
 

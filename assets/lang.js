@@ -1,7 +1,7 @@
 // lang.js - Complete translations for all simulators
 // Supported languages: ko (Korean - default), en (English), ru (Russian), de (German), fr (French)
 
-const TRANSLATIONS = {
+var TRANSLATIONS = {
   ko: {
     // ===== Common =====
     "common.back": "← 허브",
