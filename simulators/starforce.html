@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Starforce Origin: PERSISTENCE (v8.0)</title>
+    <title>Starforce Origin: SECURE (v8.5)</title>
     <link rel="icon" href="../assets/favicon.png">
     <link rel="stylesheet" href="../assets/style.css">
     <link rel="stylesheet" href="../assets/themes.css">
@@ -643,7 +643,7 @@
     <div class="main-layout">
         <div class="anvil-section">
             <h1 style="color:var(--muted); font-size:20px; margin-bottom:10px;">STARFORCE <span
-                    style="color:#d946ef">V8.0</span></h1>
+                    style="color:#d946ef">V8.5</span></h1>
 
             <div class="star-badge-wrap" id="starBadge">
                 <div class="star-label">STARFORCE</div>
@@ -792,7 +792,7 @@
                     as JSON.</div>
 
                 <button class="btn-data save" onclick="saveData()">
-                    <b>SAVE TO JSON</b>
+                    <b>SAVE TO JSON (SECURE)</b>
                 </button>
                 <button class="btn-data load" onclick="document.getElementById('fileIn').click()">
                     <b>LOAD FROM JSON</b>
@@ -801,8 +801,8 @@
 
                 <div
                     style="font-size:12px; color:#64748b; margin-top:20px; border-top:1px solid #334155; padding-top:10px;">
-                    * The save file contains information such as current car, stars, potential, and cost usage.<br>
-                    * Use it for backup or sharing.
+                    * The save file is digitally signed to prevent tampering.<br>
+                    * Modifying the JSON file will cause load failure.
                 </div>
             </div>
         </div>
@@ -855,7 +855,17 @@
     </div>
 
     <script type="module">
-        // V8.0 CONFIG
+        // V8.5 SECURE CONFIG
+        const SALT = "starforce_secret_2025";
+
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
         const PROBS = [
             [95, 5, 0, 0], [90, 10, 0, 0], [85, 15, 0, 0], [85, 20, 0, 0], [80, 25, 0, 0],
             [75, 30, 0, 0], [70, 35, 0, 0], [65, 40, 0, 0], [60, 45, 0, 0], [55, 50, 0, 0],
@@ -980,9 +990,7 @@
             }
             state.baseStats = base;
 
-            // Image Load
             document.getElementById('dispCar').src = `../assets/cars/${c.id}.png`;
-
             updateUI();
             closeModal('car');
         }
@@ -1004,7 +1012,6 @@
         function updateUI() {
             const { star, baseStats, boomed, grade, car } = state;
 
-            // Car Image & Star
             if (car) {
                 document.getElementById('dispCar').classList.remove('boom', 'trace');
                 document.getElementById('boomOverlay').style.display = 'none';
@@ -1262,15 +1269,24 @@
             fx("RESTORED!", "#6366f1"); closeModal('auc'); updateUI();
         };
 
-        // --- DATA SYSTEM ---
-        window.saveData = () => {
+        // --- DATA SYSTEM (SECURE) ---
+        window.saveData = async () => {
             if (!state.car) { alert("Nothing to save!"); return; }
-            const json = JSON.stringify(state);
-            const blob = new Blob([json], { type: 'application/json' });
+            // Generate Seal
+            const jsonString = JSON.stringify(state);
+            const seal = await sha256(jsonString + SALT);
+
+            const data = {
+                state: state,
+                seal: seal,
+                timestamp: Date.now()
+            };
+
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `starforce_save_${state.car.id}_${Date.now()}.json`;
+            a.download = `starforce_secure_${state.car.id}_${Date.now()}.json`;
             a.click();
             URL.revokeObjectURL(url);
         };
@@ -1279,15 +1295,20 @@
             const file = input.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const loaded = JSON.parse(e.target.result);
-                    if (!loaded.car || loaded.star === undefined) throw new Error("Invalid Save File");
-                    state = loaded;
+                    // Check Seal
+                    if (!loaded.state || !loaded.seal) throw new Error("Invalid Format");
+
+                    const verify = await sha256(JSON.stringify(loaded.state) + SALT);
+                    if (verify !== loaded.seal) throw new Error("Security Alert: Data modified!");
+
+                    state = loaded.state;
                     updateUI();
                     fx("LOADED!", "#3b82f6");
                 } catch (err) {
-                    alert("Failed to load: " + err.message);
+                    alert("Load Failed: " + err.message);
                 }
             };
             reader.readAsText(file);
